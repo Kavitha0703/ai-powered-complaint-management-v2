@@ -1,13 +1,9 @@
 # 🚀 AI-Powered Digital Complaint Management System
 
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
-![Gemini AI](https://img.shields.io/badge/Gemini_AI-4285F4?style=for-the-badge&logo=google&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![Markdown](https://img.shields.io/badge/Markdown-000000?style=for-the-badge&logo=markdown&logoColor=white)
+> An enterprise-grade AI-powered complaint management platform featuring intelligent ticket handling, AI assistant, analytics, real-time collaboration, simulated voice/video meetings, and workflow automation.
+
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-Visit_Project-blue?style=for-the-badge)](https://ai-powered-complaint-management-v2.vercel.app)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-black?style=for-the-badge)](https://github.com/Kavitha0703/ai-powered-complaint-management-v2)
 
 ---
 
@@ -19,23 +15,27 @@ By leveraging advanced Artificial Intelligence, this system automates complex wo
 
 ---
 
-## ⭐ Highlights
+## ✨ Project Highlights
 
-✔ AI-powered Complaint Assistant
-✔ Enterprise Dashboard
-✔ Smart Ticket Routing
-✔ Team Chat
-✔ Voice Meetings
-✔ Video Meetings
-✔ Live Captions
-✔ AI Meeting Summaries
-✔ Complaint Analytics
-✔ Firebase Authentication
-✔ Responsive Design
-✔ Modern Enterprise UI
-✔ Role-based Access Control
-✔ Workflow Automation
-✔ Real-time Notifications
+- 🤖 AI-powered complaint analysis
+- 📊 Interactive analytics dashboard
+- 💬 Real-time team collaboration
+- 🎥 AI-powered voice & video meeting simulation
+- 📝 Live captions & meeting transcripts
+- 📈 SLA monitoring and workflow automation
+- 🔐 Secure authentication
+- 🌙 Modern responsive UI
+- ⚡ Built with React, TypeScript, Vite & Firebase
+
+---
+
+## 🌐 Live Demo
+
+Experience the application here:
+
+**🔗 https://ai-powered-complaint-management-v2.vercel.app**
+
+No installation required.
 
 ---
 
@@ -63,18 +63,6 @@ By leveraging advanced Artificial Intelligence, this system automates complex wo
 | **AI Report Generation** | Automated generation of comprehensive remediation summary reports. |
 | **AI Summarization** | Intelligent extraction of key points from long conversation threads. |
 | **Workflow Automation** | Automatic trigger of SLA reminders and escalation protocols. |
-| **Attachment Handling** | Secure upload and management of screenshots and diagnostic logs. |
-| **Audit Trails** | Complete history of all actions performed on every ticket. |
-| **Priority Matrix** | Dynamic urgency calculation based on business impact criteria. |
-| **Dark/Light Mode** | UI optimized for long-duration usage across different environments. |
-| **Responsive UI** | Seamless experience across desktops, tablets, and mobile devices. |
-| **Interactive Charts** | Real-time d3.js powered visualizations for operational monitoring. |
-| **Bulk Actions** | Ability to manage multiple tickets efficiently from the grid view. |
-| **Drafting Tools** | Intuitive editors for creating responses and internal notes. |
-| **Escalation Pathing** | Structured workflows for escalating critical complaints. |
-| **Search History** | Persistent search queries for quick re-access to critical data. |
-| **Sentiment Analysis** | Real-time analysis of complaint urgency based on text sentiment. |
-| **Dynamic Forms** | Adaptive forms that change fields based on ticket category. |
 
 ---
 
@@ -259,6 +247,17 @@ In a corporate landscape dominated by disconnected tools and manual processes, t
 ## 📸 Preview
 
 Project screenshots and demo GIFs will be added after the final UI release.
+
+---
+
+## ⭐ Support
+
+If you found this project useful, please consider:
+
+- ⭐ Starring this repository
+- 🍴 Forking the project
+- 🐛 Reporting bugs
+- 💡 Suggesting new features
 
 ---
 
