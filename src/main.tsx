@@ -7,14 +7,22 @@ import { ThemeProvider } from './components/ThemeProvider.tsx';
 // Prevent ResizeObserver benign errors from showing an overlay in dev mode
 const compileError = console.error;
 console.error = (...args) => {
-  if (args[0]?.includes?.('ResizeObserver loop') || args[0]?.message?.includes?.('ResizeObserver loop')) {
+  const message = args[0] instanceof Error ? args[0].message : String(args[0]);
+  if (message.includes('ResizeObserver loop')) {
     return;
   }
   compileError(...args);
 };
 
 window.addEventListener('error', e => {
-  if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || e.message === 'ResizeObserver loop limit exceeded') {
+  if (e.message.includes('ResizeObserver loop')) {
+    e.stopImmediatePropagation();
+    e.preventDefault();
+  }
+});
+
+window.addEventListener('unhandledrejection', e => {
+  if (e.reason?.message?.includes('ResizeObserver loop')) {
     e.stopImmediatePropagation();
     e.preventDefault();
   }
