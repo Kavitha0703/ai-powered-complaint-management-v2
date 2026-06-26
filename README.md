@@ -1,8 +1,13 @@
 # 🚀 AI-Powered Digital Complaint Management System
 
-![Project Banner](https://img.shields.io/badge/Status-Active-brightgreen)
-![Version](https://img.shields.io/badge/Version-1.0.0-blue)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![Gemini AI](https://img.shields.io/badge/Gemini_AI-4285F4?style=for-the-badge&logo=google&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![Markdown](https://img.shields.io/badge/Markdown-000000?style=for-the-badge&logo=markdown&logoColor=white)
 
 ---
 
@@ -14,9 +19,27 @@ By leveraging advanced Artificial Intelligence, this system automates complex wo
 
 ---
 
-## 🌟 Key Features
+## ⭐ Highlights
 
-We have built this system from the ground up to address the challenges of modern digital operations.
+✔ AI-powered Complaint Assistant
+✔ Enterprise Dashboard
+✔ Smart Ticket Routing
+✔ Team Chat
+✔ Voice Meetings
+✔ Video Meetings
+✔ Live Captions
+✔ AI Meeting Summaries
+✔ Complaint Analytics
+✔ Firebase Authentication
+✔ Responsive Design
+✔ Modern Enterprise UI
+✔ Role-based Access Control
+✔ Workflow Automation
+✔ Real-time Notifications
+
+---
+
+## 🌟 Features
 
 | Feature | Description |
 | :--- | :--- |
@@ -57,8 +80,6 @@ We have built this system from the ground up to address the challenges of modern
 
 ## 🛠 Technology Stack
 
-A modern, scalable stack chosen for performance and reliability.
-
 | Category | Technology |
 | :--- | :--- |
 | **Frontend** | React 18, TypeScript, Tailwind CSS |
@@ -89,18 +110,35 @@ graph TD
 
 ---
 
-## 📸 Screenshots
+## 🔄 Workflow
 
-*   **Dashboard**
-    ![Dashboard](assets/screenshots/dashboard.png)
-*   **Team Chat**
-    ![Team Chat](assets/screenshots/team-chat.png)
-*   **Video Meeting**
-    ![Video Call](assets/screenshots/video-call.png)
-*   **Analytics**
-    ![Analytics](assets/screenshots/analytics.png)
-*   **Complaint Management**
-    ![Complaints](assets/screenshots/complaints.png)
+```text
+User
+   │
+   ▼
+Complaint Submitted
+   │
+   ▼
+AI Classification
+   │
+   ▼
+Smart Routing
+   │
+   ▼
+Team Investigation
+   │
+   ▼
+Voice / Video Collaboration
+   │
+   ▼
+AI Summary
+   │
+   ▼
+Resolution
+   │
+   ▼
+Analytics Dashboard
+```
 
 ---
 
@@ -127,49 +165,6 @@ Digital-Complaint-Management-System/
 
 ---
 
-## 📥 Installation
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/Kavitha0703/Digital-Complaint-Management-System.git
-    cd Digital-Complaint-Management-System
-    ```
-
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-
-3.  **Run the development server:**
-    ```bash
-    npm run dev
-    ```
-
----
-
-## ⚙️ Environment Variables
-
-Create a `.env.local` file in the root directory and add the following required keys:
-
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-VITE_FIREBASE_API_KEY=your_firebase_api_key
-VITE_FIREBASE_PROJECT_ID=your_project_id
-# ... other required firebase keys
-```
-
----
-
-## 💡 Usage
-
-1.  **Authentication:** Login with your corporate credentials to access the dashboard.
-2.  **Intake:** Submit a new complaint, classify its type, and upload necessary screenshots.
-3.  **Triage:** Admins view the dashboard, analyze AI-predicted priority, and assign to the appropriate agent.
-4.  **Collaboration:** Open a "War Room" for team discussion and start a video meeting for complex issues.
-5.  **Resolution:** Update the ticket with troubleshooting steps, generate an AI summary, and close the issue.
-
----
-
 ## 🤖 AI Features
 
 *   **Complaint Analysis:** Automatically parses incoming text to identify core issues.
@@ -192,17 +187,42 @@ VITE_FIREBASE_PROJECT_ID=your_project_id
 
 ---
 
+## 📈 Project Goals
+
+The objective of this project is to modernize complaint management by combining AI, automation, analytics, and collaboration into a single enterprise platform.
+
+The system is designed to reduce complaint resolution time, improve operational efficiency, and provide administrators with intelligent decision-making tools.
+
+---
+
+## 🏆 Learning Outcomes
+
+During the development of this project I explored:
+
+• Enterprise UI Design
+• React + TypeScript Development
+• Firebase Authentication
+• AI Integration using Gemini
+• Role-Based Access Control
+• Dashboard Development
+• Real-time Collaboration
+• State Management
+• Workflow Automation
+• Modern Software Architecture
+
+---
+
 ## 🚀 Future Enhancements
 
-1.  Add support for international languages.
-2.  Implement native mobile application (React Native).
-3.  Enhance analytics with predictive failure modeling.
-4.  Add integration with Jira/Slack.
-5.  Implement voice-controlled UI navigation.
-6.  Add automated end-to-end testing suite (Playwright).
-7.  Integrate real-time push notifications.
-8.  Implement customizable dashboard widgets.
-9.  Add dark/light theme toggle.
+1. Add support for international languages.
+2. Implement native mobile application (React Native).
+3. Enhance analytics with predictive failure modeling.
+4. Add integration with Jira/Slack.
+5. Implement voice-controlled UI navigation.
+6. Add automated end-to-end testing suite (Playwright).
+7. Integrate real-time push notifications.
+8. Implement customizable dashboard widgets.
+9. Add dark/light theme toggle.
 10. Implement advanced user permission profiles.
 11. Add export functionality for all complaint reports (PDF/Excel).
 12. Integrate advanced file previewer for large logs.
@@ -236,17 +256,23 @@ In a corporate landscape dominated by disconnected tools and manual processes, t
 
 ---
 
+## 📸 Preview
+
+Project screenshots and demo GIFs will be added after the final UI release.
+
+---
+
 ## 📜 License
 
 MIT
 
 ---
 
-## 👤 Author
+## 👨💻 Developer
 
-*   **GitHub:** [Kavitha0703](https://github.com/Kavitha0703)
-*   **LinkedIn:** [Add Placeholder Link]
-*   **Email:** [Add Placeholder Email]
+Developed as a full-stack AI project demonstrating modern enterprise complaint management, intelligent workflow automation, and collaborative communication systems.
+
+This project is continuously being improved with new AI-powered features and enterprise-grade functionality.
 
 ---
 *Built with passion and ☕.*
