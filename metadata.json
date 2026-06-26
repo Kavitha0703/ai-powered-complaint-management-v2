@@ -1,0 +1,9 @@
+{
+  "name": "Digital Complaint Management System",
+  "description": "An enterprise-grade Digital Complaint Management System featuring interactive SLAs, Recharts dashboards, AI-powered issue optimization, and custom audit trails.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

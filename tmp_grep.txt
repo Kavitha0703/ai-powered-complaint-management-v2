@@ -1,0 +1,53 @@
+148:          { key: "Total", count: stats.total, color: "text-slate-800 dark:text-white border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111A2E]/50", icon: <FileText className="w-5 h-5 text-blue-500" /> },
+172:        <Card className="lg:col-span-8 border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111A2E]/45 shadow-2xs">
+211:        <Card className="lg:col-span-4 border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111A2E]/45 shadow-2xs flex flex-col justify-between">
+264:          <Card className="border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111A2E]/45 shadow-2xs">
+308:          <Card className="border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111A2E]/45 shadow-2xs">
+340:          <Card className="border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111A2E]/45 shadow-2xs">
+358:          <Card className="border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111A2E]/45 shadow-2xs">
+1047:          <Card className="border border-slate-200/80 dark:border-[#1E293B] shadow-lg rounded-2xl overflow-hidden bg-white/40 dark:bg-[#0F172A]/80 backdrop-blur-xl">
+1097:          <Card className="border-slate-200/80 dark:border-[#1E293B] shadow-md rounded-2xl bg-white dark:bg-[#111A2E]/50">
+1143:                      className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800"
+1151:                        <SelectTrigger className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800">
+1154:                        <SelectContent className="bg-white dark:bg-[#111A2C] border-slate-200 dark:border-slate-800">
+1165:                        <SelectTrigger className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800">
+1168:                        <SelectContent className="bg-white dark:bg-[#111A2C] border-slate-200 dark:border-slate-800">
+1180:                      <SelectTrigger className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800">
+1183:                      <SelectContent className="bg-white dark:bg-[#111A2C] border-slate-200 dark:border-slate-800">
+1200:                            : "bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-850 hover:border-slate-300 text-slate-600 dark:text-slate-400"
+1233:                      className="min-h-32 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800 resize-none"
+1277:                      className="border-2 border-dashed border-slate-200 dark:border-slate-800 p-5 rounded-2xl bg-slate-50/50 dark:bg-[#161F30]/35 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer flex flex-col items-center justify-center text-center transition-all"
+1298:                      className="border border-slate-200 dark:border-slate-800 p-5 rounded-2xl bg-slate-50/50 dark:bg-[#161F30]/35 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer flex flex-col items-center justify-center text-center transition-all"
+1371:                    <div className="bg-slate-50/50 dark:bg-[#161F30]/15 p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl space-y-3">
+1507:            className="border border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111A2E]/50 hover:shadow-lg transition-transform hover:-translate-y-1 cursor-pointer flex flex-col justify-between"
+1526:          <div className="col-span-full py-16 text-center bg-white dark:bg-[#111A2E]/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
+1612:                  : "bg-slate-50 dark:bg-[#161F30] border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-350"
+1631:                : "bg-white dark:bg-[#111A2E]/30 border-slate-100 dark:border-slate-850"
+1635:              <span className="text-base shrink-0 p-1 rounded-lg bg-blue-50/50 dark:bg-[#162137]/30 text-blue-500 font-semibold leading-normal">🔔</span>
+1656:          <div className="col-span-full py-16 text-center bg-white dark:bg-[#111A2E]/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
+1911:              className="border border-slate-100 dark:border-slate-850 hover:border-slate-200 dark:hover:border-slate-800 p-5.5 rounded-2xl bg-white dark:bg-[#111A2E]/50 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+1946:                    <div key={idx} className="flex flex-col items-center gap-1.5 bg-white dark:bg-[#111A2E]/50 px-1 py-0.5">
+1950:                          : 'bg-white dark:bg-[#111A2E] border-slate-300 dark:border-slate-700'
+1974:          <div className="col-span-full py-16 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-[#111A2E]/50 flex flex-col items-center justify-center">
+2033:                className="fixed top-0 right-0 h-full w-full max-w-4xl bg-white dark:bg-[#0B0F19] border-l border-slate-100 dark:border-slate-850 shadow-2xl z-55 flex flex-col"
+2069:                      <p className="text-xs text-slate-650 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#111A2E]/40 border border-slate-100 dark:border-slate-800/80 p-4.5 rounded-2xl italic">
+2215:                              className="text-xs min-h-16 bg-white dark:bg-[#111A2E] resize-none"
+2303:                              <p className="text-xs font-bold text-slate-700 dark:text-slate-205 leading-relaxed bg-white dark:bg-[#0B0F19]/90 border border-emerald-100 dark:border-[#1E3029] p-3 rounded-lg italic">
+2326:                          <div className="p-3 bg-slate-50 dark:bg-[#131E33] border border-slate-150 dark:border-slate-800Rounded border-slate-100 text-[10.5px] text-slate-500 rounded-xl leading-relaxed">
+2737:      <Card className="border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] rounded-2xl shadow-sm p-4 space-y-4">
+2747:              className="pl-10 h-10 text-xs bg-slate-50/50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800 rounded-2xl"
+2777:                    : "bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-350"
+2797:            <Card key={n.id} className="border-slate-150 dark:border-slate-850 bg-white dark:bg-[#111A2E]/50 shadow-2xs overflow-hidden flex flex-row items-stretch hover:shadow-sm hover:border-slate-250 transition-all rounded-2xl">
+2853:          <div className="col-span-full py-16 text-center bg-white dark:bg-[#111A2E]/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800/60 flex flex-col items-center justify-center">
+2893:      <Card className="border border-slate-100 dark:border-[#1E293B] shadow-lg bg-white dark:bg-[#111A2E]/50 backdrop-blur-xl">
+2910:            <div className="bg-slate-50/50 dark:bg-[#162033]/20 p-4 rounded-xl border border-slate-100 dark:border-slate-850/60">
+2914:            <div className="bg-emerald-50/10 dark:bg-[#11302A]/10 p-4 rounded-xl border border-emerald-100/30 dark:border-[#1A2E2A]">
+2957:        <Card className="md:col-span-3 border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222]">
+3005:                      <div className="h-3 w-full bg-white dark:bg-[#0F172A] rounded border border-slate-200 dark:border-slate-800/60 flex items-center px-1">
+3008:                      <div className="h-8 w-full bg-white dark:bg-[#0F172A] rounded border border-slate-200 dark:border-slate-800/60 p-1 flex gap-1">
+3042:        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1.5">
+3071:        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1.5">
+3175:        <Card className="border border-slate-150 dark:border-[#1E293B] shadow-lg bg-white dark:bg-[#111A2E]/50">
+3205:                  className="min-h-24 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200"
+3224:                <Card key={f.id} className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1222]">
+3239:                      <div className="mt-3 p-3 bg-slate-50 dark:bg-[#111A2E]/50 rounded-lg border border-slate-100 dark:border-slate-800/60">
