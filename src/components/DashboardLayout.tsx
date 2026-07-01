@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LogOut, User, Settings, Bell, Search, Check, Info, AlertTriangle, ShieldCheck, 
   Sun, Moon, Sparkles, HelpCircle, Activity, Plus, PenSquare, MessageSquare, AlertOctagon,
-  ChevronLeft, ChevronRight, Command, X, Terminal, Laptop, CheckCircle2, FileText
+  ChevronLeft, ChevronRight, Command, X, Terminal, Laptop, CheckCircle2, FileText, Menu
 } from "lucide-react";
 import { useAuth } from "../lib/AuthContext.tsx";
 import { useTheme } from "./ThemeProvider.tsx";
@@ -29,6 +29,14 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem("dcms_sidebar_collapsed") === "true";
   });
+
+  // Mobile navigation drawer state
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Auto-close mobile drawer on route navigation
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location.pathname]);
 
   // Command Palette & Help States
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -218,147 +226,212 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#020617] flex flex-col md:flex-row font-sans transition-colors duration-350">
       
-      {/* Premium Collapsible Glassmorphic Sidebar */}
-      <aside className={`w-full ${sidebarCollapsed ? 'md:w-20' : 'md:w-[260px]'} bg-white dark:bg-[#0B1222] border-r border-slate-200/80 dark:border-[#1E293B] flex flex-col text-slate-800 dark:text-slate-100 z-40 shrink-0 transition-all duration-300 ease-in-out relative`}>
-        
-        {/* Desktop Collapse Arrow Toggle */}
-        <button 
-          onClick={() => {
-            const nextVal = !sidebarCollapsed;
-            setSidebarCollapsed(nextVal);
-            localStorage.setItem("dcms_sidebar_collapsed", String(nextVal));
-          }} 
-          className="hidden md:flex absolute top-6 -right-3 w-6 h-6 rounded-full bg-blue-600 dark:bg-indigo-600 text-white items-center justify-center cursor-pointer shadow-lg hover:scale-110 active:scale-95 transition-all z-50 border border-blue-500/50 dark:border-indigo-500/50"
-          title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-        >
-          {sidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-        </button>
+      {/* Sidebar helper function to avoid repeating layout code */}
+      {(() => {
+        const renderSidebar = (isMobileDrawer = false) => {
+          const isCollapsed = !isMobileDrawer && sidebarCollapsed;
+          return (
+            <div className="flex flex-col h-full bg-white dark:bg-[#0B1222] text-slate-800 dark:text-slate-100">
+              {/* Header Block */}
+              <div className={`p-6 border-b border-slate-100 dark:border-[#1E293B] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-2 overflow-hidden`}>
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-500 to-cyan-400 flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-blue-500/20 shrink-0">
+                    D
+                  </div>
+                  {!isCollapsed && (
+                    <h2 className="text-xl font-black tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent transition-opacity duration-300">
+                      Workplace Hub
+                    </h2>
+                  )}
+                </div>
+                {!isCollapsed && (
+                  <span className="text-[9px] font-black px-2 py-0.5 bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 rounded-full border border-blue-200/50 dark:border-blue-800/60 shrink-0">
+                    SaaS v2
+                  </span>
+                )}
+              </div>
 
-        {/* Header Block */}
-        <div className={`p-6 border-b border-slate-100 dark:border-[#1E293B] flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} gap-2 overflow-hidden`}>
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-500 to-cyan-400 flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-blue-500/20 shrink-0">
-              D
-            </div>
-            {!sidebarCollapsed && (
-              <h2 className="text-xl font-black tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent transition-opacity duration-300">
-                Workplace Hub
-              </h2>
-            )}
-          </div>
-          {!sidebarCollapsed && (
-            <span className="text-[9px] font-black px-2 py-0.5 bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 rounded-full border border-blue-200/50 dark:border-blue-800/60 shrink-0">
-              SaaS v2
-            </span>
-          )}
-        </div>
+              {/* Navigation items scroll area */}
+              <div className="p-4 flex-1 overflow-y-auto">
+                 <nav className="space-y-1">
+                   {sidebarLinks.map((link, idx) => {
+                      if ('isHeader' in link) {
+                         if (isCollapsed) {
+                           return <div key={idx} className="h-0.5 bg-slate-100 dark:bg-slate-800/60 my-4" />
+                         }
+                         return (
+                           <div key={idx} className="px-3 pt-5 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                             {link.label}
+                           </div>
+                         );
+                      }
+                      const active = link.exact ? location.pathname === link.path : location.pathname.startsWith(link.path);
+                      const Icon = link.icon;
+                      return (
+                        <Link 
+                          key={link.path} 
+                          to={link.path} 
+                          title={isCollapsed ? link.label : undefined}
+                          onClick={() => {
+                            if (isMobileDrawer) {
+                              setMobileSidebarOpen(false);
+                            }
+                          }}
+                          className={`flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-3 pl-4'} py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group relative ${
+                            active 
+                              ? 'bg-blue-500/10 dark:bg-indigo-500/10 text-blue-600 dark:text-indigo-400 border-l-4 border-blue-500 dark:border-indigo-500 pl-3 shadow-2xs' 
+                              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
+                          }`}
+                        >
+                          <Icon className={`w-4 h-4 shrink-0 transition-transform duration-200 ${active ? 'text-blue-500 dark:text-indigo-400' : 'text-slate-400 group-hover:scale-105'}`} />
+                          {!isCollapsed && (
+                            <span className="ml-3 truncate">{link.label}</span>
+                          )}
 
-        {/* Navigation items scroll area */}
-        <div className="p-4 flex-1 overflow-y-auto">
-           <nav className="space-y-1">
-             {sidebarLinks.map((link, idx) => {
-                if ('isHeader' in link) {
-                   if (sidebarCollapsed) {
-                     return <div key={idx} className="h-0.5 bg-slate-100 dark:bg-slate-800/60 my-4" />
-                   }
-                   return (
-                     <div key={idx} className="px-3 pt-5 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                       {link.label}
-                     </div>
-                   );
-                }
-                const active = link.exact ? location.pathname === link.path : location.pathname.startsWith(link.path);
-                const Icon = link.icon;
-                return (
-                  <Link 
-                    key={link.path} 
-                    to={link.path} 
-                    title={sidebarCollapsed ? link.label : undefined}
-                    className={`flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'px-3 pl-4'} py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group relative ${
-                      active 
-                        ? 'bg-blue-500/10 dark:bg-indigo-500/10 text-blue-600 dark:text-indigo-400 border-l-4 border-blue-500 dark:border-indigo-500 pl-3 shadow-2xs' 
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 shrink-0 transition-transform duration-200 ${active ? 'text-blue-500 dark:text-indigo-400' : 'text-slate-400 group-hover:scale-105'}`} />
-                    {!sidebarCollapsed && (
-                      <span className="ml-3 truncate">{link.label}</span>
-                    )}
+                          {/* Mini tooltip for collapsed state */}
+                          {isCollapsed && (
+                            <div className="pointer-events-none absolute left-full ml-4 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950 text-white text-[10px] font-bold px-2 py-1 rounded shadow-md z-50 whitespace-nowrap">
+                              {link.label}
+                            </div>
+                          )}
+                        </Link>
+                      );
+                   })}
+                 </nav>
+              </div>
 
-                    {/* Mini tooltip for collapsed state */}
-                    {sidebarCollapsed && (
-                      <div className="pointer-events-none absolute left-full ml-4 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950 text-white text-[10px] font-bold px-2 py-1 rounded shadow-md z-50 whitespace-nowrap">
-                        {link.label}
+              {/* Footer Profile & Actions */}
+              <div className="p-4 border-t border-slate-100 dark:border-[#1E293B] bg-slate-5/50 dark:bg-[#0F172A] relative">
+                <AnimatePresence>
+                  {sidebarProfileMenuOpen && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute bottom-full left-4 mb-2 min-w-[220px] bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-700/80 rounded-2xl shadow-xl z-50 overflow-hidden"
+                    >
+                      <div className="p-3 border-b border-slate-100 dark:border-slate-700/80">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{dbUser?.name}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{dbUser?.email}</p>
                       </div>
-                    )}
-                  </Link>
-                );
-             })}
-           </nav>
-        </div>
+                      <div className="p-1.5">
+                        <button onClick={() => { setSidebarProfileMenuOpen(false); setMobileSidebarOpen(false); navigate(dbUser?.role === 'admin' ? '/admin/profile' : '/dashboard/profile'); }} className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center gap-2">
+                          <User className="w-3.5 h-3.5" /> Profile Settings
+                        </button>
+                        <button onClick={() => { setSidebarProfileMenuOpen(false); setTheme(theme === 'dark' ? 'light' : 'dark'); }} className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center justify-between">
+                           <span className="flex items-center gap-2">
+                             {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />} 
+                             {theme === 'dark' ? 'Light Theme' : 'Dark Theme'}
+                           </span>
+                        </button>
+                      </div>
+                      <div className="p-1.5 border-t border-slate-100 dark:border-slate-700/80">
+                        <button onClick={() => { setSidebarProfileMenuOpen(false); setMobileSidebarOpen(false); logOut(); }} className="w-full text-left px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg flex items-center gap-2">
+                          <LogOut className="w-3.5 h-3.5" /> Logical Sign Out
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-        {/* Footer Profile & Actions */}
-        <div className="p-4 border-t border-slate-100 dark:border-[#1E293B] bg-slate-50/50 dark:bg-[#0F172A] relative">
-          <AnimatePresence>
-            {sidebarProfileMenuOpen && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute bottom-full left-4 mb-2 min-w-[220px] bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-700/80 rounded-2xl shadow-xl z-50 overflow-hidden"
+                <button 
+                   onClick={() => setSidebarProfileMenuOpen(!sidebarProfileMenuOpen)}
+                   className={`w-full flex items-center ${isCollapsed ? 'justify-center p-0' : 'px-2 py-2'} gap-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors cursor-pointer outline-none relative`}
+                 >
+                   <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-indigo-950/40 border border-blue-200 dark:border-indigo-900/60 flex flex-shrink-0 items-center justify-center text-blue-600 dark:text-indigo-400 font-bold uppercase shadow-inner">
+                     {dbUser?.name?.[0] || 'U'}
+                     <span className="absolute bottom-1 right-2 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#020617]"></span>
+                   </div>
+                   {!isCollapsed && (
+                     <div className="overflow-hidden min-w-0 flex-1 text-left">
+                       <p className="text-xs font-black text-slate-950 dark:text-white truncate">{dbUser?.name || dbUser?.email}</p>
+                       <p className="text-[9px] text-slate-450 dark:text-slate-500 truncate mt-0.5 uppercase font-extrabold tracking-wider">
+                         {dbUser?.role === 'admin' ? '🛡️ Administrator' : '👤 Client portal'}
+                       </p>
+                     </div>
+                   )}
+                 </button>
+              </div>
+            </div>
+          );
+        };
+
+        return (
+          <>
+            {/* Desktop Sidebar */}
+            <aside className={`hidden md:flex ${sidebarCollapsed ? 'w-20' : 'w-[260px]'} bg-white dark:bg-[#0B1222] border-r border-slate-200/80 dark:border-[#1E293B] flex-col text-slate-800 dark:text-slate-100 z-40 shrink-0 transition-all duration-300 ease-in-out relative`}>
+              {/* Desktop Collapse Arrow Toggle */}
+              <button 
+                onClick={() => {
+                  const nextVal = !sidebarCollapsed;
+                  setSidebarCollapsed(nextVal);
+                  localStorage.setItem("dcms_sidebar_collapsed", String(nextVal));
+                }} 
+                className="hidden md:flex absolute top-6 -right-3 w-6 h-6 rounded-full bg-blue-600 dark:bg-indigo-600 text-white items-center justify-center cursor-pointer shadow-lg hover:scale-110 active:scale-95 transition-all z-50 border border-blue-500/50 dark:border-indigo-500/50"
+                title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
               >
-                <div className="p-3 border-b border-slate-100 dark:border-slate-700/80">
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{dbUser?.name}</p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{dbUser?.email}</p>
-                </div>
-                <div className="p-1.5">
-                  <button onClick={() => { setSidebarProfileMenuOpen(false); navigate(dbUser?.role === 'admin' ? '/admin/profile' : '/dashboard/profile'); }} className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center gap-2">
-                    <User className="w-3.5 h-3.5" /> Profile Settings
-                  </button>
-                  <button onClick={() => { setSidebarProfileMenuOpen(false); setTheme(theme === 'dark' ? 'light' : 'dark'); }} className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center justify-between">
-                     <span className="flex items-center gap-2">
-                       {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />} 
-                       {theme === 'dark' ? 'Light Theme' : 'Dark Theme'}
-                     </span>
-                  </button>
-                </div>
-                <div className="p-1.5 border-t border-slate-100 dark:border-slate-700/80">
-                  <button onClick={() => { setSidebarProfileMenuOpen(false); logOut(); }} className="w-full text-left px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg flex items-center gap-2">
-                    <LogOut className="w-3.5 h-3.5" /> Logical Sign Out
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                {sidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+              </button>
+              {renderSidebar(false)}
+            </aside>
 
-          <button 
-             onClick={() => setSidebarProfileMenuOpen(!sidebarProfileMenuOpen)}
-             className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center p-0' : 'px-2 py-2'} gap-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors cursor-pointer outline-none relative`}
-           >
-             <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-indigo-950/40 border border-blue-200 dark:border-indigo-900/60 flex flex-shrink-0 items-center justify-center text-blue-600 dark:text-indigo-400 font-bold uppercase shadow-inner">
-               {dbUser?.name?.[0] || 'U'}
-               <span className="absolute bottom-1 right-2 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#020617]"></span>
-             </div>
-             {!sidebarCollapsed && (
-               <div className="overflow-hidden min-w-0 flex-1 text-left">
-                 <p className="text-xs font-black text-slate-950 dark:text-white truncate">{dbUser?.name || dbUser?.email}</p>
-                 <p className="text-[9px] text-slate-450 dark:text-slate-500 truncate mt-0.5 uppercase font-extrabold tracking-wider">
-                   {dbUser?.role === 'admin' ? '🛡️ Administrator' : '👤 Client portal'}
-                 </p>
-               </div>
-             )}
-           </button>
-        </div>
-      </aside>
+            {/* Mobile Drawer Sidebar */}
+            <AnimatePresence>
+              {mobileSidebarOpen && (
+                <>
+                  {/* Backdrop */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.5 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black z-50 md:hidden"
+                    onClick={() => setMobileSidebarOpen(false)}
+                  />
+                  {/* Slide-out Drawer Panel */}
+                  <motion.div
+                    initial={{ x: "-100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "-100%" }}
+                    transition={{ type: "spring", damping: 25, stiffness: 220 }}
+                    className="fixed top-0 bottom-0 left-0 w-[280px] z-50 md:hidden shadow-2xl border-r border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#0B1222] flex flex-col"
+                  >
+                    {/* Close Button Inside Drawer */}
+                    <div className="absolute top-4 right-4 z-50">
+                      <button
+                        onClick={() => setMobileSidebarOpen(false)}
+                        className="p-1.5 rounded-lg bg-slate-105 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-350 transition-colors cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      {renderSidebar(true)}
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </>
+        );
+      })()}
 
       {/* Main Content Pane */}
       <div className="flex-1 flex flex-col min-w-0 bg-[#F8FAFC] dark:bg-[#020617] transition-colors duration-350">
         {/* Modern Top Header bar */}
         <header className="h-16 bg-white dark:bg-[#0B1222] border-b border-slate-100 dark:border-[#1E293B] flex items-center justify-between px-6 lg:px-8 z-30 shrink-0 shadow-sm transition-colors duration-350">
           
-          {/* Global Smart Search Trigger */}
-          <div className="flex items-center gap-4 relative w-full max-w-[350px]">
+          {/* Global Smart Search & Mobile Menu Trigger */}
+          <div className="flex items-center gap-3 relative w-full max-w-[350px]">
+            {/* Hamburger Menu Toggle on Mobile */}
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="flex md:hidden w-10 h-10 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 items-center justify-center transition-colors shadow-sm border border-slate-100 dark:border-slate-800 bg-[#FCFDFE] dark:bg-[#11192A] shrink-0 cursor-pointer"
+              title="Open Menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
             <button 
               onClick={() => setCommandPaletteOpen(true)}
               className="w-full flex items-center justify-between pl-3 pr-2 py-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 text-slate-400 dark:text-slate-500 rounded-xl text-xs font-semibold hover:border-blue-500/80 dark:hover:border-indigo-505 transition-all text-left group"

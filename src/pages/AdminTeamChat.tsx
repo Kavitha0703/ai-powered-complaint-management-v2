@@ -201,6 +201,7 @@ export default function AdminTeamChat() {
   // Deletion Dialog State
   const [deleteConfRoom, setDeleteConfRoom] = useState<ChatRoom | null>(null);
   const [deleteConfMsg, setDeleteConfMsg] = useState<ChatMessage | null>(null);
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState<boolean>(false);
 
   // AI improve loading indicators
   const [loadingImprove, setLoadingImprove] = useState<boolean>(false);
@@ -930,8 +931,6 @@ export default function AdminTeamChat() {
   const handleConfirmDeleteMessage = (type: "me" | "everyone") => {
     if (!deleteConfMsg) return;
 
-    const isMessageSelf = deleteConfMsg.sender_id === currentAdminId;
-
     const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
     let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : [];
 
@@ -949,14 +948,21 @@ export default function AdminTeamChat() {
 
       saveMessagesToStorage(updated);
     } else {
-      if (!isMessageSelf) {
-        alert("You are not authorized to delete other users' messages for everyone.");
-        return;
-      }
+      // The logged-in administrator is authorized to delete any message (including teammate or AI messages) for everyone
       const updated = allMessages.filter(m => m.id !== deleteConfMsg.id);
       saveMessagesToStorage(updated);
     }
     setDeleteConfMsg(null);
+  };
+
+  const handleConfirmBulkDelete = () => {
+    const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
+    let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : [];
+    const updated = allMessages.filter(m => !selectedMessageIds.includes(m.id));
+    saveMessagesToStorage(updated);
+    setSelectedMessageIds([]);
+    setIsSelectModeActive(false);
+    setBulkDeleteConfirmOpen(false);
   };
 
   // Quick reactions ticks
@@ -2842,20 +2848,21 @@ export default function AdminTeamChat() {
                                         setActiveMessageActionId(null);
                                         handleDeleteForMe(m.id);
                                       }}
-                                      className="w-full text-left px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-650 dark:text-red-400 flex items-center gap-2 border-none cursor-pointer bg-transparent"
+                                      className="w-full text-left px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 flex items-center gap-2 border-none cursor-pointer bg-transparent"
                                       title="Hide message from my feed"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
                                       Delete for Me
                                     </button>
 
-                                    {isSelf && (
+                                    {/* The logged-in administrator can delete any message for everyone */}
+                                    {true && (
                                       <button
                                         onClick={() => {
                                           setActiveMessageActionId(null);
                                           setDeleteConfMsg(m);
                                         }}
-                                        className="w-full text-left px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-650 dark:text-red-400 flex items-center gap-2 border-none cursor-pointer bg-transparent"
+                                        className="w-full text-left px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 flex items-center gap-2 border-none cursor-pointer bg-transparent"
                                         title="Delete message for all participants"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
@@ -2968,16 +2975,10 @@ export default function AdminTeamChat() {
                   {/* Bulk Delete */}
                   <button
                     onClick={() => {
-                      if (confirm(`Delete ${selectedMessageIds.length} messages for everyone?`)) {
-                        const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
-                        let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : [];
-                        const updated = allMessages.filter(m => !selectedMessageIds.includes(m.id));
-                        saveMessagesToStorage(updated);
-                        setSelectedMessageIds([]);
-                        setIsSelectModeActive(false);
-                      }
+                      setBulkDeleteConfirmOpen(true);
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors border-none cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 rounded-xl transition-all duration-200 border border-rose-500/20 hover:border-rose-600 cursor-pointer shadow-sm hover:shadow-rose-950/20"
+                    title="Delete all selected messages permanently"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     Delete All
@@ -3087,7 +3088,7 @@ export default function AdminTeamChat() {
                         }}
                         rows={2}
                         placeholder={`Message to #${activeChannelObj?.name || 'chat'}...`}
-                        className="w-full bg-transparent border-none text-xs text-slate-805 dark:text-slate-100 p-2.5 focus:outline-none resize-none font-medium placeholder-slate-400 [scrollbar-width:thin] min-h-[50px] max-h-[140px]"
+                        className="w-full bg-transparent border-none text-xs text-black dark:text-white p-2.5 focus:outline-none resize-none font-medium placeholder-slate-400 [scrollbar-width:thin] min-h-[50px] max-h-[140px]"
                       />
 
                       {/* Action Bar footer containing attachment, emoji, mic, AI popover option and Send */}
@@ -3127,8 +3128,8 @@ export default function AdminTeamChat() {
                           {/* Collated Voice recording action button with animations */}
                           {isRecordingVoice ? (
                             <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 dark:bg-red-950/30 rounded-lg border border-red-200/40 h-8 shrink-0 select-none">
-                              <span className="w-2 h-2 rounded-full bg-red-650 animate-pulse shrink-0" />
-                              <span className="text-[10px] font-bold text-red-650 tracking-wider font-mono shrink-0">
+                              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                              <span className="text-[10px] font-bold text-red-500 tracking-wider font-mono shrink-0">
                                 00:{voiceSeconds < 10 ? `0${voiceSeconds}` : voiceSeconds}
                               </span>
                               {/* Custom voice recording simulated CSS animation bars */}
@@ -3142,7 +3143,7 @@ export default function AdminTeamChat() {
                               <button
                                 type="button"
                                 onClick={stopAndSendVoiceNote}
-                                className="px-1.5 py-0.5 bg-red-650 hover:bg-red-700 text-white rounded text-[9.5px] font-bold shrink-0 border-none cursor-pointer"
+                                className="px-1.5 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-[9.5px] font-bold shrink-0 border-none cursor-pointer"
                               >
                                 Send
                               </button>
@@ -3620,20 +3621,20 @@ export default function AdminTeamChat() {
             <div className="flex flex-col gap-2 pt-2">
               <Button
                 onClick={() => handleConfirmDeleteRoom("me")}
-                className="w-full h-9 bg-slate-50 hover:bg-slate-100 dark:bg-slate-905 text-slate-705 dark:text-slate-200 font-bold text-xs rounded-xl border-none shadow-none"
+                className="w-full h-9 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-black dark:text-white font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 shadow-none"
               >
                 Delete For Me
               </Button>
               <Button
                 onClick={() => handleConfirmDeleteRoom("everyone")}
-                className="w-full h-9 bg-red-655 hover:bg-red-700 text-white font-bold text-xs rounded-xl border-none shadow-none"
+                className="w-full h-9 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl border-none shadow-none"
               >
                 Delete For Everyone (Admin Purge)
               </Button>
               <Button
                 onClick={() => setDeleteConfRoom(null)}
                 variant="outline"
-                className="w-full h-9 font-bold text-xs rounded-xl"
+                className="w-full h-9 font-bold text-xs rounded-xl text-black dark:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
               >
                 Cancel
               </Button>
@@ -3654,14 +3655,15 @@ export default function AdminTeamChat() {
             <div className="flex flex-col gap-2 pt-2">
               <Button
                 onClick={() => handleConfirmDeleteMessage("me")}
-                className="w-full h-9 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-205 font-bold text-xs rounded-xl border-none shadow-none"
+                className="w-full h-9 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-black dark:text-white font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 shadow-none"
               >
                 Delete For Me
               </Button>
-              {deleteConfMsg.sender_id === currentAdminId && (
+              {/* Logged in admin can delete any message for everyone */}
+              {true && (
                 <Button
                   onClick={() => handleConfirmDeleteMessage("everyone")}
-                  className="w-full h-9 bg-red-600 hover:bg-red-705 text-white font-bold text-xs rounded-xl border-none shadow-none"
+                  className="w-full h-9 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl border-none shadow-none"
                 >
                   Delete For Everyone
                 </Button>
@@ -3669,7 +3671,37 @@ export default function AdminTeamChat() {
               <Button
                 onClick={() => setDeleteConfMsg(null)}
                 variant="outline"
-                className="w-full h-9 font-bold text-xs rounded-xl"
+                className="w-full h-9 font-bold text-xs rounded-xl text-black dark:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK MESSAGE DELETE CONFIRMATION DIALOG */}
+      {bulkDeleteConfirmOpen && (
+        <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center select-none text-left animate-fade-in">
+          <div className="bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 max-w-sm w-full mx-4 shadow-2xl flex flex-col gap-3">
+            <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 mb-1 flex items-center gap-1.5">
+              <Trash className="w-4 h-4 text-red-500 animate-pulse" /> Confirm Bulk Deletion
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+              Are you sure you want to permanently delete <span className="font-extrabold text-red-500">{selectedMessageIds.length}</span> selected messages for everyone? This action is permanent and cannot be undone.
+            </p>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                onClick={handleConfirmBulkDelete}
+                className="w-full h-9 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl border-none shadow-none flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Confirm Permanent Delete
+              </Button>
+              <Button
+                onClick={() => setBulkDeleteConfirmOpen(false)}
+                variant="outline"
+                className="w-full h-9 font-bold text-xs rounded-xl cursor-pointer text-black dark:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
               >
                 Cancel
               </Button>
@@ -3712,7 +3744,7 @@ export default function AdminTeamChat() {
             </div>
 
             <div className="pt-2 flex justify-end">
-              <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => setForwardDialogMsg(null)}>Cancel</Button>
+              <Button size="sm" variant="outline" className="h-9 text-xs text-black dark:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer rounded-xl font-bold" onClick={() => setForwardDialogMsg(null)}>Cancel</Button>
             </div>
           </div>
         </div>

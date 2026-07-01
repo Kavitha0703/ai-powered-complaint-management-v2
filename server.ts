@@ -277,30 +277,46 @@ app.post("/api/gemini/analyze-screenshot", async (req: express.Request, res: exp
 // AI Huddle Bot Endpoint
 app.post("/api/gemini/huddle-bot", async (req: express.Request, res: express.Response) => {
   try {
-    const { transcript, previousContext, participants } = req.body;
+    const { transcript, previousContext, participants, adminName, ticketTitle, ticketNumber } = req.body;
     if (!transcript || typeof transcript !== "string") {
       res.status(400).json({ error: "A valid transcript string is required." });
       return;
     }
 
+    const currentAdminName = adminName || "Kavitha";
+    const currentTicket = ticketTitle ? `${ticketTitle} (${ticketNumber || "#TKT-5486"})` : "Database Outages & Level-2 Escalations Queue Spike";
+
     const participantsInfo = participants
-      .map((p: any) => `${p.name} (${p.role})`)
+      .map((p: any) => `${p.name} (ID: ${p.id}, Role: ${p.role})`)
       .join(", ");
 
     const systemInstruction = 
-      "You are a backend coordinator for an IT Operations War Room simulation. " +
-      "The user just spoke the following text into the huddle chat. " +
-      "The following AI participants are in the room: " + participantsInfo + ". " +
-      "Based on what the user said, choose ONE AI participant to respond, and write their response. " +
-      "If the user asks someone specifically (e.g. 'Arun, can you check?'), that person MUST respond. " +
-      "Keep responses highly realistic, professional, and short (1-3 sentences maximum). " +
-      "Output JSON only with keys: 'speakerId' (the ID of the chosen participant), and 'text' (what they say).";
+      "You are the orchestration engine for an IT Operations War Room simulation during an active incident: " + currentTicket + ".\n" +
+      "The logged-in admin and meeting leader is " + currentAdminName + ".\n" +
+      "The active AI participants in this meeting are:\n" + participantsInfo + ".\n\n" +
+      "Personalities and Expertise:\n" +
+      "- Arun (usr_arun - Network Administrator): Focuses on the network, router hops, firewalls, routing tables, latency spikes, BGP peering, DNS resolution, and VPN tunnels. Brief, analytical, direct.\n" +
+      "- Priya (usr_priya - Software Support Specialist): Focuses on microservices, application-level errors, API endpoints, backend vs. frontend, memory leaks, deployment pipeline status, and code exceptions. Practical and collaborative.\n" +
+      "- Karthik (usr_karthik - Senior Database Architect): Focuses on PostgreSQL, query indexing, slow transaction deadlocks, lock queues, pg_stat_activity, connection pool saturation, and replication lags. Calm and methodical.\n" +
+      "- Sarah (usr_sarah - Systems Security Specialist): Focuses on security groups, IAM permissions, authentication failures, audit logs, phishing, CVE vulnerabilities, and malicious traffic indicators. Vigilant and security-centric.\n\n" +
+      "Conversation Behavior Guidelines:\n" +
+      "1. Based on what " + currentAdminName + " just said, select 1 to 2 AI participants to respond sequentially in a natural dialogue.\n" +
+      "2. If " + currentAdminName + " addresses a participant specifically (e.g. 'Arun, can you check...'), that person MUST respond first. Another participant may follow up if it naturally links to their specialty (e.g. Karthik says 'That network spike matches the database lock lag' or Priya says 'I can see the API timeout from that').\n" +
+      "3. Participants MUST address the leader as " + currentAdminName + " directly. Never refer to them generically as 'User' or 'Admin'.\n" +
+      "4. AI participants should talk directly to " + currentAdminName + " and occasionaly reply to or reference each other, creating a realistic, collaborative huddle experience.\n" +
+      "5. Keep responses highly realistic, professional, incident-focused, and brief (1-3 sentences maximum per speaker). Never write long preambles.\n" +
+      "6. Match the speakerId exactly to the participant IDs provided: " + JSON.stringify(participants.map((p: any) => p.id)) + ". Use those exact IDs.\n\n" +
+      "Output JSON with a single key 'responses', which is an array of objects. Each object must have 'speakerId' (the string ID) and 'text' (the spoken text).";
 
-    const prompt = `Previous chat context:\n${previousContext || "None"}\n\nUser just said: "${transcript}"\n\nGenerate the next AI response in JSON.`;
+    const prompt = `Incident: ${currentTicket}\nLeader: ${currentAdminName}\n\nPrevious conversation history:\n${previousContext || "None"}\n\n${currentAdminName} just spoke: "${transcript}"\n\nGenerate the next AI response sequence in JSON.`;
 
     const fallbackValue = {
-      speakerId: participants[0]?.id || "usr_arun",
-      text: "I am checking the system logs now to confirm that."
+      responses: [
+        {
+          speakerId: participants[0]?.id || "usr_arun",
+          text: `Acknowledged, ${currentAdminName}. I am looking into the standard log channels now.`
+        }
+      ]
     };
 
     const response = await callGeminiWithFallback({
@@ -311,16 +327,37 @@ app.post("/api/gemini/huddle-bot", async (req: express.Request, res: express.Res
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            speakerId: { type: Type.STRING, description: "ID of the responding AI participant." },
-            text: { type: Type.STRING, description: "Verbatim response text for the AI participant to speak." }
+            responses: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  speakerId: { type: Type.STRING, description: "ID of the responding AI participant." },
+                  text: { type: Type.STRING, description: "Verbatim response text for the AI participant to speak." }
+                },
+                required: ["speakerId", "text"]
+              },
+              description: "A sequence of 1 to 3 collaborative turn-based replies from AI participants."
+            }
           },
-          required: ["speakerId", "text"]
+          required: ["responses"]
         }
       }
     }, fallbackValue);
 
-    const jsonText = response.text?.trim() || "{}";
-    res.json(JSON.parse(jsonText));
+    let jsonText = response.text?.trim() || "{}";
+    if (jsonText.startsWith("```json")) {
+      jsonText = jsonText.substring(7, jsonText.length - 3).trim();
+    } else if (jsonText.startsWith("```")) {
+      jsonText = jsonText.substring(3, jsonText.length - 3).trim();
+    }
+
+    try {
+      res.json(JSON.parse(jsonText));
+    } catch (parseErr) {
+      console.warn("JSON parse failed on Gemini response, sending fallback:", parseErr, jsonText);
+      res.json(fallbackValue);
+    }
   } catch (error: any) {
     console.error("Gemini Huddle Bot Error:", error);
     res.status(500).json({ error: error.message || "Failed to generate AI bot response." });

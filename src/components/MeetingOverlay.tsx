@@ -27,6 +27,125 @@ export function CallDurationDisplay() {
   return <span className="font-mono">{`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`}</span>;
 }
 
+// Real-time Canvas-based Voice Wave Visualizer
+export function VoiceCanvasVisualizer({ volume, isSpeaking, color = "#10b981" }: { volume: number; isSpeaking: boolean; color?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number | null>(null);
+  const smoothedVolumeRef = useRef<number>(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let phase = 0;
+
+    const render = () => {
+      if (!ctx || !canvas) return;
+
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (width === 0 || height === 0) {
+        animationRef.current = requestAnimationFrame(render);
+        return;
+      }
+
+      const dpr = window.devicePixelRatio || 1;
+      const targetWidth = Math.floor(width * dpr);
+      const targetHeight = Math.floor(height * dpr);
+
+      if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        ctx.scale(dpr, dpr);
+      }
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Smooth volume
+      const targetVolume = isSpeaking ? volume : 0;
+      smoothedVolumeRef.current += (targetVolume - smoothedVolumeRef.current) * 0.18;
+      const activeVol = smoothedVolumeRef.current;
+
+      const centerY = height / 2;
+      phase += 0.05 + (activeVol / 100) * 0.08;
+
+      if (activeVol > 1) {
+        const numWaves = 3;
+        const waveParams = [
+          { speed: 1.0, amplitude: 0.9, strokeColor: color, opacity: 0.9, frequency: 0.04, lineWidth: 2 },
+          { speed: -0.7, amplitude: 0.5, strokeColor: "#3b82f6", opacity: 0.6, frequency: 0.07, lineWidth: 1 },
+          { speed: 1.3, amplitude: 0.3, strokeColor: "#8b5cf6", opacity: 0.4, frequency: 0.1, lineWidth: 1 }
+        ];
+
+        for (let w = 0; w < numWaves; w++) {
+          const p = waveParams[w];
+          ctx.beginPath();
+          ctx.strokeStyle = p.strokeColor;
+          ctx.globalAlpha = p.opacity;
+          ctx.lineWidth = p.lineWidth;
+          ctx.shadowBlur = p.lineWidth > 1 ? 6 : 0;
+          ctx.shadowColor = p.strokeColor;
+
+          for (let x = 0; x < width; x++) {
+            const edgeTaper = Math.sin((x / width) * Math.PI);
+            const currentAmp = (activeVol / 100) * (height * 0.45) * p.amplitude * edgeTaper;
+            const y = centerY + Math.sin(x * p.frequency + phase * p.speed) * currentAmp;
+
+            if (x === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          ctx.stroke();
+        }
+      } else {
+        // Silent flat line with subtle idle hum
+        ctx.beginPath();
+        ctx.strokeStyle = "#475569";
+        ctx.globalAlpha = 0.35;
+        ctx.lineWidth = 1.2;
+        ctx.shadowBlur = 0;
+
+        for (let x = 0; x < width; x++) {
+          const edgeTaper = Math.sin((x / width) * Math.PI);
+          const idleAmp = 1.5 * edgeTaper;
+          const y = centerY + Math.sin(x * 0.05 + phase * 0.3) * idleAmp;
+
+          if (x === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = 1.0;
+      ctx.shadowBlur = 0;
+      animationRef.current = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [volume, isSpeaking, color]);
+
+  return (
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden pointer-events-none">
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
+    </div>
+  );
+}
+
 export default function MeetingOverlay() {
   const { 
     activeCall, setActiveCall, endHuddleCall, 
@@ -34,7 +153,8 @@ export default function MeetingOverlay() {
     micPermission, camPermission, requestMicrophone, requestCamera, 
     requestScreenShare, stopScreenShare, postHuddleNotes,
     durationRef, isVoicePlaybackMuted, setIsVoicePlaybackMuted,
-    speakAnnouncement
+    speakAnnouncement,
+    isRecording, recordingSeconds, startRecordingSession, stopRecordingSession
   } = useMeeting();
 
   const { dbUser } = useAuth();
@@ -45,14 +165,22 @@ export default function MeetingOverlay() {
   const [pinnedParticipantId, setPinnedParticipantId] = useState<string | null>(null);
   const [activeSidebarTab, setActiveSidebarTab] = useState<"chat" | "participants" | null>(null);
   const [raisedHands, setRaisedHands] = useState<Record<string, boolean>>({});
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
   const [chatInput, setChatInput] = useState("");
   const [showConfirmLeave, setShowConfirmLeave] = useState(false);
   const [networkQuality, setNetworkQuality] = useState<"excellent" | "fair" | "poor">("excellent");
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [alertToast, setAlertToast] = useState<string | null>(null);
+
+  // Timeouts tracking reference for clean unmounting/leaving
+  const overlayTimeoutsRef = useRef<any[]>([]);
+
+  useEffect(() => {
+    return () => {
+      overlayTimeoutsRef.current.forEach(t => clearTimeout(t));
+      overlayTimeoutsRef.current = [];
+    };
+  }, [activeCall]);
 
   // Auto scroll chat to bottom
   const chatBottomRef = useRef<HTMLDivElement>(null);
@@ -62,18 +190,28 @@ export default function MeetingOverlay() {
     }
   }, [activeCall?.transcripts, activeSidebarTab]);
 
-  // Recording Timer
+  // Active call speaking states with noise gate and speech-end hang time (300-500ms)
+  const [isMeSpeakingSmooth, setIsMeSpeakingSmooth] = useState(false);
+  const speechTimeoutRef = useRef<any>(null);
+
   useEffect(() => {
-    let interval: any = null;
-    if (isRecording) {
-      interval = setInterval(() => {
-        setRecordingSeconds(prev => prev + 1);
-      }, 1000);
+    const isNowSpeaking = activeCall && !activeCall.isMuted && audioLevel > 8; // Noise Gate at 8%
+    if (isNowSpeaking) {
+      if (speechTimeoutRef.current) {
+        clearTimeout(speechTimeoutRef.current);
+        speechTimeoutRef.current = null;
+      }
+      setIsMeSpeakingSmooth(true);
     } else {
-      setRecordingSeconds(0);
+      // Speech ended: wait 350ms before turning off speaking indicator (hang time)
+      if (!speechTimeoutRef.current && isMeSpeakingSmooth) {
+        speechTimeoutRef.current = setTimeout(() => {
+          setIsMeSpeakingSmooth(false);
+          speechTimeoutRef.current = null;
+        }, 350);
+      }
     }
-    return () => clearInterval(interval);
-  }, [isRecording]);
+  }, [audioLevel, activeCall?.isMuted, isMeSpeakingSmooth]);
 
   const prevParticipantsRef = useRef<string[]>([]);
   const prevRaisedHandsRef = useRef<Record<string, boolean>>({});
@@ -235,7 +373,8 @@ export default function MeetingOverlay() {
     });
 
     // Trigger AI respond asynchronously with a realistic 2-3 second delay
-    setTimeout(() => {
+    const tid1 = setTimeout(() => {
+      if (!activeCall) return;
       // Use existing AI bridge in MeetingContext
       const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       // Triggers AI Response logic
@@ -269,7 +408,7 @@ export default function MeetingOverlay() {
             });
 
             // Silence speaking icon after 3 seconds
-            setTimeout(() => {
+            const tid2 = setTimeout(() => {
               setActiveCall(prev => {
                 if (!prev) return null;
                 return {
@@ -278,11 +417,13 @@ export default function MeetingOverlay() {
                 };
               });
             }, 3500);
+            overlayTimeoutsRef.current.push(tid2);
           }
         })
         .catch(err => console.warn("Meeting chat AI response failed:", err));
       }
     }, 1500);
+    overlayTimeoutsRef.current.push(tid1);
   };
 
   // Leave and save chat handler
@@ -442,9 +583,40 @@ export default function MeetingOverlay() {
     );
   }
 
-  // Active call participants (filtered)
-  const isMeSpeaking = !activeCall.isMuted && audioLevel > 5;
+  const getIsParticipantSpeaking = (p: any) => {
+    if (p.isMuted) return false;
+    if (p.id === currentAdminId) {
+      return isMeSpeakingSmooth;
+    }
+    return !!p.isSpeaking;
+  };
+
+  const getParticipantVolume = (p: any) => {
+    if (p.isMuted) return 0;
+    if (p.id === currentAdminId) {
+      return activeCall.isMuted ? 0 : audioLevel;
+    }
+    if (p.isSpeaking) {
+      // Generate dynamic speaking volume fluctuations (simulating realistic speech waveforms)
+      const time = Date.now() * 0.015;
+      const wave = Math.sin(time) * 30 + Math.cos(time * 1.6) * 15 + 45;
+      const isWordGap = Math.sin(time * 0.22) < -0.55;
+      return isWordGap ? 0 : Math.max(10, Math.min(100, Math.floor(wave)));
+    }
+    return 0;
+  };
+
   const showWebcamFeed = activeCall.isCameraOn && localCamStream;
+
+  const getParticipantColor = (p: any) => {
+    if (p.id === currentAdminId) return "#10b981"; // Emerald
+    const idLower = String(p.id).toLowerCase();
+    if (idLower.includes("arun")) return "#06b6d4"; // Cyan
+    if (idLower.includes("priya")) return "#2dd4bf"; // Teal
+    if (idLower.includes("karthik") || idLower.includes("rahul")) return "#a855f7"; // Purple
+    if (idLower.includes("sarah") || idLower.includes("anita")) return "#f43f5e"; // Rose
+    return "#3b82f6"; // Blue
+  };
 
   return (
     <div className="fixed inset-0 z-[100] bg-[#0B0F19] flex flex-col overflow-hidden text-slate-100 select-none">
@@ -551,24 +723,70 @@ export default function MeetingOverlay() {
                   {activeCall.participants.map(p => {
                     const isMe = p.id === currentAdminId;
                     const hasCamera = isMe ? activeCall.isCameraOn : p.isCameraOn;
-                    const isSpeakingNow = isMe ? isMeSpeaking : (p.isSpeaking && !p.isMuted);
+                    const isSpeakingNow = getIsParticipantSpeaking(p);
+                    const volume = getParticipantVolume(p);
                     return (
                       <div 
                         key={p.id} 
-                        className={`w-36 md:w-44 shrink-0 bg-[#161D30] rounded-xl overflow-hidden relative border-2 transition-all ${
-                          isSpeakingNow ? "border-emerald-500 shadow-lg shadow-emerald-500/20" : "border-slate-800"
+                        className={`w-36 md:w-44 shrink-0 bg-[#161D30] rounded-xl overflow-hidden relative border-2 transition-all duration-300 ${
+                          isSpeakingNow ? "border-emerald-500 shadow-md shadow-emerald-500/30" : "border-slate-800"
                         }`}
                       >
                         {isMe && hasCamera && localCamStream ? (
                           <video ref={(el) => { if (el && el.srcObject !== localCamStream) el.srcObject = localCamStream; }} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover scale-x-[-1]" />
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
-                            <div className={`w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xl ${isSpeakingNow ? "ring-2 ring-emerald-500 ring-offset-2 ring-offset-slate-900" : ""}`}>{p.avatar}</div>
+                            {/* Circular Voice Ring */}
+                            <div className="relative flex items-center justify-center">
+                              {isSpeakingNow && (
+                                <>
+                                  <span 
+                                    className="absolute rounded-full bg-emerald-500/10 border border-emerald-500/30 transition-all duration-75 animate-ping"
+                                    style={{ 
+                                      transform: `scale(${1 + (volume / 100) * 0.4})`,
+                                      opacity: 0.1 + (volume / 100) * 0.3
+                                    }} 
+                                  />
+                                  <span 
+                                    className="absolute rounded-full bg-emerald-500/15 border border-emerald-500/30 transition-all duration-75"
+                                    style={{ 
+                                      width: `${100 + (volume / 100) * 40}%`,
+                                      height: `${100 + (volume / 100) * 40}%`,
+                                      opacity: 0.15 + (volume / 100) * 0.4
+                                    }} 
+                                  />
+                                </>
+                              )}
+                              <div className={`w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-xl transition-all relative z-10 ${isSpeakingNow ? "ring-2 ring-emerald-500 ring-offset-1 ring-offset-slate-900 scale-105" : ""}`}>{p.avatar}</div>
+                            </div>
                           </div>
                         )}
-                        <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-0.5 rounded-md border border-white/10 flex items-center gap-1">
+                        
+                        {/* Show Speaking Level */}
+                        {isSpeakingNow && (
+                          <div className="absolute top-1.5 right-1.5 bg-slate-950/80 backdrop-blur px-1 py-0.5 rounded text-[8px] border border-emerald-500/20 text-emerald-400 font-mono z-15">
+                            {volume}%
+                          </div>
+                        )}
+
+                        {/* Real-time Voice Wave overlay */}
+                        <div className="absolute inset-x-0 bottom-0 h-8 z-10 pointer-events-none">
+                          <VoiceCanvasVisualizer volume={volume} isSpeaking={isSpeakingNow} color={getParticipantColor(p)} />
+                        </div>
+
+                        <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-0.5 rounded-md border border-white/10 flex items-center gap-1.5 z-15">
                           <span className="text-white text-[9px] font-bold truncate max-w-[65px]">{p.name} {isMe && "(You)"}</span>
-                          {p.isMuted && <MicOff className="w-2.5 h-2.5 text-rose-500" />}
+                          {p.isMuted ? (
+                            <MicOff className="w-2.5 h-2.5 text-rose-500" />
+                          ) : isSpeakingNow ? (
+                            <div className="flex items-end gap-0.5 h-2.5 px-0.5 pointer-events-none">
+                              <span className="w-0.5 bg-emerald-400 rounded-full transition-all duration-75" style={{ height: `${Math.max(2, Math.min(10, volume * 0.4))}px` }} />
+                              <span className="w-0.5 bg-emerald-400 rounded-full transition-all duration-75" style={{ height: `${Math.max(3, Math.min(10, volume * 0.8))}px` }} />
+                              <span className="w-0.5 bg-emerald-400 rounded-full transition-all duration-75" style={{ height: `${Math.max(2, Math.min(10, volume * 0.5))}px` }} />
+                            </div>
+                          ) : (
+                            <Mic className="w-2.5 h-2.5 text-slate-500" />
+                          )}
                         </div>
                       </div>
                     );
@@ -583,7 +801,7 @@ export default function MeetingOverlay() {
                   {(() => {
                     const p = activeCall.participants.find(part => part.id === pinnedParticipantId) || activeCall.participants[0];
                     const isMe = p.id === currentAdminId;
-                    const isSpeakingNow = isMe ? isMeSpeaking : (p.isSpeaking && !p.isMuted);
+                    const isSpeakingNow = getIsParticipantSpeaking(p);
                     const hasCamera = isMe ? activeCall.isCameraOn : p.isCameraOn;
                     return (
                       <div className="absolute inset-0 flex flex-col items-center justify-center relative">
@@ -620,13 +838,14 @@ export default function MeetingOverlay() {
 
                         {/* Speaking Waveform overlay */}
                         {isSpeakingNow && (
-                          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/60 px-4 py-2 rounded-full border border-emerald-500/20 backdrop-blur-md">
-                            <div className="w-1.5 h-3 bg-emerald-400 rounded-full animate-pulse" />
-                            <div className="w-1.5 h-5 bg-emerald-400 rounded-full animate-pulse delay-75" />
-                            <div className="w-1.5 h-4 bg-emerald-400 rounded-full animate-pulse delay-150" />
-                            <div className="w-1.5 h-6 bg-emerald-400 rounded-full animate-pulse" />
-                            <div className="w-1.5 h-3 bg-emerald-400 rounded-full animate-pulse delay-100" />
-                            <span className="text-emerald-400 text-xs font-bold ml-1">Speaking...</span>
+                          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-64 h-12 bg-black/75 rounded-2xl border border-white/10 flex items-center px-4 backdrop-blur-md shadow-2xl overflow-hidden z-15">
+                            <div className="w-12 h-full py-2 shrink-0 flex items-center">
+                              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">VOICE</span>
+                            </div>
+                            <div className="flex-1 h-full py-1">
+                              <VoiceCanvasVisualizer volume={getParticipantVolume(p)} isSpeaking={isSpeakingNow} color={getParticipantColor(p)} />
+                            </div>
+                            <span className="text-[10px] font-mono text-emerald-400 font-extrabold ml-2 bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/20">{getParticipantVolume(p)}%</span>
                           </div>
                         )}
 
@@ -664,7 +883,8 @@ export default function MeetingOverlay() {
                   {activeCall.participants.map(p => {
                     const isMe = p.id === currentAdminId;
                     const hasCamera = isMe ? activeCall.isCameraOn : p.isCameraOn;
-                    const isSpeakingNow = isMe ? isMeSpeaking : (p.isSpeaking && !p.isMuted);
+                    const isSpeakingNow = getIsParticipantSpeaking(p);
+                    const volume = getParticipantVolume(p);
                     return (
                       <div 
                         key={p.id} 
@@ -698,7 +918,12 @@ export default function MeetingOverlay() {
                           </div>
                         )}
 
-                        <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded-lg border border-white/10 flex items-center gap-1.5 pointer-events-none">
+                        {/* Real-time Voice Wave overlay */}
+                        <div className="absolute inset-x-0 bottom-0 h-8 z-10 pointer-events-none">
+                          <VoiceCanvasVisualizer volume={volume} isSpeaking={isSpeakingNow} color={getParticipantColor(p)} />
+                        </div>
+
+                        <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded-lg border border-white/10 flex items-center gap-1.5 pointer-events-none z-15">
                           <span className="text-white text-[10px] font-bold truncate max-w-[80px]">{p.name} {isMe && "(You)"}</span>
                           {p.isMuted ? (
                             <MicOff className="w-3 h-3 text-rose-500" />
@@ -729,8 +954,9 @@ export default function MeetingOverlay() {
               <div className={`flex-1 grid gap-4 auto-rows-fr ${activeCall.participants.length > 2 ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'}`}>
                 {activeCall.participants.map(p => {
                   const isMe = p.id === currentAdminId;
-                  const isSpeakingNow = isMe ? isMeSpeaking : (p.isSpeaking && !p.isMuted);
+                  const isSpeakingNow = getIsParticipantSpeaking(p);
                   const hasCamera = isMe ? activeCall.isCameraOn : p.isCameraOn;
+                  const volume = getParticipantVolume(p);
                   return (
                     <div 
                       key={p.id} 
@@ -791,8 +1017,13 @@ export default function MeetingOverlay() {
                           <span>✋</span> Hand Raised
                         </div>
                       )}
+
+                      {/* Real-time Voice Wave overlay */}
+                      <div className="absolute inset-x-0 bottom-0 h-12 z-10 pointer-events-none">
+                        <VoiceCanvasVisualizer volume={volume} isSpeaking={isSpeakingNow} color={getParticipantColor(p)} />
+                      </div>
                       
-                      <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
+                      <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none z-15">
                         <div className="bg-black/65 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-2 shadow-md">
                           <span className="text-white text-xs font-bold">{p.name} {isMe && "(You)"}</span>
                           {p.isMuted ? (
@@ -822,14 +1053,15 @@ export default function MeetingOverlay() {
             )}
           </div>
 
-          {/* 3. Captions bottom overlay - automatically display speech transcripts above the toolbar */}
+          {/* 3. Captions bottom overlay - automatically display speech transcripts above the toolbar if CC is toggled on */}
           {(() => {
+            if (!activeCall.isCaptionsOn) return null;
             const speechTranscripts = activeCall.transcripts.filter(t => t.isSpeech);
             if (speechTranscripts.length === 0) return null;
             const lastSpeech = speechTranscripts[speechTranscripts.length - 1];
             return (
               <div className="absolute bottom-4 inset-x-4 flex justify-center pointer-events-none z-30">
-                <div className="bg-black/85 backdrop-blur-md text-white text-sm md:text-base font-semibold px-5 py-3 rounded-xl border border-white/10 shadow-2xl max-w-2xl text-center pointer-events-auto leading-relaxed">
+                <div className="bg-black/85 backdrop-blur-md text-white text-sm md:text-base font-semibold px-5 py-3 rounded-xl border border-white/10 shadow-2xl max-w-2xl text-center pointer-events-auto leading-relaxed animate-fade-in">
                   <span className="text-indigo-400 font-extrabold">{lastSpeech.senderName}: </span>
                   <span>{lastSpeech.text}</span>
                 </div>
@@ -875,14 +1107,18 @@ export default function MeetingOverlay() {
                 // ---------------- CHAT CONTENT ----------------
                 <div className="flex-1 flex flex-col min-h-0 bg-[#0B0F19]/40">
                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {activeCall.transcripts.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 py-12">
-                        <MessageSquare className="w-10 h-10 mb-2 opacity-30" />
-                        <span className="text-xs font-semibold">No messages yet.</span>
-                        <span className="text-[10px] mt-1 max-w-[200px]">Send a chat or start speaking to build the transcript logs.</span>
-                      </div>
-                    ) : (
-                      activeCall.transcripts.map((t, idx) => {
+                    {(() => {
+                      const chatMessages = activeCall.transcripts.filter(t => !t.isSpeech);
+                      if (chatMessages.length === 0) {
+                        return (
+                          <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 py-12">
+                            <MessageSquare className="w-10 h-10 mb-2 opacity-30" />
+                            <span className="text-xs font-semibold">No chat messages yet.</span>
+                            <span className="text-[10px] mt-1 max-w-[200px]">Send a chat message to the team. Spoken sentences are kept separate in captions.</span>
+                          </div>
+                        );
+                      }
+                      return chatMessages.map((t, idx) => {
                         const isMe = t.senderName === currentAdminName;
                         return (
                           <div key={idx} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
@@ -899,8 +1135,8 @@ export default function MeetingOverlay() {
                             </div>
                           </div>
                         );
-                      })
-                    )}
+                      });
+                    })()}
                     <div ref={chatBottomRef} />
                   </div>
 
@@ -928,7 +1164,7 @@ export default function MeetingOverlay() {
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0B0F19]/40">
                   {activeCall.participants.map(p => {
                     const isMe = p.id === currentAdminId;
-                    const isSpeakingNow = isMe ? isMeSpeaking : (p.isSpeaking && !p.isMuted);
+                    const isSpeakingNow = getIsParticipantSpeaking(p);
                     return (
                       <div key={p.id} className="bg-slate-900/50 border border-slate-850 p-3 rounded-xl flex items-center justify-between hover:bg-slate-850/30 transition-all">
                         <div className="flex items-center gap-3">
@@ -1063,9 +1299,16 @@ export default function MeetingOverlay() {
           
           {/* Screen Share */}
           <button 
-            onClick={() => {
-              if (activeCall.isScreenSharing) stopScreenShare();
-              else requestScreenShare();
+            onClick={async () => {
+              if (activeCall.isScreenSharing) {
+                stopScreenShare();
+              } else {
+                try {
+                  await requestScreenShare();
+                } catch (err: any) {
+                  triggerAlert(err.message || "Screen sharing failed.");
+                }
+              }
             }} 
             className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
               activeCall.isScreenSharing 
@@ -1116,6 +1359,58 @@ export default function MeetingOverlay() {
               </div>
             )}
           </div>
+
+          {/* Speaker (Audio Output Volume Toggle) */}
+          <button 
+            onClick={() => {
+              const nextMuted = !isVoicePlaybackMuted;
+              setIsVoicePlaybackMuted(nextMuted);
+              triggerAlert(nextMuted ? "Speakers muted (simulated voice synthesis paused)." : "Speakers unmuted.");
+            }} 
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              isVoicePlaybackMuted 
+                ? "bg-rose-600 text-white shadow-lg shadow-rose-600/30 hover:bg-rose-700" 
+                : "bg-slate-800 hover:bg-slate-750 text-white"
+            }`} 
+            title={isVoicePlaybackMuted ? "Unmute Speakers" : "Mute Speakers"}
+          >
+            {isVoicePlaybackMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          </button>
+
+          {/* Captions Toggle Button */}
+          <button 
+            onClick={() => {
+              const nextCC = !activeCall.isCaptionsOn;
+              setActiveCall(p => p ? { ...p, isCaptionsOn: nextCC } : null);
+              triggerAlert(nextCC ? "Captions (CC) enabled." : "Captions (CC) disabled.");
+            }} 
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer font-black text-xs ${
+              activeCall.isCaptionsOn 
+                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-700" 
+                : "bg-slate-800 hover:bg-slate-750 text-white"
+            }`} 
+            title={activeCall.isCaptionsOn ? "Turn Off Captions" : "Turn On Captions"}
+          >
+            CC
+          </button>
+
+          {/* Switch Call Mode (Voice <-> Video) */}
+          <button 
+            onClick={async () => {
+              const isVoice = activeCall.type === "voice";
+              const nextType = isVoice ? "video" : "voice";
+              setActiveCall(p => p ? { ...p, type: nextType, isCameraOn: isVoice } : null);
+              if (isVoice && !localCamStream) {
+                await requestCamera();
+              }
+              triggerAlert(`Switched huddle to ${nextType} conference mode.`);
+              speakAnnouncement(`Switched to ${nextType} call.`);
+            }} 
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer bg-slate-800 hover:bg-slate-750 text-white"
+            title={activeCall.type === "voice" ? "Switch to Video Call" : "Switch to Voice Call"}
+          >
+            {activeCall.type === "voice" ? <Video className="w-5 h-5 text-indigo-400" /> : <Phone className="w-5 h-5 text-emerald-400" />}
+          </button>
           
           <div className="w-px h-6 bg-slate-800 mx-1"></div>
           
@@ -1166,14 +1461,12 @@ export default function MeetingOverlay() {
           {/* Standard Recording Button */}
           <button 
             onClick={() => {
-              const nextState = !isRecording;
-              setIsRecording(nextState);
-              if (nextState) {
-                triggerAlert("🔴 Screen & Audio recording session started.");
-                speakAnnouncement("Recording started.");
-              } else {
+              if (isRecording) {
+                stopRecordingSession();
                 triggerAlert("⏺ Recording finalized and archived.");
-                speakAnnouncement("Recording stopped.");
+              } else {
+                startRecordingSession();
+                triggerAlert("🔴 Screen & Audio recording session started.");
               }
             }}
             className={`w-24 h-10 rounded-xl flex items-center justify-center gap-1.5 px-3 border transition-all ${

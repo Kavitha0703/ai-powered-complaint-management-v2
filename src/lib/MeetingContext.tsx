@@ -16,6 +16,7 @@ export type HuddleTranscript = {
   senderName: string;
   text: string;
   time: string;
+  isSpeech?: boolean;
 };
 
 export interface ChatMessage {
@@ -107,6 +108,15 @@ type MeetingContextType = {
   speakText: (text: string, senderName: string) => void;
   speakAnnouncement: (text: string) => void;
   durationRef: React.MutableRefObject<number>;
+  isRecording: boolean;
+  setIsRecording: React.Dispatch<React.SetStateAction<boolean>>;
+  recordingSeconds: number;
+  setRecordingSeconds: React.Dispatch<React.SetStateAction<number>>;
+  startRecordingSession: () => void;
+  stopRecordingSession: () => void;
+  liveSpeechCaption: { senderName: string, text: string } | null;
+  setLiveSpeechCaption: React.Dispatch<React.SetStateAction<{ senderName: string, text: string } | null>>;
+  handleAiBotResponse: (transcript: string) => Promise<void>;
 };
 
 const MeetingContext = createContext<MeetingContextType | null>(null);
@@ -121,7 +131,19 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
   const [micPermission, setMicPermission] = useState<string | null>(null);
   const [camPermission, setCamPermission] = useState<string | null>(null);
   
+  // Recording states moved globally to prevent leaks and track perfectly
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
+  
+  // Audio Web API references for safe and complete lifecycle cleanup
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const pendingTimeoutsRef = useRef<any[]>([]);
+
   const [speechStatus, setSpeechStatus] = useState<"Listening..." | "Converting speech..." | "Ready" | "Inactive">("Inactive");
+  const [liveSpeechCaption, setLiveSpeechCaption] = useState<{ senderName: string, text: string } | null>(null);
   const [isVoicePlaybackMuted, setIsVoicePlaybackMuted] = useState<boolean>(false);
   const [recentCalls, setRecentCalls] = useState<RecentCall[]>(() => {
     try {
@@ -143,6 +165,9 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
       setLocalCamStream(null);
     }
     if (screenStream) {
+      if ((screenStream as any)._intervalId) {
+        clearInterval((screenStream as any)._intervalId);
+      }
       screenStream.getTracks().forEach(t => t.stop());
       setScreenStream(null);
     }
@@ -150,6 +175,31 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
       userStream.getTracks().forEach(t => t.stop());
       setUserStream(null);
     }
+
+    // Stop and disconnect Web Audio API resources to completely release microphone capture
+    if (scriptProcessorRef.current) {
+      scriptProcessorRef.current.onaudioprocess = null;
+      try { scriptProcessorRef.current.disconnect(); } catch (_) {}
+      scriptProcessorRef.current = null;
+    }
+    if (micSourceRef.current) {
+      try { micSourceRef.current.disconnect(); } catch (_) {}
+      micSourceRef.current = null;
+    }
+    if (analyserRef.current) {
+      try { analyserRef.current.disconnect(); } catch (_) {}
+      analyserRef.current = null;
+    }
+    if (audioContextRef.current) {
+      try {
+        if (audioContextRef.current.state !== "closed") {
+          audioContextRef.current.close();
+        }
+      } catch (_) {}
+      audioContextRef.current = null;
+    }
+
+    setAudioLevel(0);
   };
 
   const formatCallDuration = (seconds: number) => {
@@ -210,6 +260,17 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
     appendChatMessage("Ad-hoc Triage Huddle Notes", callSummary);
   };
 
+  const startRecordingSession = () => {
+    setIsRecording(true);
+    setRecordingSeconds(0);
+    speakAnnouncement("Recording started.");
+  };
+
+  const stopRecordingSession = () => {
+    setIsRecording(false);
+    speakAnnouncement("Recording stopped.");
+  };
+
   const endHuddleCall = () => {
     if (!activeCall) return;
     
@@ -218,6 +279,13 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
     const isVideo = activeCall.type === "video";
     const screensCount = activeCall.isScreenSharing ? 1 : 0;
     
+    // Clear all pending timeouts
+    pendingTimeoutsRef.current.forEach(t => clearTimeout(t));
+    pendingTimeoutsRef.current = [];
+
+    const wasSessionRecorded = isRecording;
+    const finalRecordingSeconds = recordingSeconds;
+
     const callSummary: NonNullable<ChatMessage["call_summary"]> = {
       type: activeCall.type,
       duration: durationStr,
@@ -226,14 +294,14 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
       ticketNumber: activeCall.ticketNumber || "#548610",
       ticketTitle: activeCall.ticketTitle || "Database Outages & Level-2 Escalations Queue Spike",
       recordingNotes: isVideo 
-        ? "Video war-room huddle finalized and archived." 
-        : "Voice bridge huddle logs finalized and routed.",
+        ? `Video war-room huddle finalized and archived.${wasSessionRecorded ? ` Recording saved: ${formatCallDuration(finalRecordingSeconds)}.` : ""}` 
+        : `Voice bridge huddle logs finalized and routed.${wasSessionRecorded ? ` Recording saved: ${formatCallDuration(finalRecordingSeconds)}.` : ""}`,
       discussionSummary: [
         "Ticket 548 reviewed & logs validated",
         "Database connection deadlock root cause identified",
         "SLA resolution policy compliance confirmed"
       ],
-      recordingAvailable: true,
+      recordingAvailable: wasSessionRecorded || finalRecordingSeconds > 0,
       transcriptSaved: true,
       screensShared: screensCount
     };
@@ -256,6 +324,10 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("dcms_recent_calls_v1", JSON.stringify(updated));
       return updated;
     });
+
+    // Reset recording state completely
+    setIsRecording(false);
+    setRecordingSeconds(0);
 
     cleanupCallStreams();
     setActiveCall(null);
@@ -296,11 +368,21 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
       
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioContextClass) {
+        // Close existing if any to prevent leaks
+        if (audioContextRef.current) {
+          try { audioContextRef.current.close(); } catch(_) {}
+        }
+
         const audioContext = new AudioContextClass();
         const analyser = audioContext.createAnalyser();
         const microphone = audioContext.createMediaStreamSource(stream);
         const scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
         
+        audioContextRef.current = audioContext;
+        scriptProcessorRef.current = scriptProcessor;
+        analyserRef.current = analyser;
+        micSourceRef.current = microphone;
+
         analyser.smoothingTimeConstant = 0.8;
         analyser.fftSize = 1024;
         
@@ -310,19 +392,37 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
         
         let lastUpdate = 0;
         scriptProcessor.onaudioprocess = () => {
+          if (!activeCall) return; // ignore if call ended or inactive
+          
           const now = Date.now();
-          if (now - lastUpdate < 120) return; // Only update state once every 120ms
+          if (now - lastUpdate < 25) return; // Update at ~40 FPS for super smooth animations
           lastUpdate = now;
+
+          if (activeCall?.isMuted) {
+            setAudioLevel(0);
+            return;
+          }
 
           const array = new Uint8Array(analyser.frequencyBinCount);
           analyser.getByteFrequencyData(array);
-          let values = 0;
+          
+          // Calculate RMS (Root Mean Square) for realistic volume representation
+          let sum = 0;
           const length = array.length;
           for (let i = 0; i < length; i++) {
-            values += (array[i]);
+            sum += array[i] * array[i];
           }
-          const average = values / length;
-          setAudioLevel(average);
+          const rms = Math.sqrt(sum / length);
+          
+          // Normalize to a clean 0-100 scale
+          let level = Math.min(100, Math.floor((rms / 128) * 100));
+
+          // Noise gate: ignore background static or tiny ambient noise (under 8%)
+          if (level < 8) {
+            level = 0;
+          }
+
+          setAudioLevel(level);
         };
       }
     } catch (err) {
@@ -348,17 +448,44 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        throw new Error("Screen sharing is not supported in this browser or under iframe sandboxing rules.");
+      }
+      
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          cursor: "always"
+        } as any,
+        audio: true
+      });
+
       setScreenStream(stream);
       setActiveCall(prev => prev ? { ...prev, isScreenSharing: true } : null);
       
       speakAnnouncement("Screen sharing started.");
       
-      stream.getVideoTracks()[0].onended = () => {
-        stopScreenShare();
-      };
-    } catch (err) {
+      if (stream.getVideoTracks().length > 0) {
+        stream.getVideoTracks()[0].onended = () => {
+          stopScreenShare();
+        };
+      }
+    } catch (err: any) {
       console.warn("Screen sharing denied or unavailable", err);
+      const errName = err.name || "UnknownError";
+      const errMsg = err.message || "";
+      if (errName === "NotAllowedError") {
+        throw new Error("NotAllowedError\nUser cancelled screen sharing or iframe/sandboxed permission was blocked.");
+      } else if (errName === "NotSupportedError") {
+        throw new Error("NotSupportedError\nThis browser or environment does not support screen sharing.");
+      } else if (errName === "InvalidStateError") {
+        throw new Error("InvalidStateError\nScreen sharing must be started directly from a user click.");
+      } else if (errName === "NotFoundError") {
+        throw new Error("NotFoundError\nNo screen capture source was found.");
+      } else if (errName === "NotReadableError") {
+        throw new Error("NotReadableError\nThe screen capture source is already in use or restricted.");
+      } else {
+        throw new Error(`${errName}\n${errMsg || "Screen sharing is unavailable in this environment."}`);
+      }
     }
   };
 
@@ -414,6 +541,11 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
         if (deepVoice) utterance.voice = deepVoice;
         utterance.pitch = 0.75;
         utterance.rate = 0.9;
+      } else if (senderName === "Sarah") {
+        const securityVoice = availableVoices.find(v => v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("zira") || v.name.toLowerCase().includes("google us english") || v.name.toLowerCase().includes("samantha"));
+        if (securityVoice) utterance.voice = securityVoice;
+        utterance.pitch = 1.05;
+        utterance.rate = 1.0;
       }
       
       window.speechSynthesis.speak(utterance);
@@ -428,6 +560,13 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
     const otherParticipants = activeCall.participants.filter(p => p.id !== currentAdminId);
     if (otherParticipants.length === 0) return;
 
+    // Wait until the admin finishes speaking before replying (introducing a natural 800ms pause)
+    setSpeechStatus("Converting speech...");
+    await new Promise(resolve => {
+      const tId = setTimeout(resolve, 800);
+      pendingTimeoutsRef.current.push(tId);
+    });
+
     try {
       const response = await fetch("/api/gemini/huddle-bot", {
         method: "POST",
@@ -437,7 +576,10 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           transcript,
           previousContext: activeCall.transcripts.map(t => `${t.senderName}: ${t.text}`).join("\n"),
-          participants: otherParticipants
+          participants: otherParticipants,
+          adminName: currentAdminName,
+          ticketTitle: activeCall.ticketTitle || "Database Outages & Level-2 Escalations Queue Spike",
+          ticketNumber: activeCall.ticketNumber || "#TKT-5486"
         })
       });
 
@@ -445,37 +587,54 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json();
       
-      if (data && data.speakerId && data.text) {
-        const speaker = otherParticipants.find(p => p.id === data.speakerId) || otherParticipants[0];
-        
-        // Add text to transcript
-        setActiveCall(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            transcripts: [
-              ...prev.transcripts,
-              { senderId: speaker.id, senderName: speaker.name, text: data.text, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), isSpeech: true }
-            ]
-          };
-        });
+      const responsesList = data.responses || (data.speakerId && data.text ? [{ speakerId: data.speakerId, text: data.text }] : []);
+      
+      if (responsesList && responsesList.length > 0) {
+        for (const item of responsesList) {
+          if (!item.speakerId || !item.text) continue;
+          
+          const speaker = otherParticipants.find(p => p.id === item.speakerId) || otherParticipants[0];
+          
+          // Add text to transcripts as spoken conversation (isSpeech: true)
+          setActiveCall(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              transcripts: [
+                ...prev.transcripts,
+                { 
+                  senderId: speaker.id, 
+                  senderName: speaker.name, 
+                  text: item.text, 
+                  time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), 
+                  isSpeech: true 
+                }
+              ]
+            };
+          });
 
-        // Speak the text
-        speakText(data.text, speaker.name);
+          // Speak the text
+          speakText(item.text, speaker.name);
 
-        // Flash "isSpeaking" indicator temporarily
-        setActiveCall(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            participants: prev.participants.map(p => 
-              p.id === speaker.id ? { ...p, isSpeaking: true } : p
-            )
-          };
-        });
-        
-        // Turn off speaking indicator after 3 seconds
-        setTimeout(() => {
+          // Flash "isSpeaking" indicator temporarily
+          setActiveCall(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              participants: prev.participants.map(p => 
+                p.id === speaker.id ? { ...p, isSpeaking: true } : p
+              )
+            };
+          });
+
+          // Wait until speaker finishes speaking
+          const speechDuration = Math.max(3500, item.text.length * 60);
+          await new Promise(resolve => {
+            const tId = setTimeout(resolve, speechDuration);
+            pendingTimeoutsRef.current.push(tId);
+          });
+
+          // Turn off speaking indicator
           setActiveCall(prev => {
             if (!prev) return null;
             return {
@@ -485,10 +644,18 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
               )
             };
           });
-        }, Math.max(3000, data.text.length * 50));
+
+          // Short turn-taking pause before the next participant starts speaking
+          await new Promise(resolve => {
+            const tId = setTimeout(resolve, 600);
+            pendingTimeoutsRef.current.push(tId);
+          });
+        }
       }
+      setSpeechStatus("Ready");
     } catch (err) {
       console.warn("AI Bot response error:", err);
+      setSpeechStatus("Ready");
     }
   };
 
@@ -592,11 +759,11 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
             setSpeechStatus("Converting speech...");
             setTimeout(() => {
               const simulatedSentences = [
-                "We need to review ticket #548 and scale the DB thread limits.",
-                "Arun can you verify connection latency on the regional gateway?",
-                "Priya let's compile complaints system database report first.",
-                "Adjusting Redis pool settings to avoid gateway timeout locks.",
-                "Ready to finalize this incident huddle and issue resolution guidelines."
+                "We need to review our connection pool limit to prevent DBA lockout.",
+                "Arun, is there any spike in packet drops on our gateway router?",
+                "Priya, are we seeing any unhandled exceptions in the user service?",
+                "Sarah, please verify if there are any suspicious security logs in IAM.",
+                "Can we check the database deadlock transaction analyzer?"
               ];
               const sentence = simulatedSentences[Math.floor(Math.random() * simulatedSentences.length)];
               
@@ -614,9 +781,11 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
                   ]
                 };
               });
+
+              handleAiBotResponse(sentence);
             }, 1500);
           }
-        }, 12000);
+        }, 22000);
       }, 500); // 500ms startup delay for non-critical systems to guarantee UI starts instantly at 60fps!
 
     } else {
@@ -641,6 +810,37 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
     };
   }, [activeCall?.status, activeCall?.isMuted]);
 
+  // Automated camera/microphone startup effect when huddle enters connected status
+  useEffect(() => {
+    if (activeCall && activeCall.status === "connected") {
+      if (activeCall.isCameraOn && !localCamStream) {
+        requestCamera();
+      } else if (!activeCall.isCameraOn && localCamStream) {
+        localCamStream.getTracks().forEach(t => t.stop());
+        setLocalCamStream(null);
+      }
+      
+      if (!activeCall.isMuted && !userStream) {
+        requestMicrophone();
+      }
+    }
+  }, [activeCall?.status, activeCall?.isCameraOn, activeCall?.isMuted]);
+
+  // Global Recording Timer Effect
+  useEffect(() => {
+    let interval: any = null;
+    if (isRecording && activeCall && activeCall.status === "connected") {
+      interval = setInterval(() => {
+        setRecordingSeconds(prev => prev + 1);
+      }, 1000);
+    } else {
+      setRecordingSeconds(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRecording, activeCall?.status]);
+
   return (
     <MeetingContext.Provider value={{
       activeCall, setActiveCall, startHuddleCall, endHuddleCall,
@@ -648,7 +848,9 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
       micPermission, camPermission, speechStatus, setSpeechStatus,
       isVoicePlaybackMuted, setIsVoicePlaybackMuted, recentCalls, setRecentCalls,
       requestMicrophone, requestCamera, requestScreenShare, stopScreenShare,
-      postHuddleNotes, speakText, speakAnnouncement, durationRef
+      postHuddleNotes, speakText, speakAnnouncement, durationRef,
+      isRecording, setIsRecording, recordingSeconds, setRecordingSeconds,
+      startRecordingSession, stopRecordingSession
     }}>
       {children}
     </MeetingContext.Provider>

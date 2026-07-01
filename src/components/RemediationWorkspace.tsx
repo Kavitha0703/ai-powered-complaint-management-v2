@@ -129,11 +129,26 @@ export function RemediationWorkspace({
   const [improvingStatus, setImprovingStatus] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [proofAttachments, setProofAttachments] = useState<SupportAttachment[]>([]);
+  const [liveCameraActive, setLiveCameraActive] = useState<boolean>(false);
+  const [cameraFacingMode, setCameraFacingMode] = useState<"user" | "environment">("environment");
+  const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>("");
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
 
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
 
   // Sync ticket specifics on load
   useEffect(() => {
+    stopLiveCamera();
     setStatus(ticket.status || 'Pending');
     setReplyTarget(null);
     setEditingCommentId(null);
@@ -861,6 +876,133 @@ export function RemediationWorkspace({
       };
       reader.readAsDataURL(f);
     });
+  };
+
+  // Live Camera controls
+  const startLiveCamera = async (mode: "user" | "environment" = cameraFacingMode) => {
+    setLiveCameraActive(true);
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(t => t.stop());
+    }
+    try {
+      const constraints = {
+        video: {
+          facingMode: mode,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        }
+      };
+      const ms = await navigator.mediaDevices.getUserMedia(constraints);
+      setCameraFacingMode(mode);
+      cameraStreamRef.current = ms;
+      if (videoRef.current) {
+        videoRef.current.srcObject = ms;
+      }
+      
+      const list = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = list.filter(d => d.kind === 'videoinput');
+      setCameraDevices(videoInputs);
+      if (videoInputs.length > 0) {
+        const found = videoInputs.find(d => d.deviceId === selectedCameraId) || videoInputs[0];
+        setSelectedCameraId(found.deviceId);
+      }
+    } catch (err) {
+      try {
+        const ms = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: { ideal: 1280 }, height: { ideal: 720 } } 
+        });
+        cameraStreamRef.current = ms;
+        if (videoRef.current) {
+          videoRef.current.srcObject = ms;
+        }
+        
+        const list = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = list.filter(d => d.kind === 'videoinput');
+        setCameraDevices(videoInputs);
+        if (videoInputs.length > 0 && !selectedCameraId) {
+          setSelectedCameraId(videoInputs[0].deviceId);
+        }
+      } catch (fallbackErr) {
+        console.error("Camera access failed:", fallbackErr);
+        alert("Unable to access digital camera capture drivers.");
+        setLiveCameraActive(false);
+      }
+    }
+  };
+
+  const switchLiveCamera = async (newId: string) => {
+    setSelectedCameraId(newId);
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(t => t.stop());
+    }
+    try {
+      const newMs = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          deviceId: { exact: newId },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
+      cameraStreamRef.current = newMs;
+      if (videoRef.current) {
+        videoRef.current.srcObject = newMs;
+      }
+    } catch (err) {
+      alert("Error switching to selected camera interface.");
+    }
+  };
+
+  const toggleLiveCameraDirection = () => {
+    if (cameraDevices.length > 1) {
+      const currentIndex = cameraDevices.findIndex(d => d.deviceId === selectedCameraId);
+      const nextIndex = (currentIndex + 1) % cameraDevices.length;
+      switchLiveCamera(cameraDevices[nextIndex].deviceId);
+    } else {
+      const newMode = cameraFacingMode === "user" ? "environment" : "user";
+      startLiveCamera(newMode);
+    }
+  };
+
+  const captureLiveSnapshot = () => {
+    if (!videoRef.current) return;
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth || 640;
+      canvas.height = videoRef.current.videoHeight || 480;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        if (cameraFacingMode === 'user') {
+          ctx.scale(-1, 1); // mirror reflection for front camera
+          ctx.drawImage(videoRef.current, -canvas.width, 0, canvas.width, canvas.height);
+        } else {
+          ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        }
+        const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
+
+        const fileId = "att_proof_cam_" + Date.now();
+        const newAttachment: SupportAttachment = {
+          id: fileId,
+          name: `CameraSnapshot_${new Date().toLocaleTimeString().replace(/\s/g, "")}.jpg`,
+          size: Math.round(dataUrl.length * 0.75),
+          type: 'image',
+          dataUrl
+        };
+
+        saveProofAttachments([...proofAttachments, newAttachment]);
+        stopLiveCamera();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const stopLiveCamera = () => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    cameraStreamRef.current = null;
+    setLiveCameraActive(false);
   };
 
   // Handle proof image uploads
@@ -1773,8 +1915,8 @@ export function RemediationWorkspace({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => document.getElementById("proof-camera-trigger")?.click()}
-                className="h-8 text-[11px] font-bold border-indigo-200 dark:border-slate-800 cursor-pointer flex items-center gap-1.5"
+                onClick={() => startLiveCamera()}
+                className="h-8 text-[11px] font-bold border-indigo-200 dark:border-slate-800 cursor-pointer flex items-center gap-1.5 text-slate-800 dark:text-slate-200 bg-white dark:bg-[#111A2E] hover:bg-slate-50 dark:hover:bg-[#1e293b]"
               >
                 <Camera className="w-3.5 h-3.5 text-indigo-500" />
                 📷 Open Camera
@@ -1808,7 +1950,7 @@ export function RemediationWorkspace({
           ) : (
             <div className="border-2 border-dashed border-slate-100 dark:border-slate-800/80 p-6 text-center rounded-xl bg-slate-50/10">
               <span className="text-xl">📷</span>
-              <p className="text-[11px] text-slate-405 italic mt-1 font-medium">No resolution screenshots or camera proof attached to this ticket yet.</p>
+              <p className="text-[11px] text-black dark:text-white italic mt-1 font-medium">No resolution screenshots or camera proof attached to this ticket yet.</p>
             </div>
           )}
         </div>
@@ -1878,6 +2020,90 @@ export function RemediationWorkspace({
             >
               Cancel
             </Button>
+          </div>
+        </div>
+      )}
+
+      {liveCameraActive && (
+        <div className="fixed top-0 left-0 right-0 bottom-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#0b1329] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 w-full max-w-lg shadow-2xl flex flex-col gap-4 text-slate-800 dark:text-slate-100">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📹</span>
+                <h3 className="text-sm font-extrabold uppercase font-mono tracking-wide text-indigo-600 dark:text-indigo-400">Live Camera Viewfinder</h3>
+              </div>
+              <Button 
+                onClick={stopLiveCamera} 
+                variant="ghost" 
+                className="h-7 w-7 p-0 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Video Feed viewport */}
+            <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-inner">
+              <video 
+                ref={videoRef}
+                autoPlay 
+                playsInline 
+                muted
+                className={`w-full h-full object-cover ${cameraFacingMode === "user" ? "scale-x-[-1]" : ""}`}
+              />
+              <div className="absolute top-3 left-3 bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-md text-[9px] font-black uppercase font-mono tracking-widest text-cyan-400 select-none flex items-center gap-1.5 border border-cyan-400/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                Live Feed
+              </div>
+            </div>
+
+            {/* Control HUD row */}
+            <div className="flex flex-col gap-3">
+              {/* Device Selector drop-down if multiple cameras are available */}
+              {cameraDevices.length > 0 && (
+                <div className="flex flex-col gap-1 text-left">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Video Source</label>
+                  <select 
+                    value={selectedCameraId}
+                    onChange={(e) => switchLiveCamera(e.target.value)}
+                    className="w-full h-9 bg-slate-50 dark:bg-[#111A2E] text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800/80 rounded-xl px-2.5 text-xs outline-none focus:border-indigo-500 font-medium"
+                  >
+                    {cameraDevices.map((d, i) => {
+                      let label = d.label || `Camera ${i + 1}`;
+                      const l = label.toLowerCase();
+                      if (l.includes('front') || l.includes('user')) label = 'Front Camera 🤳';
+                      else if (l.includes('back') || l.includes('environment')) {
+                        if (l.includes('ultra wide')) label = 'Rear Ultra Wide Camera 📸';
+                        else if (l.includes('telephoto')) label = 'Rear Telephoto Camera 📸';
+                        else label = 'Rear Camera 📸';
+                      }
+                      return (
+                        <option key={d.deviceId || i} value={d.deviceId}>
+                          {label}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <Button 
+                  onClick={toggleLiveCameraDirection}
+                  variant="outline"
+                  className="flex-1 h-10 text-xs font-bold border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl flex items-center justify-center gap-2 cursor-pointer bg-white dark:bg-slate-800"
+                >
+                  🔄 Toggle Camera
+                </Button>
+
+                <Button 
+                  onClick={captureLiveSnapshot}
+                  className="flex-1 h-10 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md border-none"
+                >
+                  📸 Capture Snapshot
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}
