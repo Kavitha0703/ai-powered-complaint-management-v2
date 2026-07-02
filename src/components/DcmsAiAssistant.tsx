@@ -1983,14 +1983,6 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setIsOpen(false)}
-                    className="p-1 px-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer text-xs flex items-center gap-1 font-bold"
-                    title="Close"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                    <span className="sm:hidden">Close</span>
-                  </button>
                 </div>
               </div>
 
@@ -2180,18 +2172,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Scrollable Action chips line above input - Wrapped so they are all fully visible */}
-              <div className="px-3 py-2 bg-slate-950/70 border-t border-slate-850 flex flex-wrap gap-1.5 justify-center shrink-0">
-                {QUICK_ACTION_CHIPS.map((chip) => (
-                  <button
-                    key={chip.label}
-                    onClick={() => handleTriggerQuickAction(chip.action)}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-blue-600 border border-slate-750 hover:border-blue-500 text-slate-300 hover:text-white text-[9px] font-extrabold rounded-full transition-all cursor-pointer"
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
+
 
               {/* Attached file visual indicator */}
               {attachedFile && (

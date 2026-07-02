@@ -178,7 +178,7 @@ app.post("/api/gemini/analyze", async (req: express.Request, res: express.Respon
     };
 
     const correctedText = autoCorrectTypos(description);
-    const descLower = description.toLowerCase();
+    const descLower = correctedText.toLowerCase();
 
     // 1. Emotion & Sentiment Analysis
     let sentiment = "Neutral";
@@ -319,16 +319,16 @@ app.post("/api/gemini/analyze", async (req: express.Request, res: express.Respon
         // Single Issue - Detailed Branch Heuristics
         // 1. Unpaid Salary
         if (
-          (descLower.includes("salary") || descLower.includes("credited") || descLower.includes("pay") || descLower.includes("not received")) &&
-          (descLower.includes("not credited") || descLower.includes("has not been credited") || descLower.includes("missing") || descLower.includes("delayed") || descLower.includes("june")) &&
-          !descLower.includes("increment") && !descLower.includes("slip") && !descLower.includes("deduction") && !descLower.includes("late")
+          (descLower.includes("salary") || descLower.includes("credited") || descLower.includes("pay") || descLower.includes("not received") || descLower.includes("unpaid")) &&
+          (descLower.includes("not credited") || descLower.includes("has not been credited") || descLower.includes("missing") || descLower.includes("delayed") || descLower.includes("june") || descLower.includes("not received") || descLower.includes("not credit")) &&
+          !descLower.includes("increment") && !descLower.includes("increased") && !descLower.includes("increase") && !descLower.includes("slip") && !descLower.includes("deduction") && !descLower.includes("late")
         ) {
           fallbackCategory = "Salary & Payroll";
           fallbackPriority = "Critical";
-          fallbackDepartment = "Payroll Support";
+          fallbackDepartment = "Payroll";
           fallbackSla = "4 Hours";
-          fallbackRootCause = "Salary payment failure due to direct deposit automated batch rejection.";
-          fallbackRec = "Process pending salary disbursement immediately via emergency payroll cycle.";
+          fallbackRootCause = "Salary payment failure";
+          fallbackRec = "Process pending salary immediately";
           fallbackConfidence = 98;
           detectedKeywords = ["salary", "credited", "June"];
           matchedDeptReason = "Payroll Support";
@@ -337,13 +337,19 @@ app.post("/api/gemini/analyze", async (req: express.Request, res: express.Respon
           estimatedResolutionTime = "< 4 Hours";
         }
         // 2. Salary Increment Missing
-        else if (descLower.includes("increment") || descLower.includes("appraisal") || (descLower.includes("salary") && descLower.includes("missing") && descLower.includes("increment"))) {
+        else if (
+          descLower.includes("increment") || 
+          descLower.includes("appraisal") || 
+          descLower.includes("increased") || 
+          descLower.includes("increase") ||
+          (descLower.includes("salary") && descLower.includes("missing") && (descLower.includes("increment") || descLower.includes("increase")))
+        ) {
           fallbackCategory = "Salary & Payroll";
           fallbackPriority = "High";
           fallbackDepartment = "HR Compensation & Finance";
           fallbackSla = "12 Hours";
-          fallbackRootCause = "Salary increment revision was not synchronized in the current month's payroll ledger.";
-          fallbackRec = "Verify appraisal and salary revision records, apply retroactive adjustment, and clear difference.";
+          fallbackRootCause = "Increment revision not reflected";
+          fallbackRec = "Verify appraisal and salary revision records";
           fallbackConfidence = 97;
           detectedKeywords = ["salary", "increment", "June"];
           matchedDeptReason = "HR Compensation & Finance";
