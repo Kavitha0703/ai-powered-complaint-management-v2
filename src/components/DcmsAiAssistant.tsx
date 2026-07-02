@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabase.ts";
 import { 
   MessageSquare, X, Send, Sparkles, RefreshCw, Cpu, Globe, AppWindow, 
   HardDrive, Info, Plus, ChevronRight, AlertTriangle, Check, BookOpen, Settings, User as UserIcon, Bell, Shield, ArrowRight, CornerDownLeft,
-  Paperclip, Mic, MicOff, Trash2, HelpCircle, FileText, ImageIcon, Lightbulb, Pin, DownloadCloud, Edit3, Search, Copy, CheckCircle2
+  Paperclip, Mic, MicOff, Trash2, HelpCircle, FileText, ImageIcon, Lightbulb, Pin, DownloadCloud, Edit3, Search, Copy, CheckCircle2, Minus
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -80,6 +80,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
   const location = useLocation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingIntervalRef = useRef<any>(null);
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -349,6 +350,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
   // Voice Speech-to-Text State
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const chatbotCache = useRef<Record<string, any>>({});
 
   // Loading rotation timer - replaced with progressive, state-based loading progress sequence
   useEffect(() => {
@@ -453,7 +455,8 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       setMessages([]);
     }
 
-    if (!dbUser || threads.length === 0) return;
+    // Performance Optimization: Skip expensive Supabase database write operations while typing animation is active
+    if (!dbUser || threads.length === 0 || loading) return;
     
     // Save current threads to DB in background
     Promise.all(threads.map(async (t) => {
@@ -485,7 +488,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
        }
     })).catch(console.error);
     
-  }, [threads, activeThreadId, dbUser]);
+  }, [threads, activeThreadId, dbUser, loading]);
 
   // Load from Supabase on init
   useEffect(() => {
@@ -558,6 +561,15 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     }
   }, [isOpen]);
 
+  // Clean up any active streaming typewriter intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+    };
+  }, []);
+
   // Register global listener for programmatic open
   useEffect(() => {
     const handleOpenGlobal = (e: Event) => {
@@ -615,6 +627,15 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       } else {
         setActiveThreadId(null);
       }
+    }
+  };
+
+  const formatMessageTime = (ts: number) => {
+    try {
+      const d = new Date(ts);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return "";
     }
   };
 
@@ -778,6 +799,102 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     }
   };
 
+  const getLocalChatResponse = (text: string, mode: "visitor" | "user" | "admin") => {
+    const clean = text.trim().toLowerCase();
+
+    // Greeting
+    if (clean === "hi" || clean === "hello" || clean === "hey" || clean === "greetings" || clean === "hola" || clean === "good morning" || clean === "good afternoon" || clean === "good evening") {
+      return {
+        text: "Hello there! 👋 I am your digital Workplace Operations Assistant, optimized for local response speeds to help you navigate the system instantly.\n\nHow can I assist you with your workplace operations today? Feel free to use the quick action buttons below or ask me about filing/tracking tickets!",
+        suggestedCategory: "General Query",
+        suggestedSeverity: "Low",
+        quickActions: ["register_ticket", "view_tickets", "view_notices"]
+      };
+    }
+
+    // Register / Submit Ticket
+    if (clean.includes("register") || clean.includes("submit") || clean.includes("file") || clean.includes("create ticket") || clean.includes("new ticket") || clean.includes("report issue") || clean.includes("open ticket") || clean.includes("lodge")) {
+      return {
+        text: "I can help you file a new operational or IT ticket right away! \n\nClick the **Pre-fill & File Ticket Now** button or the **📝 Register Ticket** action below to launch the ticket creation wizard.",
+        suggestedCategory: "System Navigation",
+        suggestedSeverity: "Low",
+        quickActions: ["register_ticket"]
+      };
+    }
+
+    // Track / Status
+    if (clean.includes("track") || clean.includes("status") || clean.includes("my ticket") || clean.includes("check ticket") || clean.includes("my complaints") || clean.includes("view complaints") || clean.includes("list my")) {
+      return {
+        text: "You can track the live status, assigned department, and SLA counters of all your submitted complaints and requests in real-time.\n\nClick the **📁 View Tickets** action below to navigate to your ticket dashboard.",
+        suggestedCategory: "System Navigation",
+        suggestedSeverity: "Low",
+        quickActions: ["view_tickets"]
+      };
+    }
+
+    // Notice / Announcement
+    if (clean.includes("notice") || clean.includes("announcement") || clean.includes("news") || clean.includes("broadcast") || clean.includes("policy") || clean.includes("what's new") || clean.includes("alert")) {
+      return {
+        text: "Stay up-to-date with company broadcasts, emergency updates, and department operations inside our central Notice Board.\n\nClick the **🔔 System Notices** action below to view active notices.",
+        suggestedCategory: "General Query",
+        suggestedSeverity: "Low",
+        quickActions: ["view_notices"]
+      };
+    }
+
+    // Profile / Settings
+    if (clean.includes("profile") || clean.includes("password") || clean.includes("settings") || clean.includes("my account") || clean.includes("change password") || clean.includes("avatar")) {
+      return {
+        text: "You can view your current account details, update your profile picture, change your password, and customize operational preferences on your Account Profile page.\n\nClick below to access your profile settings.",
+        suggestedCategory: "System Navigation",
+        suggestedSeverity: "Low",
+        quickActions: ["reset_password"]
+      };
+    }
+
+    // Contact / Support / Help
+    if (clean.includes("help") || clean.includes("support") || clean.includes("contact") || clean.includes("human") || clean.includes("admin") || clean.includes("phone") || clean.includes("email") || clean.includes("faq")) {
+      return {
+        text: "For platform assistance, our Help Center is available 24/7 with interactive guides and FAQs. If you need direct administrative support, feel free to reach out to our Operations Control Desk at **ops-support@workplacehub.io**.\n\nClick below to open the Help Center.",
+        suggestedCategory: "Customer Support",
+        suggestedSeverity: "Low",
+        quickActions: ["contact_support"]
+      };
+    }
+
+    // Salary query local help if simple
+    if (clean === "salary delayed" || clean === "salary delayed?" || clean === "my salary is delayed") {
+      return {
+        text: "We understand that payroll/salary delays can be frustrating. To address this, please file a ticket under the **Finance & Payroll** category so our payroll administrators can investigate the delay immediately.\n\nClick **📝 Register Ticket** below to start.",
+        suggestedCategory: "Finance & Payroll",
+        suggestedSeverity: "High",
+        quickActions: ["register_ticket"]
+      };
+    }
+
+    // Printer issue
+    if (clean === "printer jammed" || clean === "printer issue" || clean === "printer error") {
+      return {
+        text: "For physical workplace issues like printer jams, toner depletion, or hardware malfunctions, please submit a **Facilities & Infrastructure** support ticket so the office maintenance team can address it.\n\nClick **📝 Register Ticket** below to file.",
+        suggestedCategory: "Facilities & Infrastructure",
+        suggestedSeverity: "Medium",
+        quickActions: ["register_ticket"]
+      };
+    }
+
+    // Slow Wifi
+    if (clean === "slow wifi" || clean === "wifi issue" || clean === "internet is slow") {
+      return {
+        text: "WiFi and network performance issues are handled directly by our **IT & Systems** administration team. Please lodge a support ticket with your building number and floor details so we can optimize your access point.\n\nClick below to lodge an IT ticket.",
+        suggestedCategory: "IT & Systems",
+        suggestedSeverity: "Medium",
+        quickActions: ["register_ticket"]
+      };
+    }
+
+    return null; // Go to Gemini for complex questions!
+  };
+
   const handleSendMessage = async (textToSend: string, isRegeneration: boolean = false) => {
     // If we have text or active attached file
     if (!textToSend.trim() && !attachedFile) return;
@@ -881,6 +998,122 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     const outgoingFile = attachedFile ? { ...attachedFile } : null;
     setAttachedFile(null);
     setLoading(true);
+
+    // 💡 LOCAL RULE-BASED RESPONDER FOR FAQs & NAVIGATION
+    const localRuleResponse = getLocalChatResponse(processedText, chatbotMode);
+    if (localRuleResponse) {
+      const assistantMsgId = "msg_assist_" + Date.now();
+      const assistantMsg: ChatMessage = {
+        id: assistantMsgId,
+        sender: "assistant",
+        text: "",
+        timestamp: Date.now(),
+        suggestedCategory: localRuleResponse.suggestedCategory,
+        suggestedSeverity: localRuleResponse.suggestedSeverity,
+        quickActions: localRuleResponse.quickActions || []
+      };
+
+      const reLoadedThreads = [...currentThreads];
+      const targetIdx = reLoadedThreads.findIndex((t) => t.id === targetThreadId);
+      if (targetIdx > -1) {
+        reLoadedThreads[targetIdx].messages = [...reLoadedThreads[targetIdx].messages, assistantMsg];
+        setThreads(reLoadedThreads);
+      }
+
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+
+      const words = localRuleResponse.text.split(" ");
+      let currentWordIndex = 0;
+      let currentTypedText = "";
+      
+      typingIntervalRef.current = setInterval(() => {
+        if (currentWordIndex < words.length) {
+          currentTypedText += (currentWordIndex === 0 ? "" : " ") + words[currentWordIndex];
+          currentWordIndex++;
+          
+          setThreads((prevThreads) => {
+            const updated = [...prevThreads];
+            const tIdx = updated.findIndex((t) => t.id === targetThreadId);
+            if (tIdx > -1) {
+              updated[tIdx] = {
+                ...updated[tIdx],
+                messages: updated[tIdx].messages.map((m) => 
+                  m.id === assistantMsgId ? { ...m, text: currentTypedText } : m
+                )
+              };
+            }
+            return updated;
+          });
+        } else {
+          if (typingIntervalRef.current) {
+            clearInterval(typingIntervalRef.current);
+            typingIntervalRef.current = null;
+          }
+          setLoading(false);
+        }
+      }, 15);
+      return;
+    }
+
+    const cacheKey = `${processedText.trim().toLowerCase()}_mode_${chatbotMode}_brief_${isBrief}`;
+    if (chatbotCache.current[cacheKey]) {
+      const cached = chatbotCache.current[cacheKey];
+      const assistantMsgId = "msg_assist_" + Date.now();
+      const assistantMsg: ChatMessage = {
+        id: assistantMsgId,
+        sender: "assistant",
+        text: "",
+        timestamp: Date.now(),
+        suggestedCategory: cached.suggestedCategory,
+        suggestedSeverity: cached.suggestedSeverity,
+        quickActions: cached.quickActions || []
+      };
+
+      let reLoadedThreads = [...currentThreads];
+      let targetIdx = reLoadedThreads.findIndex((t) => t.id === targetThreadId);
+      if (targetIdx > -1) {
+        reLoadedThreads[targetIdx].messages = [...reLoadedThreads[targetIdx].messages, assistantMsg];
+        setThreads(reLoadedThreads);
+      }
+
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+
+      const words = cached.text.split(" ");
+      let currentWordIndex = 0;
+      let currentTypedText = "";
+      
+      typingIntervalRef.current = setInterval(() => {
+        if (currentWordIndex < words.length) {
+          currentTypedText += (currentWordIndex === 0 ? "" : " ") + words[currentWordIndex];
+          currentWordIndex++;
+          
+          setThreads((prevThreads) => {
+            const updated = [...prevThreads];
+            const tIdx = updated.findIndex((t) => t.id === targetThreadId);
+            if (tIdx > -1) {
+              updated[tIdx] = {
+                ...updated[tIdx],
+                messages: updated[tIdx].messages.map((m) => 
+                  m.id === assistantMsgId ? { ...m, text: currentTypedText } : m
+                )
+              };
+            }
+            return updated;
+          });
+        } else {
+          if (typingIntervalRef.current) {
+            clearInterval(typingIntervalRef.current);
+            typingIntervalRef.current = null;
+          }
+          setLoading(false);
+        }
+      }, 25);
+      return;
+    }
 
     try {
       // Gather dynamic live DB grounding report before prompt generation for truthfulness rules
@@ -987,23 +1220,70 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
 
       const rawResult = await response.json();
       
-      const assistantMsg: ChatMessage = {
-        id: "msg_assist_" + Date.now(),
-        sender: "assistant",
+      const cacheKey = `${processedText.trim().toLowerCase()}_mode_${chatbotMode}_brief_${isBrief}`;
+      chatbotCache.current[cacheKey] = {
         text: rawResult.text || "I was unable to analyze that request accurately.",
+        suggestedCategory: rawResult.suggestedCategory,
+        suggestedSeverity: rawResult.suggestedSeverity,
+        quickActions: rawResult.quickActions || []
+      };
+      
+      const fullText = rawResult.text || "I was unable to analyze that request accurately.";
+      const assistantMsgId = "msg_assist_" + Date.now();
+      
+      const assistantMsg: ChatMessage = {
+        id: assistantMsgId,
+        sender: "assistant",
+        text: "", // start empty for simulated word-by-word streaming
         timestamp: Date.now(),
         suggestedCategory: rawResult.suggestedCategory,
         suggestedSeverity: rawResult.suggestedSeverity,
         quickActions: rawResult.quickActions || []
       };
 
-      // Append AI Assistant response to active state
-      const reLoadedThreads = [...currentThreads];
-      const targetIdx = reLoadedThreads.findIndex((t) => t.id === targetThreadId);
+      // Append empty AI Assistant response to active state
+      let reLoadedThreads = [...currentThreads];
+      let targetIdx = reLoadedThreads.findIndex((t) => t.id === targetThreadId);
       if (targetIdx > -1) {
         reLoadedThreads[targetIdx].messages = [...reLoadedThreads[targetIdx].messages, assistantMsg];
         setThreads(reLoadedThreads);
       }
+
+      // Clear any prior active typing interval before initiating a new one
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+
+      // Stream words one-by-one with beautiful timing
+      const words = fullText.split(" ");
+      let currentWordIndex = 0;
+      let currentTypedText = "";
+      
+      typingIntervalRef.current = setInterval(() => {
+        if (currentWordIndex < words.length) {
+          currentTypedText += (currentWordIndex === 0 ? "" : " ") + words[currentWordIndex];
+          currentWordIndex++;
+          
+          setThreads((prevThreads) => {
+            const updated = [...prevThreads];
+            const tIdx = updated.findIndex((t) => t.id === targetThreadId);
+            if (tIdx > -1) {
+              updated[tIdx] = {
+                ...updated[tIdx],
+                messages: updated[tIdx].messages.map((m) => 
+                  m.id === assistantMsgId ? { ...m, text: currentTypedText } : m
+                )
+              };
+            }
+            return updated;
+          });
+        } else {
+          if (typingIntervalRef.current) {
+            clearInterval(typingIntervalRef.current);
+            typingIntervalRef.current = null;
+          }
+        }
+      }, 25); // high response speed (25ms per word)
     } catch (err: any) {
       console.error(err);
       
@@ -1686,25 +1966,32 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                 className="px-5 py-4 bg-slate-950/90 border-b border-slate-800/80 flex justify-between items-center shrink-0 cursor-grab active:cursor-grabbing select-none"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-sm shadow-md animate-pulse">
-                    🤖
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20 relative shrink-0 border border-blue-400/20">
+                    <Sparkles className="w-4 h-4 text-white animate-pulse" />
+                    <span className="absolute bottom-[-1px] right-[-1px] w-2.5 h-2.5 bg-emerald-400 rounded-full border border-slate-950 animate-pulse" />
                   </div>
                   <div>
                     <h4 className="text-xs font-black tracking-tight flex items-center gap-1.5">
-                      <span>🤖 Workplace Hub AI Assistant</span>
+                      <span>Workplace Hub AI</span>
+                      <span className="px-1.5 py-0.5 text-[8px] font-black bg-emerald-950/80 text-emerald-400 border border-emerald-900/40 rounded-full uppercase flex items-center gap-0.5 animate-pulse shrink-0">
+                        <span className="w-1 h-1 rounded-full bg-emerald-400" /> Online
+                      </span>
                     </h4>
                     <div className="mt-0.5">
                       {getRoleBadge()}
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-1 px-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer text-xs flex items-center gap-1 font-bold"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  <span className="sm:hidden">Close</span>
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="p-1 px-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer text-xs flex items-center gap-1 font-bold"
+                    title="Close"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span className="sm:hidden">Close</span>
+                  </button>
+                </div>
               </div>
 
               {/* Dynamic Mode Switcher Bar */}
@@ -1760,97 +2047,107 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                 {threads.find((t) => t.id === activeThreadId)?.messages.map((m) => (
                   <div
                     key={m.id}
-                    className={`flex gap-2.5 max-w-[85%] ${m.sender === "user" ? "ml-auto flex-row-reverse" : "mr-auto"}`}
+                    className={`flex flex-col gap-1 max-w-[85%] ${m.sender === "user" ? "ml-auto items-end" : "mr-auto items-start"}`}
                   >
-                    <div className={`w-7 h-7 rounded-md shrink-0 flex items-center justify-center font-bold text-[10px] shadow-2xs ${
-                      m.sender === "user" ? "bg-blue-650 font-black text-white" : "bg-slate-850 text-white border border-slate-800"
-                    }`}>
-                      {m.sender === "user" ? (dbUser?.name?.[0]?.toUpperCase() || "U") : "🤖"}
-                    </div>
-                    <div className={`space-y-1.5 p-3.5 rounded-2xl ${
-                      m.sender === "user" 
-                        ? "bg-blue-600 text-white font-medium text-xs leading-relaxed" 
-                        : "bg-[#0E1424] border border-slate-850 pb-4"
-                    }`}>
-                      <div className="overflow-x-auto select-text text-2xs leading-relaxed font-semibold">
-                        {m.sender === "user" ? (
-                          <p className="text-2xs leading-relaxed whitespace-pre-wrap">{m.text}</p>
-                        ) : (
-                          renderMarkdown(m.text)
+                    <div className={`flex gap-2.5 ${m.sender === "user" ? "flex-row-reverse" : ""}`}>
+                      {m.sender === "user" ? (
+                        <div className="w-7 h-7 rounded-full bg-blue-650 font-black text-white flex items-center justify-center text-[10px] shadow-sm shrink-0">
+                          {dbUser?.name?.[0]?.toUpperCase() || "U"}
+                        </div>
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 shrink-0 border border-blue-400/20 relative">
+                          <Sparkles className="w-3.5 h-3.5 animate-pulse text-white" />
+                          <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-400 rounded-full border border-slate-950 animate-pulse"></span>
+                        </div>
+                      )}
+                      <div className={`space-y-1.5 p-3.5 rounded-2xl ${
+                        m.sender === "user" 
+                          ? "bg-blue-600 text-white font-medium text-xs leading-relaxed" 
+                          : "bg-[#0E1424] border border-slate-850 pb-4"
+                      }`}>
+                        <div className="overflow-x-auto select-text text-2xs leading-relaxed font-semibold">
+                          {m.sender === "user" ? (
+                            <p className="text-2xs leading-relaxed whitespace-pre-wrap">{m.text}</p>
+                          ) : (
+                            renderMarkdown(m.text)
+                          )}
+                        </div>
+
+                        {/* File Upload Indicator within bubble */}
+                        {m.file && (
+                          <div className={`mt-2 p-2 rounded-xl border flex items-center gap-2 max-w-full w-max text-[9.5px] font-black ${
+                            m.sender === "user" 
+                              ? "bg-blue-700/50 border-blue-500/20 text-white" 
+                              : "bg-slate-900/65 border-slate-800 text-slate-350"
+                          }`}>
+                            {m.file.type?.startsWith("image/") ? (
+                              <ImageIcon className="w-3.5 h-3.5 opacity-80" />
+                            ) : (
+                              <FileText className="w-3.5 h-3.5 opacity-80" />
+                            )}
+                            <span className="truncate max-w-[130px]">{m.file.name}</span>
+                            <span className="text-[8px] opacity-60">({(m.file.size / 1024).toFixed(0)}K)</span>
+                          </div>
+                        )}
+                        
+                        {/* Classification suggestions */}
+                        {!loading && m.sender === "assistant" && m.suggestedCategory && (
+                          <div className="mt-3.5 p-2.5 bg-blue-950/20 border border-blue-500/20 rounded-xl space-y-1.5">
+                            <span className="text-[9px] font-black uppercase text-blue-400 tracking-wider flex items-center gap-1 font-mono">
+                              <Sparkles className="w-3 h-3 text-blue-400" /> Smart Diagnostic
+                            </span>
+                            <div className="grid grid-cols-2 gap-1.5 text-[9px] font-extrabold leading-normal">
+                              <div className="p-1 px-1.5 bg-[#121A2E] rounded border border-slate-800 truncate">
+                                <span className="text-slate-500">Category: </span>
+                                <span className="text-blue-400">{m.suggestedCategory}</span>
+                              </div>
+                              <div className="p-1 px-1.5 bg-[#121A2E] rounded border border-slate-800 truncate">
+                                <span className="text-slate-500">Urgency: </span>
+                                <span className={`${m.suggestedSeverity === "Critical" || m.suggestedSeverity === "Urgent" ? "text-red-400" : "text-amber-400"}`}>{m.suggestedSeverity || "Low"}</span>
+                              </div>
+                            </div>
+                            {dbUser?.role !== "admin" && (
+                              <button
+                                onClick={() => handleAutofillRegister(m.suggestedCategory || "Other", m.suggestedSeverity || "Medium", threads.find(t=>t.id===activeThreadId)?.messages.find(um=>um.sender==="user")?.text || "")}
+                                className="w-full text-center py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-[10px] rounded cursor-pointer transition-all active:scale-97"
+                              >
+                                📝 Pre-fill & File Ticket Now
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Quick action triggers */}
+                        {!loading && m.sender === "assistant" && m.quickActions && m.quickActions.length > 0 && (
+                          <div className="mt-2.5 flex flex-wrap gap-1.5">
+                            {m.quickActions.map((act) => {
+                              let label = "";
+                              if (act === "register_ticket") label = "📝 Register Ticket";
+                              else if (act === "view_tickets") label = "📁 View Tickets";
+                              else if (act === "view_notices") label = "🔔 System Notices";
+                              else if (act === "reset_password" || act === "update_profile") label = "👤 Profile Settings";
+                              else if (act === "export_pdf") label = "📅 Export PDF Report";
+                              else if (act === "export_docx") label = "📝 Export Word Report";
+                              else if (act === "export_csv") label = "📊 Export CSV Data";
+                              else label = act;
+
+                              return (
+                                <button
+                                  key={act}
+                                  onClick={() => handleTriggerQuickAction(act)}
+                                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200 font-bold rounded cursor-pointer"
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
-
-                      {/* File Upload Indicator within bubble */}
-                      {m.file && (
-                        <div className={`mt-2 p-2 rounded-xl border flex items-center gap-2 max-w-full w-max text-[9.5px] font-black ${
-                          m.sender === "user" 
-                            ? "bg-blue-700/50 border-blue-500/20 text-white" 
-                            : "bg-slate-900/65 border-slate-800 text-slate-350"
-                        }`}>
-                          {m.file.type?.startsWith("image/") ? (
-                            <ImageIcon className="w-3.5 h-3.5 opacity-80" />
-                          ) : (
-                            <FileText className="w-3.5 h-3.5 opacity-80" />
-                          )}
-                          <span className="truncate max-w-[130px]">{m.file.name}</span>
-                          <span className="text-[8px] opacity-60">({(m.file.size / 1024).toFixed(0)}K)</span>
-                        </div>
-                      )}
-                      
-                      {/* Classification suggestions */}
-                      {!loading && m.sender === "assistant" && m.suggestedCategory && (
-                        <div className="mt-3.5 p-2.5 bg-blue-950/20 border border-blue-500/20 rounded-xl space-y-1.5">
-                          <span className="text-[9px] font-black uppercase text-blue-400 tracking-wider flex items-center gap-1 font-mono">
-                            <Sparkles className="w-3 h-3 text-blue-400" /> Smart Diagnostic
-                          </span>
-                          <div className="grid grid-cols-2 gap-1.5 text-[9px] font-extrabold leading-normal">
-                            <div className="p-1 px-1.5 bg-[#121A2E] rounded border border-slate-800 truncate">
-                              <span className="text-slate-500">Category: </span>
-                              <span className="text-blue-400">{m.suggestedCategory}</span>
-                            </div>
-                            <div className="p-1 px-1.5 bg-[#121A2E] rounded border border-slate-800 truncate">
-                              <span className="text-slate-500">Urgency: </span>
-                              <span className={`${m.suggestedSeverity === "Critical" || m.suggestedSeverity === "Urgent" ? "text-red-400" : "text-amber-400"}`}>{m.suggestedSeverity || "Low"}</span>
-                            </div>
-                          </div>
-                          {dbUser?.role !== "admin" && (
-                            <button
-                              onClick={() => handleAutofillRegister(m.suggestedCategory || "Other", m.suggestedSeverity || "Medium", threads.find(t=>t.id===activeThreadId)?.messages.find(um=>um.sender==="user")?.text || "")}
-                              className="w-full text-center py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-[10px] rounded cursor-pointer transition-all active:scale-97"
-                            >
-                              📝 Pre-fill & File Ticket Now
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Quick action triggers */}
-                      {!loading && m.sender === "assistant" && m.quickActions && m.quickActions.length > 0 && (
-                        <div className="mt-2.5 flex flex-wrap gap-1.5">
-                          {m.quickActions.map((act) => {
-                            let label = "";
-                            if (act === "register_ticket") label = "📝 Register Ticket";
-                            else if (act === "view_tickets") label = "📁 View Tickets";
-                            else if (act === "view_notices") label = "🔔 System Notices";
-                            else if (act === "reset_password" || act === "update_profile") label = "👤 Profile Settings";
-                            else if (act === "export_pdf") label = "📅 Export PDF Report";
-                            else if (act === "export_docx") label = "📝 Export Word Report";
-                            else if (act === "export_csv") label = "📊 Export CSV Data";
-                            else label = act;
-
-                            return (
-                              <button
-                                key={act}
-                                onClick={() => handleTriggerQuickAction(act)}
-                                className="px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200 font-bold rounded cursor-pointer"
-                              >
-                                {label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
                     </div>
+                    <span className={`text-[8px] text-slate-500 font-bold px-1.5 ${m.sender === "user" ? "text-right mr-9" : "text-left ml-9"}`}>
+                      {formatMessageTime(m.timestamp)}
+                    </span>
                   </div>
                 ))}
 
@@ -1883,33 +2180,18 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Scrollable Action chips line above input */}
-              <div className="px-4 py-1.5 bg-slate-950/70 border-t border-slate-850 overflow-x-auto whitespace-nowrap scrollbar-none flex gap-1.5 shrink-0">
+              {/* Scrollable Action chips line above input - Wrapped so they are all fully visible */}
+              <div className="px-3 py-2 bg-slate-950/70 border-t border-slate-850 flex flex-wrap gap-1.5 justify-center shrink-0">
                 {QUICK_ACTION_CHIPS.map((chip) => (
                   <button
                     key={chip.label}
                     onClick={() => handleTriggerQuickAction(chip.action)}
-                    className="inline-block px-2.5 py-1 bg-slate-800 hover:bg-blue-600 border border-slate-750 hover:border-blue-500 text-slate-300 hover:text-white text-[9px] font-extrabold rounded-full transition-all cursor-pointer"
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-blue-600 border border-slate-750 hover:border-blue-500 text-slate-300 hover:text-white text-[9px] font-extrabold rounded-full transition-all cursor-pointer"
                   >
                     {chip.label}
                   </button>
                 ))}
               </div>
-
-              {/* Suggestions row if blank conversation */}
-              {(!threads.find((t) => t.id === activeThreadId)?.messages || threads.find((t) => t.id === activeThreadId)!.messages.length <= 1) && (
-                <div className="px-4 py-2 bg-slate-950/40 border-t border-slate-800 overflow-x-auto whitespace-nowrap scrollbar-none flex gap-1.5 shrink-0">
-                  {currentSuggestions.map((s) => (
-                    <button
-                      key={s.label}
-                      onClick={() => handleSendMessage(s.query)}
-                      className="inline-block px-2.5 py-1 bg-slate-850 hover:bg-blue-500 border border-slate-750 text-slate-300 hover:text-white text-[9.5px] font-extrabold rounded-lg transition-all cursor-pointer"
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              )}
 
               {/* Attached file visual indicator */}
               {attachedFile && (
@@ -1966,8 +2248,8 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Type Message or commands..."
-                  className="flex-1 bg-slate-800 border border-slate-750 rounded-lg px-3 py-1.5 text-white placeholder-slate-500 text-2xs focus:outline-none focus:border-blue-500 font-medium"
+                  placeholder="Ask AI or type support command..."
+                  className="flex-1 bg-[#121A2E] border border-slate-750 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-blue-500 font-semibold leading-normal shadow-inner transition-all"
                 />
                 
                 <button
@@ -2042,7 +2324,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
           className="w-13 h-13 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-xl hover:shadow-blue-500/20 z-50 border border-blue-400/30 cursor-grab active:cursor-grabbing relative"
           style={{ boxShadow: "0 0 35px rgba(59,130,246,0.35)" }}
         >
-          {isOpen ? <X className="w-5.5 h-5.5 animate-spin-once" /> : <MessageSquare className="w-5.5 h-5.5" />}
+          {isOpen ? <X className="w-5.5 h-5.5 animate-spin-once" /> : <Lightbulb className="w-5.5 h-5.5 text-amber-300 animate-pulse" />}
           
           {!isOpen && (
             <span className="absolute top-0 right-0 w-3 h-3 bg-red-400 rounded-full border border-[#F8FAFC] dark:border-[#020617] animate-pulse"></span>

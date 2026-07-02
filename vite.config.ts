@@ -12,11 +12,25 @@ export default defineConfig(() => {
       VitePWA({
         registerType: "autoUpdate",
         manifest: {
-          name: "DCMS",
-          short_name: "DCMS",
+          name: "Workplace Hub",
+          short_name: "Workplace Hub",
+          description: "Digital Workplace Operations & Incident Remediation Platform",
+          start_url: "/",
           display: "standalone",
           theme_color: "#0f172a",
-          background_color: "#0f172a"
+          background_color: "#0f172a",
+          icons: [
+            {
+              src: "/logo.svg",
+              sizes: "512x512",
+              type: "image/svg+xml",
+              purpose: "any maskable"
+            }
+          ]
+        },
+        devOptions: {
+          enabled: true,
+          type: "module"
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 6000000

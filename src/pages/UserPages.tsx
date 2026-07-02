@@ -459,6 +459,8 @@ export function RegisterTicket() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const prefillsLoadedRef = useRef(false);
+  const aiAnalysisCache = useRef<Record<string, any>>({});
+  const screenshotAnalysisCache = useRef<Record<string, any>>({});
 
   // On Mounting - check for pending saved drafts and autosaved unsubmitted drafts (crash-protection)
   useEffect(() => {
@@ -769,6 +771,19 @@ export function RegisterTicket() {
       alert("Please enter a brief operational description first.");
       return;
     }
+
+    const cacheKey = desc.trim().toLowerCase();
+    if (aiAnalysisCache.current[cacheKey]) {
+      const cachedData = aiAnalysisCache.current[cacheKey];
+      setType(cachedData.category);
+      setSeverity(cachedData.priority);
+      if (cachedData.optimizedDescription) {
+        setDesc(cachedData.optimizedDescription);
+      }
+      alert(`🤖 [Cached AI Analysis] Gemini AI Support Triage Complete:\n\n• Predicted Category: ${cachedData.category}\n• Assigned Severity: ${cachedData.priority}\n\n• Analysis Logic:\n"${cachedData.rationale}"\n\nForm fields have been successfully auto-triaged using cached prediction results!`);
+      return;
+    }
+
     setAiAnalyzing(true);
     try {
       const response = await fetch('/api/gemini/analyze', {
@@ -783,6 +798,7 @@ export function RegisterTicket() {
       }
 
       if (data.category && data.priority) {
+        aiAnalysisCache.current[cacheKey] = data; // Store in client-side cache
         setType(data.category);
         setSeverity(data.priority);
         if (data.optimizedDescription) {
@@ -807,6 +823,19 @@ export function RegisterTicket() {
       return;
     }
 
+    // Fast robust key based on length and boundary substring slices of the data URL
+    const cacheKey = `${firstImg.dataUrl.length}_${firstImg.dataUrl.substring(0, 100)}_${firstImg.dataUrl.substring(firstImg.dataUrl.length - 100)}`;
+
+    if (screenshotAnalysisCache.current[cacheKey]) {
+      const cachedData = screenshotAnalysisCache.current[cacheKey];
+      setTitle(cachedData.title);
+      setDesc(cachedData.description);
+      setType(cachedData.category);
+      setSeverity(cachedData.priority);
+      alert(`🤖 [Cached Screenshot Analysis] Gemini Screenshot AI Diagnostic:\n\n• Diagnosed Title: ${cachedData.title}\n• Recommended Department: ${cachedData.category}\n• Urgency Level Assigned: ${cachedData.priority}\n\n• Rationale Details:\n"${cachedData.rationale}"\n\nForm fields have been successfully auto-triaged using cached screenshot diagnostic telemetry.`);
+      return;
+    }
+
     setScreenshotAnalyzing(true);
     try {
       const response = await fetch('/api/gemini/analyze-screenshot', {
@@ -819,6 +848,7 @@ export function RegisterTicket() {
       }
       const data = await response.json();
       if (data.title && data.description) {
+        screenshotAnalysisCache.current[cacheKey] = data; // Store in client-side cache
         setTitle(data.title);
         setDesc(data.description);
         setType(data.category);

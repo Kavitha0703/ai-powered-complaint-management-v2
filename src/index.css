@@ -198,6 +198,25 @@ body {
   border-radius: 9999px;
 }
 
+/* Custom thin visible horizontal scrollbar */
+.scrollbar-thin-x {
+  scrollbar-width: thin;
+}
+.scrollbar-thin-x::-webkit-scrollbar {
+  height: 6px;
+}
+.scrollbar-thin-x::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 9999px;
+}
+.scrollbar-thin-x::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.5);
+  border-radius: 9999px;
+}
+.scrollbar-thin-x::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.8);
+}
+
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }
