@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LogOut, User, Settings, Bell, Search, Check, Info, AlertTriangle, ShieldCheck, 
   Sun, Moon, Sparkles, HelpCircle, Activity, Plus, PenSquare, MessageSquare, AlertOctagon,
-  ChevronLeft, ChevronRight, Command, X, Terminal, Laptop, CheckCircle2, FileText, Menu
+  ChevronLeft, ChevronRight, Command, X, Terminal, Laptop, CheckCircle2, FileText, Menu,
+  Smartphone, QrCode
 } from "lucide-react";
 import { useAuth } from "../lib/AuthContext.tsx";
 import { useTheme } from "./ThemeProvider.tsx";
@@ -271,6 +272,7 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
                         <Link 
                           key={link.path} 
                           to={link.path} 
+                          id={`tour-sidebar-${link.label.toLowerCase().replace(/[^a-z0-9]/g, '')}`}
                           title={isCollapsed ? link.label : undefined}
                           onClick={() => {
                             if (isMobileDrawer) {
@@ -451,15 +453,15 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
             <div className="hidden lg:flex items-center gap-2 mr-2">
               {dbUser?.role !== 'admin' && (
                 <>
-                  <Button onClick={() => navigate('/dashboard/register')} variant="outline" size="sm" className="h-8 text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0B1222] text-slate-700 dark:text-slate-200 mb-0">
+                  <Button id="tour-new-ticket-btn" onClick={() => navigate('/dashboard/register')} variant="outline" size="sm" className="h-8 text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0B1222] text-slate-700 dark:text-slate-200 mb-0">
                     <Plus className="w-3.5 h-3.5 mr-1" /> New Ticket
                   </Button>
-                  <Button onClick={() => navigate('/dashboard/my-complaints')} variant="outline" size="sm" className="h-8 text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0B1222] text-slate-700 dark:text-slate-200 mb-0">
+                  <Button id="tour-my-tickets-btn" onClick={() => navigate('/dashboard/my-complaints')} variant="outline" size="sm" className="h-8 text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0B1222] text-slate-700 dark:text-slate-200 mb-0">
                     <FileText className="w-3.5 h-3.5 mr-1" /> My Tickets
                   </Button>
                 </>
               )}
-              <Button onClick={() => navigate(dbUser?.role === 'admin' ? '/admin/ai-assistant' : '/dashboard/ai-assistant')} size="sm" className="h-8 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm mb-0">
+              <Button id="tour-ask-ai-btn" onClick={() => navigate(dbUser?.role === 'admin' ? '/admin/ai-assistant' : '/dashboard/ai-assistant')} size="sm" className="h-8 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm mb-0">
                 <Sparkles className="w-3.5 h-3.5 mr-1" /> Ask AI
               </Button>
             </div>
@@ -469,8 +471,19 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
               99.2% Global SLA Compliance
             </div>
 
+            {/* PWA MOBILE INSTALL & DISTRIBUTE TRIGGER */}
+            <button
+              id="tour-install-app"
+              onClick={() => window.dispatchEvent(new CustomEvent("open-install-modal"))}
+              className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-cyan-400 flex items-center justify-center transition-colors shadow-sm border border-slate-100 dark:border-slate-800 bg-[#FCFDFE] dark:bg-[#11192A]"
+              title="Install & Share Mobile PWA"
+            >
+              <Smartphone className="w-4 h-4 text-cyan-500" />
+            </button>
+
             {/* LIGHT / DARK THEME TOGGLE */}
             <button
+              id="tour-theme-toggle"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors shadow-sm border border-slate-100 dark:border-slate-800 bg-[#FCFDFE] dark:bg-[#11192A]"
               title="Toggle Light / Dark Mode"
@@ -481,6 +494,7 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
             {/* Notification Bell (Triggers Drawer) */}
             <div className="relative">
               <button 
+                id="tour-notification-bell"
                 onClick={() => setNotifOpen(true)}
                 className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors relative shadow-sm border border-slate-100 dark:border-slate-800 bg-[#FCFDFE] dark:bg-[#11192A]"
                 title="System Notifications"
@@ -497,6 +511,7 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
             {/* Profile Overview Dropdown Button */}
             <div className="relative">
               <button 
+                id="tour-profile-dropdown"
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                 className="flex items-center gap-2 pl-2 border-l border-slate-100 dark:border-slate-800 hover:opacity-80 transition-opacity"
               >
@@ -863,8 +878,29 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
 
                 <div className="p-6 overflow-y-auto space-y-5 max-h-[480px]">
                   
-                  {/* SLA Guides list */}
+                  {/* Tutorial Action */}
                   <div className="space-y-3">
+                    <h5 className="text-[11px] font-black uppercase text-slate-400 tracking-wider">🎓 Learn the Dashboard</h5>
+                    <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Interactive Tutorials</p>
+                        <p className="text-xs text-slate-500 mt-1">Take a quick 3-minute guided tour of Workplace Hub.</p>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setHelpOpen(false);
+                          const tourName = dbUser?.role === "admin" ? "admin" : "employee";
+                          window.dispatchEvent(new CustomEvent("start-product-tour", { detail: { name: tourName } }));
+                        }}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer"
+                      >
+                        Start Tour
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* SLA Guides list */}
+                  <div className="space-y-3 pt-2">
                     <h5 className="text-[11px] font-black uppercase text-slate-400 tracking-wider">⏱️ Expected Resolution SLAs</h5>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div className="p-3 bg-red-500/5 dark:bg-red-955/10 border border-red-100 dark:border-red-900/30 rounded-xl">

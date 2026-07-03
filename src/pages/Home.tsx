@@ -144,13 +144,8 @@ export default function Home() {
     };
   }, []);
 
-  const triggerInstallApp = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-    }
+  const triggerInstallApp = () => {
+    window.dispatchEvent(new CustomEvent("open-install-modal"));
   };
 
   // Manage request cancellation
@@ -872,31 +867,29 @@ export default function Home() {
           <button onClick={() => scrollToSection('ai-triage')} className="hover:text-blue-600 active:scale-95 transition-all">AI Sandbox</button>
           <button onClick={() => scrollToSection('faq')} className="hover:text-blue-600 active:scale-95 transition-all">SLA Guidelines</button>
         </div>
-        <div className="flex gap-2">
-          {deferredPrompt ? (
-            <Button 
-              onClick={triggerInstallApp} 
-              size="sm" 
-              className="bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white font-black text-xs shadow-md px-4 py-2 transition-all duration-200"
-            >
-              ⚡ Install DCMS App
-            </Button>
-          ) : (
-            <Link 
-              to="/auth/user"
-              onClick={(e) => {
-                const isIframe = typeof window !== 'undefined' && window.self !== window.top;
-                if (isIframe) {
-                  e.preventDefault();
-                  setShowLaunchModal(true);
-                }
-              }}
-            >
-              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-md shadow-blue-500/10">Launch App</Button>
-            </Link>
-          )}
+        <div className="flex gap-2 items-center">
+          <Button 
+            onClick={triggerInstallApp} 
+            size="sm" 
+            variant="outline"
+            className="border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-800 dark:text-slate-200 font-extrabold text-xs px-4 py-2 transition-all duration-200 h-9"
+          >
+            📲 Install App
+          </Button>
+          <Link 
+            to="/auth/user"
+            onClick={(e) => {
+              const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+              if (isIframe) {
+                e.preventDefault();
+                setShowLaunchModal(true);
+              }
+            }}
+          >
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-md shadow-blue-500/10 h-9">Launch App</Button>
+          </Link>
           <Link to="/auth/user">
-            <Button size="sm" variant="ghost" className="text-slate-700 font-extrabold text-xs">Sign In</Button>
+            <Button size="sm" variant="ghost" className="text-slate-700 dark:text-slate-300 font-extrabold text-xs h-9">Sign In</Button>
           </Link>
         </div>
       </nav>
@@ -929,12 +922,12 @@ export default function Home() {
 
               <div className="pt-2 flex flex-wrap justify-center lg:justify-start gap-4">
                 <Link to="/auth/user">
-                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-extrabold shadow-lg shadow-cyan-500/20 border-0 rounded-2xl h-12 md:h-14 px-8 text-xs transform hover:-translate-y-0.5 transition-all">
+                  <Button id="tour-get-started-btn" size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-extrabold shadow-lg shadow-cyan-500/20 border-0 rounded-2xl h-12 md:h-14 px-8 text-xs transform hover:-translate-y-0.5 transition-all">
                     Get Started as User <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Link to="/auth/admin">
-                  <Button size="lg" variant="outline" className="bg-slate-900/40 backdrop-blur-xl border-slate-700/60 text-slate-200 hover:bg-slate-800/80 hover:text-white transition-all rounded-2xl h-12 md:h-14 px-8 text-xs">
+                  <Button id="tour-admin-portal-btn" size="lg" variant="outline" className="bg-slate-900/40 backdrop-blur-xl border-slate-700/60 text-slate-200 hover:bg-slate-800/80 hover:text-white transition-all rounded-2xl h-12 md:h-14 px-8 text-xs">
                     <ShieldCheck className="mr-2 h-4 w-4 text-cyan-400" /> Admin Portal
                   </Button>
                 </Link>
@@ -1203,6 +1196,7 @@ export default function Home() {
                     )}
                   </div>
                   <Button 
+                    id="tour-sandbox-classify-btn"
                     size="sm" 
                     onClick={() => triggerSandboxTriage(false)}
                     disabled={sandboxLoading}

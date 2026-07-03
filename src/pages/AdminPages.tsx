@@ -411,7 +411,7 @@ export function AdminStats() {
       </div>
 
       {/* Executive Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+      <div id="tour-admin-kpis" className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
         <Card className="border-slate-100 dark:border-slate-800/80 shadow-sm bg-white dark:bg-[#0B1222] relative overflow-hidden">
           <CardContent className="p-4 flex flex-col justify-between h-full min-h-[110px]">
             <div className="flex items-center justify-between">
@@ -547,7 +547,7 @@ export function AdminStats() {
       </div>
 
       {/* Visual charts structure */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div id="tour-admin-charts" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Monthly Trends - Bar Chart */}
         <Card className="border-slate-100 dark:border-slate-800/80 bg-white dark:bg-[#0B1222] shadow-sm lg:col-span-1">
           <CardHeader className="pb-3 border-b border-slate-50 dark:border-slate-800/60">
@@ -1240,6 +1240,7 @@ export function ManageTickets() {
         </div>
 
         <div
+          id="tour-admin-export"
           title="Download PDF"
           onClick={downloadPDF}
           className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center cursor-pointer transition-colors shrink-0"
@@ -1281,6 +1282,7 @@ export function ManageTickets() {
       </div>
 
       <div
+        id="tour-admin-table"
         className={`grid grid-cols-1 ${selectedTicket ? "lg:grid-cols-12" : "md:grid-cols-2 xl:grid-cols-3"} gap-6`}
       >
         <div
@@ -2547,6 +2549,13 @@ export function AdminSettings() {
   const { theme, setTheme } = useTheme();
   const [critEmail, setCritEmail] = useState(true);
   const [weeklySummary, setWeeklySummary] = useState(false);
+  const [suggestionsEnabled, setSuggestionsEnabled] = useState(() => localStorage.getItem("dcms_suggestions_enabled") !== "false");
+
+  const toggleSuggestions = () => {
+    const next = !suggestionsEnabled;
+    setSuggestionsEnabled(next);
+    localStorage.setItem("dcms_suggestions_enabled", String(next));
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 font-sans">

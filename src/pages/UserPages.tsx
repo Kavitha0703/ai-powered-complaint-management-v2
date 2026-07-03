@@ -144,7 +144,7 @@ export function UserDashboardStats() {
       </div>
 
       {/* Statistics Cards with counters */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div id="tour-user-kpis" className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { key: "Total", count: stats.total, color: "text-slate-800 dark:text-white border-slate-100 dark:border-slate-800 bg-white dark:bg-[#0B1222]", icon: <FileText className="w-5 h-5 text-blue-500" /> },
           { key: "Pending", count: stats.pending, color: "text-slate-800 dark:text-white border-slate-100 dark:border-slate-800 bg-white dark:bg-[#0B1222]", icon: <Clock className="w-5 h-5 text-amber-500" /> },
@@ -170,7 +170,7 @@ export function UserDashboardStats() {
 
       {/* Modern SaaS Interactive Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <Card className="lg:col-span-8 border-slate-100 dark:border-slate-800 bg-white dark:bg-[#0B1222] shadow-2xs">
+        <Card id="tour-user-chart" className="lg:col-span-8 border-slate-100 dark:border-slate-800 bg-white dark:bg-[#0B1222] shadow-2xs">
           <CardHeader className="pb-3 border-b border-slate-50 dark:border-slate-850/30">
             <CardTitle className="text-lg font-extrabold tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
               <Activity className="w-5 h-5 text-purple-500" />
@@ -1246,6 +1246,7 @@ export function RegisterTicket() {
                   <div>
                     <label className="text-xs font-semibold mb-1.5 block text-slate-700 dark:text-slate-300">Incident Subject Title</label>
                     <Input 
+                      id="tour-ticket-title"
                       placeholder="E.g., Wireless printer offline after software firmware update" 
                       value={title} 
                       onChange={e => setTitle(e.target.value)}
@@ -1258,7 +1259,7 @@ export function RegisterTicket() {
                     <div>
                       <label className="text-xs font-semibold mb-1.5 block text-slate-700 dark:text-slate-300">Target Segment</label>
                       <Select value={type} onValueChange={(val: any) => setType(val)}>
-                        <SelectTrigger className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800">
+                        <SelectTrigger id="tour-ticket-segment" className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-[#0B1222] border-slate-200 dark:border-slate-800">
@@ -1272,7 +1273,7 @@ export function RegisterTicket() {
                     <div>
                       <label className="text-xs font-semibold mb-1.5 block text-slate-700 dark:text-slate-300">Urgency Severity</label>
                       <Select value={severity} onValueChange={(val: any) => setSeverity(val)}>
-                        <SelectTrigger className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800">
+                        <SelectTrigger id="tour-ticket-severity" className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-[#0B1222] border-slate-200 dark:border-slate-800">
@@ -1287,7 +1288,7 @@ export function RegisterTicket() {
                   <div>
                     <label className="text-xs font-semibold mb-1.5 block text-slate-700 dark:text-slate-300">Department</label>
                     <Select value={department} onValueChange={(val) => setDepartment(val)}>
-                      <SelectTrigger className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800">
+                      <SelectTrigger id="tour-ticket-department" className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800">
                         <SelectValue placeholder="Select relevant department" />
                       </SelectTrigger>
                       <SelectContent className="bg-white dark:bg-[#0B1222] border-slate-200 dark:border-slate-800">
@@ -1336,6 +1337,7 @@ export function RegisterTicket() {
                     )}
 
                     <Textarea 
+                      id="tour-ticket-desc"
                       placeholder="Describe the issue, diagnostics logs, or steps leading to the malfunction..."
                       value={desc}
                       onChange={e => setDesc(e.target.value)}
@@ -1383,6 +1385,7 @@ export function RegisterTicket() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Drag and drop panel */}
                     <div 
+                      id="tour-ticket-attachments"
                       onClick={() => document.getElementById('register-attachments-input')?.click()}
                       className="border-2 border-dashed border-slate-200 dark:border-slate-800 p-5 rounded-2xl bg-slate-50/50 dark:bg-[#161F30]/35 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer flex flex-col items-center justify-center text-center transition-all"
                     >
@@ -1404,6 +1407,7 @@ export function RegisterTicket() {
 
                     {/* Camera view active switcher */}
                     <div 
+                      id="tour-ticket-camera"
                       onClick={() => { if (!cameraActive) setCameraActive(true); }}
                       className="border border-slate-200 dark:border-slate-800 p-5 rounded-2xl bg-slate-50/50 dark:bg-[#161F30]/35 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer flex flex-col items-center justify-center text-center transition-all"
                     >
@@ -1514,6 +1518,7 @@ export function RegisterTicket() {
                     </Button>
                   </div>
                   <Button 
+                    id="tour-ticket-submit"
                     type="submit" 
                     disabled={submitting || uploading || submissionStatus === 'success'}
                     className={`w-full sm:w-auto h-10 px-8 font-bold tracking-tight rounded-xl text-xs transition-all duration-300 ${
@@ -1974,7 +1979,7 @@ export function MyTickets() {
       </div>
 
       {/* Grid of registered cases */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div id="tour-user-track" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {tickets.map((c) => {
           const isEscalated = escalatedTickets[c.id];
           const currSeverity = isEscalated ? 'Critical' : c.severity;
@@ -3018,6 +3023,13 @@ export function UserSettings() {
   const [accent, setAccent] = useState(() => localStorage.getItem("dcms_brand_accent") || "blue");
   const [notifCrit, setNotifCrit] = useState(true);
   const [notifSla, setNotifSla] = useState(true);
+  const [suggestionsEnabled, setSuggestionsEnabled] = useState(() => localStorage.getItem("dcms_suggestions_enabled") !== "false");
+
+  const toggleSuggestions = () => {
+    const next = !suggestionsEnabled;
+    setSuggestionsEnabled(next);
+    localStorage.setItem("dcms_suggestions_enabled", String(next));
+  };
 
   const saveAccent = (col: string) => {
     setAccent(col);
@@ -3189,6 +3201,95 @@ export function UserSettings() {
                   <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-md transition-all ${notifSla ? 'right-1' : 'left-1'}`}></div>
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Aspect 4: Onboarding & Interactive Tutorials */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-3">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">onboarding & tutorial preferences</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-6">
+            <p className="text-[11px] text-slate-500 leading-relaxed">Customize guided walkthrough prompts, automated platform tours, and contextual onboarding indicators.</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-900/50 rounded-xl">
+                <div>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250">Smart Assistant Suggestions & Tips</p>
+                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">Show helpful contextual overlays and tips during periods of inactivity</p>
+                </div>
+                <div 
+                  onClick={toggleSuggestions}
+                  className={`w-11 h-6 rounded-full cursor-pointer transition-all relative ${suggestionsEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-800'}`}
+                >
+                  <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow-md transition-all ${suggestionsEnabled ? 'right-1' : 'left-1'}`}></div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-900/50 rounded-xl gap-3">
+                <div>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250">Interactive Guide Replay</p>
+                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">Immediately launch the main portal operations guide</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    localStorage.removeItem("dcms_tour_completed_employee");
+                    window.dispatchEvent(new CustomEvent("start-product-tour", { detail: { name: "employee" } }));
+                  }}
+                  className="text-[10px] font-bold h-7 cursor-pointer"
+                >
+                  Replay Tour
+                </Button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-900/50 rounded-xl gap-3">
+                <div>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250 text-red-500">Reset Tutorial Milestones</p>
+                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">Mark all guided procedures as incomplete and trigger welcome screen on next sign-in</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const tours = ["home", "employee", "admin", "meeting", "ai-assistant", "employee-register-complaint", "employee-track-complaint", "employee-ai-assistant", "employee-camera-scanner", "employee-notifications", "employee-profile", "admin-dashboard-overview", "admin-complaint-management", "admin-reports", "admin-analytics", "admin-user-management"];
+                    tours.forEach(t => localStorage.removeItem("dcms_tour_completed_" + t));
+                    localStorage.removeItem("dcms_welcome_seen");
+                    localStorage.removeItem("dcms_onboarding_opt_out");
+                    localStorage.removeItem("dcms_bookmarked_tours");
+                    alert("Onboarding milestones successfully reset!");
+                  }}
+                  className="text-[10px] font-bold h-7 border-red-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer"
+                >
+                  Reset Milestones
+                </Button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-900/50 rounded-xl gap-3">
+                <div>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250 font-sans">Clear Walkthrough History</p>
+                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">Erase saved walkthrough logs without resetting login status</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const tours = ["home", "employee", "admin", "meeting", "ai-assistant", "employee-register-complaint", "employee-track-complaint", "employee-ai-assistant", "employee-camera-scanner", "employee-notifications", "employee-profile", "admin-dashboard-overview", "admin-complaint-management", "admin-reports", "admin-analytics", "admin-user-management"];
+                    tours.forEach(t => localStorage.removeItem("dcms_tour_completed_" + t));
+                    alert("Walkthrough history cleared successfully!");
+                  }}
+                  className="text-[10px] font-bold h-7 cursor-pointer"
+                >
+                  Clear Progress
+                </Button>
+              </div>
+
             </div>
           </CardContent>
         </Card>

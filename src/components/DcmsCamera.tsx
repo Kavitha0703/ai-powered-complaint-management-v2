@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { 
   X, Camera, RefreshCw, Sparkles, Crop, Edit3, Check, Trash2, ArrowLeft, 
   MapPin, Clock, Building, Bot, AlertTriangle, Image as ImageIcon, Sliders, 
   ZoomIn, Type, Circle, ArrowRight, Shield, CheckCircle2, DownloadCloud, Loader2,
-  FileText, Activity, Layers, Maximize, Settings, Grid
+  FileText, Activity, Layers, Maximize, Settings, Grid, Upload, Scan, Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { SupportAttachment } from "../types";
@@ -130,6 +130,8 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
   const [autoFocusOn, setAutoFocusOn] = useState(true);
   const [aiEnhanceOn, setAiEnhanceOn] = useState(true);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showMobilePanel, setShowMobilePanel] = useState(false);
 
   // Multiple Photos Captures Storage
   const [capturedPhotos, setCapturedPhotos] = useState<SupportAttachment[]>([]);
@@ -137,6 +139,10 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
 
   // Preview editing states
   const [editingImage, setEditingImage] = useState<string>(""); // base64 source
+  const [originalImage, setOriginalImage] = useState<string>(""); // backup for restore original
+  const [showOriginalToggle, setShowOriginalToggle] = useState(false);
+  const [isAutoEnhancingBeforeUpload, setIsAutoEnhancingBeforeUpload] = useState(false);
+  const [enhancingStep, setEnhancingStep] = useState("");
   const [rotationAngle, setRotationAngle] = useState(0); // 0, 90, 180, 270
   const [enhanceSettings, setEnhanceSettings] = useState({
     sharpness: 60,
@@ -170,12 +176,49 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
   // Cropping variables
   const [cropBox, setCropBox] = useState({ x: 10, y: 10, w: 80, h: 80 }); // percent representation
   const [cropActive, setCropActive] = useState(false);
+  const [cropAspectRatio, setCropAspectRatio] = useState<string>("free");
+  const [previewZoom, setPreviewZoom] = useState<number>(1);
+  const [previewPan, setPreviewPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [showAutoCropPrompt, setShowAutoCropPrompt] = useState(true);
+  const [autoCropApplied, setAutoCropApplied] = useState(false);
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
+  const [magnifierOffset, setMagnifierOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const cropContainerRef = useRef<HTMLDivElement | null>(null);
+  const [activeDrag, setActiveDrag] = useState<string | null>(null);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const dragStartBox = useRef({ x: 0, y: 0, w: 0, h: 0 });
+  const panStart = useRef({ x: 0, y: 0 });
+
+  // Touch Gestures, Pinch Zoom & Tap to Focus states
+  const touchStartDistRef = useRef<number | null>(null);
+  const touchStartZoomRef = useRef<number>(1);
+  const [focusRingPos, setFocusRingPos] = useState<{ x: number; y: number } | null>(null);
+  const [showFocusRing, setShowFocusRing] = useState(false);
 
   // DOM elements
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const annotationCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Callback ref to reliably attach stream when element mounts
+  const videoRefCallback = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    if (node && streamRef.current) {
+      node.srcObject = streamRef.current;
+      node.onloadedmetadata = async () => {
+        try {
+          await node.play();
+        } catch (e) {
+          console.warn("Video loadedmetadata play failed:", e);
+        }
+      };
+      // Immediate play fallback
+      node.play().catch(e => console.warn("Immediate video play failed:", e));
+    }
+  }, []);
 
   // Annotation Drawing Variables
   const isDrawingRef = useRef(false);
@@ -189,6 +232,17 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
       stopCameraStream();
     };
   }, [selectedDeviceId, facingMode, resolution]);
+
+  // Trigger camera tour once upon mount
+  useEffect(() => {
+    const completed = localStorage.getItem("dcms_tour_completed_camera");
+    if (!completed) {
+      const tourTimer = setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("start-product-tour", { detail: { name: "camera" } }));
+      }, 1000);
+      return () => clearTimeout(tourTimer);
+    }
+  }, []);
 
   // Simulate auto focus sequence
   useEffect(() => {
@@ -235,6 +289,8 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        // Explicitly play to prevent black screen on some browsers
+        await videoRef.current.play().catch(e => console.warn("Video element play request caught:", e));
       }
 
       // Check the active track metadata
@@ -272,6 +328,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
           setIsStreamActive(true);
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
+            await videoRef.current.play().catch(e => console.warn(e));
           }
           setFacingMode("user");
           setCameraStatusMessage("Front Camera Selected ✓");
@@ -301,6 +358,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
 
     // Simulate instant capture to preview
     setEditingImage(template.src);
+    setOriginalImage(template.src);
     setRotationAngle(0);
     setAutoEnhanced(false);
     setEnhanceSettings({
@@ -338,6 +396,58 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
     setCameraStatusMessage(nextFacing === "environment" ? "Rear Camera Selected ✓" : "Front Camera Selected ✓");
   };
 
+  // Pinch-to-zoom Touch Handlers
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      touchStartDistRef.current = dist;
+      touchStartZoomRef.current = zoomFactor;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2 && touchStartDistRef.current !== null) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const ratio = dist / touchStartDistRef.current;
+      let targetZoom = touchStartZoomRef.current * ratio;
+      // Clamp between 0.5x and 5x
+      targetZoom = Math.max(0.5, Math.min(5, Math.round(targetZoom * 10) / 10));
+      setZoomFactor(targetZoom);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchStartDistRef.current = null;
+  };
+
+  // Tap-to-focus Click Handler
+  const handleTapToFocus = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setFocusRingPos({ x, y });
+    setShowFocusRing(true);
+    setFocusLocked(false);
+    setFocusStatus("Locking Auto Focus...");
+
+    setTimeout(() => {
+      setFocusLocked(true);
+      setFocusStatus("✓ Focus Locked");
+    }, 1200);
+
+    // Hide reticle after 2.5 seconds
+    setTimeout(() => {
+      setShowFocusRing(false);
+    }, 2500);
+  };
+
   // Real or mock capture event trigger
   const triggerCapture = () => {
     // If real stream is active, capture frame from video via canvas
@@ -354,10 +464,28 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
           ctx.translate(canvas.width, 0);
           ctx.scale(-1, 1);
         }
+
+        // Apply automatic AI mode-based filters for immediate premium image adjustment
+        if (activeMode === "document" || activeMode === "whiteboard" || activeMode === "ocr" || activeMode === "textenhance") {
+          ctx.filter = "contrast(1.45) saturate(0.7) brightness(1.05) grayscale(0.2)";
+        } else if (activeMode === "night" || activeMode === "lowlight") {
+          ctx.filter = "brightness(1.35) contrast(1.15) saturate(1.1)";
+        } else if (activeMode === "hd" || activeMode === "ultraclear") {
+          ctx.filter = "contrast(1.12) brightness(1.02) saturate(1.05)";
+        } else if (activeMode === "portrait") {
+          ctx.filter = "contrast(1.02) brightness(1.04) saturate(1.15)";
+        } else if (activeMode === "macro") {
+          ctx.filter = "contrast(1.2) brightness(1.0) saturate(1.1)";
+        }
         
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Reset filter
+        ctx.filter = "none";
+
         const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
         setEditingImage(dataUrl);
+        setOriginalImage(dataUrl);
         
         // Randomly generate object detection and OCR based on current mode
         generateRealCaptureIntelligence();
@@ -412,9 +540,270 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
     setAutoEnhanced(false);
   };
 
+  // Helper values and interactive dragging handlers for Crop Workspace
+  const getAspectRatioValue = (ratio: string): number => {
+    switch (ratio) {
+      case "1:1": return 1;
+      case "4:3": return 4 / 3;
+      case "16:9": return 16 / 9;
+      case "doc": return 8.5 / 11;
+      case "receipt": return 0.4;
+      case "idcard": return 1.57;
+      default: return 1;
+    }
+  };
+
+  const handleDragStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>, handleType: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    
+    dragStartPos.current = { x: clientX, y: clientY };
+    dragStartBox.current = { ...cropBox };
+    setActiveDrag(handleType);
+  };
+
+  useEffect(() => {
+    if (!activeDrag || !cropContainerRef.current) return;
+
+    const handleMove = (clientX: number, clientY: number) => {
+      const rect = cropContainerRef.current!.getBoundingClientRect();
+      const dx = ((clientX - dragStartPos.current.x) / rect.width) * 100;
+      const dy = ((clientY - dragStartPos.current.y) / rect.height) * 100;
+
+      let nextBox = { ...dragStartBox.current };
+      const minSize = 10;
+
+      switch (activeDrag) {
+        case "move": {
+          nextBox.x = Math.max(0, Math.min(100 - nextBox.w, dragStartBox.current.x + dx));
+          nextBox.y = Math.max(0, Math.min(100 - nextBox.h, dragStartBox.current.y + dy));
+          break;
+        }
+        case "nw": {
+          const newX = Math.max(0, Math.min(dragStartBox.current.x + dragStartBox.current.w - minSize, dragStartBox.current.x + dx));
+          const newW = dragStartBox.current.w - (newX - dragStartBox.current.x);
+          const newY = Math.max(0, Math.min(dragStartBox.current.y + dragStartBox.current.h - minSize, dragStartBox.current.y + dy));
+          const newH = dragStartBox.current.h - (newY - dragStartBox.current.y);
+          nextBox = { x: newX, y: newY, w: newW, h: newH };
+          break;
+        }
+        case "ne": {
+          const newY = Math.max(0, Math.min(dragStartBox.current.y + dragStartBox.current.h - minSize, dragStartBox.current.y + dy));
+          const newH = dragStartBox.current.h - (newY - dragStartBox.current.y);
+          const newW = Math.max(minSize, Math.min(100 - dragStartBox.current.x, dragStartBox.current.w + dx));
+          nextBox = { ...nextBox, y: newY, h: newH, w: newW };
+          break;
+        }
+        case "se": {
+          const newW = Math.max(minSize, Math.min(100 - dragStartBox.current.x, dragStartBox.current.w + dx));
+          const newH = Math.max(minSize, Math.min(100 - dragStartBox.current.y, dragStartBox.current.h + dy));
+          nextBox = { ...nextBox, w: newW, h: newH };
+          break;
+        }
+        case "sw": {
+          const newX = Math.max(0, Math.min(dragStartBox.current.x + dragStartBox.current.w - minSize, dragStartBox.current.x + dx));
+          const newW = dragStartBox.current.w - (newX - dragStartBox.current.x);
+          const newH = Math.max(minSize, Math.min(100 - dragStartBox.current.y, dragStartBox.current.h + dy));
+          nextBox = { ...nextBox, x: newX, w: newW, h: newH };
+          break;
+        }
+        case "n": {
+          const newY = Math.max(0, Math.min(dragStartBox.current.y + dragStartBox.current.h - minSize, dragStartBox.current.y + dy));
+          const newH = dragStartBox.current.h - (newY - dragStartBox.current.y);
+          nextBox = { ...nextBox, y: newY, h: newH };
+          break;
+        }
+        case "s": {
+          const newH = Math.max(minSize, Math.min(100 - dragStartBox.current.y, dragStartBox.current.h + dy));
+          nextBox = { ...nextBox, h: newH };
+          break;
+        }
+        case "w": {
+          const newX = Math.max(0, Math.min(dragStartBox.current.x + dragStartBox.current.w - minSize, dragStartBox.current.x + dx));
+          const newW = dragStartBox.current.w - (newX - dragStartBox.current.x);
+          nextBox = { ...nextBox, x: newX, w: newW };
+          break;
+        }
+        case "e": {
+          const newW = Math.max(minSize, Math.min(100 - dragStartBox.current.x, dragStartBox.current.w + dx));
+          nextBox = { ...nextBox, w: newW };
+          break;
+        }
+      }
+
+      if (cropAspectRatio && cropAspectRatio !== "free") {
+        const ratio = getAspectRatioValue(cropAspectRatio);
+        const containerRatio = rect.width / rect.height;
+        const targetPctRatio = ratio / containerRatio;
+
+        if (activeDrag === "e" || activeDrag === "w" || activeDrag === "move") {
+          nextBox.h = nextBox.w / targetPctRatio;
+          if (nextBox.y + nextBox.h > 100) {
+            nextBox.h = 100 - nextBox.y;
+            nextBox.w = nextBox.h * targetPctRatio;
+          }
+        } else {
+          nextBox.w = nextBox.h * targetPctRatio;
+          if (nextBox.x + nextBox.w > 100) {
+            nextBox.w = 100 - nextBox.x;
+            nextBox.h = nextBox.w / targetPctRatio;
+          }
+        }
+      }
+
+      // Compute magnifier offset percent
+      let handleX = 0;
+      let handleY = 0;
+      if (activeDrag === "nw") { handleX = nextBox.x; handleY = nextBox.y; }
+      else if (activeDrag === "ne") { handleX = nextBox.x + nextBox.w; handleY = nextBox.y; }
+      else if (activeDrag === "se") { handleX = nextBox.x + nextBox.w; handleY = nextBox.y + nextBox.h; }
+      else if (activeDrag === "sw") { handleX = nextBox.x; handleY = nextBox.y + nextBox.h; }
+      else { handleX = nextBox.x + nextBox.w / 2; handleY = nextBox.y + nextBox.h / 2; }
+      
+      setMagnifierOffset({ x: handleX, y: handleY });
+      setCropBox(nextBox);
+    };
+
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      handleMove(e.clientX, e.clientY);
+    };
+
+    const handleWindowTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleDragEnd = () => {
+      setActiveDrag(null);
+    };
+
+    window.addEventListener("mousemove", handleWindowMouseMove, { passive: true });
+    window.addEventListener("mouseup", handleDragEnd);
+    window.addEventListener("touchmove", handleWindowTouchMove, { passive: true });
+    window.addEventListener("touchend", handleDragEnd);
+
+    return () => {
+      window.removeEventListener("mousemove", handleWindowMouseMove);
+      window.removeEventListener("mouseup", handleDragEnd);
+      window.removeEventListener("touchmove", handleWindowTouchMove);
+      window.removeEventListener("touchend", handleDragEnd);
+    };
+  }, [activeDrag, cropAspectRatio]);
+
+  const applyAutoCrop = () => {
+    setCropBox({ x: 15, y: 12, w: 70, h: 76 });
+    setCropAspectRatio("doc");
+    setAutoCropApplied(true);
+    setQualityScore(98);
+    setQualityWarnings([]);
+  };
+
+  const handleResetCrop = () => {
+    setCropBox({ x: 10, y: 10, w: 80, h: 80 });
+    setCropAspectRatio("free");
+    setPreviewZoom(1);
+    setPreviewPan({ x: 0, y: 0 });
+    setAutoCropApplied(false);
+  };
+
+  const applyCropAndOCR = () => {
+    setIsOcrLoading(true);
+    renderProcessedImageToDataUrl((croppedUrl) => {
+      setEditingImage(croppedUrl);
+      setCropActive(false);
+      setRotationAngle(0);
+      setCropBox({ x: 10, y: 10, w: 80, h: 80 });
+      setPreviewZoom(1);
+      setPreviewPan({ x: 0, y: 0 });
+
+      setTimeout(() => {
+        let simulatedText = "";
+        const sampleLines = [
+          "CASE ID: #9821A-2026",
+          "EMPLOYMENT REGISTER: COMPLAINT FILED",
+          "STATUS: AUDIT REQUIRED",
+          "BASIC PAY: ₹42,000",
+          "INCREMENT DELAYED: ₹0",
+          "TOTAL LOSS ESTIMATE: ₹14,200",
+          "AUTHORIZED SIGNATORY STAMP: RECEIVED"
+        ];
+        const lineCount = Math.floor(Math.random() * 2) + 1;
+        const selected = [];
+        for (let i = 0; i < lineCount; i++) {
+          selected.push(sampleLines[Math.floor(Math.random() * sampleLines.length)]);
+        }
+        simulatedText = "• CROPPED REGION READ:\n" + selected.join("\n");
+
+        setExtractedOcrText(simulatedText);
+        setIsOcrLoading(false);
+        
+        if (simulatedText.includes("INCREMENT DELAYED") || simulatedText.includes("LOSS") || simulatedText.includes("PAY")) {
+          setSuggestedTicketMeta({
+            category: "Salary & Compensation",
+            severity: "High",
+            title: "Salary Dispute / Wage Non-Payment Evidence"
+          });
+        }
+      }, 900);
+    });
+  };
+
+  // Zoom/Pan helpers inside Cropping Mode
+  const handlePreviewWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (!cropActive) return;
+    const zoomIntensity = 0.15;
+    let nextZoom = previewZoom + (e.deltaY < 0 ? zoomIntensity : -zoomIntensity);
+    nextZoom = Math.max(1, Math.min(4, nextZoom));
+    setPreviewZoom(nextZoom);
+    if (nextZoom === 1) {
+      setPreviewPan({ x: 0, y: 0 });
+    }
+  };
+
+  const handlePanStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    if (previewZoom <= 1 || activeDrag) return;
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    setIsPanning(true);
+    panStart.current = { x: clientX - previewPan.x, y: clientY - previewPan.y };
+  };
+
+  const handlePanMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    if (!isPanning) return;
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    setPreviewPan({
+      x: clientX - panStart.current.x,
+      y: clientY - panStart.current.y
+    });
+  };
+
+  const handlePanEnd = () => {
+    setIsPanning(false);
+  };
+
   // Image processing: rotation
   const handleRotate = () => {
     setRotationAngle((prev) => (prev + 90) % 360);
+  };
+
+  const handleRestoreOriginal = () => {
+    setEnhanceSettings({
+      sharpness: 60,
+      brightness: 50,
+      contrast: 50,
+      noiseReduction: 40,
+      blurReduction: 70
+    });
+    setRotationAngle(0);
+    setCropActive(false);
+    setAutoEnhanced(false);
+    if (originalImage) {
+      setEditingImage(originalImage);
+    }
   };
 
   // Image Processing: Auto Enhance pipeline
@@ -697,32 +1086,58 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
       return;
     }
 
-    renderProcessedImageToDataUrl((finalBase64) => {
-      // Simulate file size calculations
-      const mockOrigSize = Math.floor(Math.random() * 3000000) + 2500000; // ~2.5 - 5.5MB
-      const mockCompSize = Math.floor(mockOrigSize * 0.12); // ~300 - 660KB
+    // Trigger sequential Auto Enhance before upload
+    setIsAutoEnhancingBeforeUpload(true);
+    setEnhancingStep(1);
 
-      const newAttachment: SupportAttachment = {
-        id: "att-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
-        name: `Evidence_Snapshot_${capturedPhotos.length + 1}.jpg`,
-        type: "image",
-        dataUrl: finalBase64,
-        size: mockCompSize
-      };
+    const steps = [
+      { step: 1, text: "AI Denoising and Pixel-Level Reconstruction..." },
+      { step: 2, text: "Contrast Equalization and Shadow Removal..." },
+      { step: 3, text: "Dynamic Text Sharpening and OCR Validation..." },
+      { step: 4, text: "Intelligent Resolution Compression (-92%)..." },
+      { step: 5, text: "Embedding Smart Evidence Metadata Tagging..." }
+    ];
 
-      // Set custom intelligence tags on attachment for parent modules to extract!
-      (newAttachment as any).detectedObject = detectedObject;
-      (newAttachment as any).ocrText = extractedOcrText;
-      (newAttachment as any).suggestedMeta = suggestedTicketMeta;
+    let currentStepIdx = 0;
+    
+    const interval = setInterval(() => {
+      currentStepIdx++;
+      if (currentStepIdx < steps.length) {
+        setEnhancingStep(steps[currentStepIdx].step);
+      } else {
+        clearInterval(interval);
+        // Completed - proceed with original attachment finalize
+        setIsAutoEnhancingBeforeUpload(false);
+        setEnhancingStep(0);
+        
+        renderProcessedImageToDataUrl((finalBase64) => {
+          // Simulate file size calculations
+          const mockOrigSize = Math.floor(Math.random() * 3000000) + 2500000; // ~2.5 - 5.5MB
+          const mockCompSize = Math.floor(mockOrigSize * 0.08); // optimized compression: ~200 - 440KB
 
-      const updated = [...capturedPhotos, newAttachment];
-      setCapturedPhotos(updated);
-      
-      // Clear analysis temporary state
-      setEditingImage("");
-      setScreen("capture");
-      setShowQualityWarningModal(false);
-    });
+          const newAttachment: SupportAttachment = {
+            id: "att-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+            name: `Evidence_Snapshot_${capturedPhotos.length + 1}.jpg`,
+            type: "image",
+            dataUrl: finalBase64,
+            size: mockCompSize
+          };
+
+          // Set custom intelligence tags on attachment for parent modules to extract!
+          (newAttachment as any).detectedObject = detectedObject;
+          (newAttachment as any).ocrText = extractedOcrText;
+          (newAttachment as any).suggestedMeta = suggestedTicketMeta;
+
+          const updated = [...capturedPhotos, newAttachment];
+          setCapturedPhotos(updated);
+          
+          // Clear analysis temporary state
+          setEditingImage("");
+          setScreen("capture");
+          setShowQualityWarningModal(false);
+        });
+      }
+    }, 450); // Fast, snappy, yet clearly readable and satisfying animation
   };
 
   // Complete multi-capture and finalize
@@ -739,6 +1154,82 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
   return (
     <div className="fixed inset-0 z-[99999] bg-[#020617] text-white flex flex-col justify-between overflow-hidden font-sans select-none">
       
+      {/* Fullscreen AI Processing Progress Overlay */}
+      <AnimatePresence>
+        {isAutoEnhancingBeforeUpload && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-[#020617]/95 backdrop-blur-md z-[100000] flex flex-col items-center justify-center p-6"
+          >
+            <div className="max-w-md w-full text-center space-y-6">
+              {/* Dynamic Animated Pulse Ring */}
+              <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
+                <span className="absolute inset-0 rounded-full border border-blue-500/20 animate-ping"></span>
+                <span className="absolute inset-2 rounded-full border-2 border-dashed border-violet-500/30 animate-spin"></span>
+                <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center shadow-lg relative">
+                  <Sparkles className="w-8 h-8 text-blue-400 animate-pulse" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-sm font-black text-white uppercase tracking-widest font-mono">
+                  Preparing High-Quality Asset
+                </h3>
+                <p className="text-xs text-slate-400 font-medium">
+                  Optimizing image parameters for complaints administration desk reviews.
+                </p>
+              </div>
+
+              {/* Progress Steps Indicator */}
+              <div className="space-y-2 bg-slate-900/50 border border-slate-850 p-4 rounded-2xl text-left">
+                {[
+                  { step: 1, label: "AI Denoising & Pixel Reconstruction" },
+                  { step: 2, label: "Contrast Equalization & Shadow Removal" },
+                  { step: 3, label: "Dynamic Text Sharpening & OCR Tuning" },
+                  { step: 4, label: "Intelligent Lossless Resolution Compression (-92%)" },
+                  { step: 5, label: "Embedding Evidence Metadata & Tagging" }
+                ].map((s) => (
+                  <div key={s.step} className="flex items-center gap-3 transition-all">
+                    <div className="flex items-center justify-center">
+                      {enhancingStep > s.step ? (
+                        <span className="text-xs font-mono font-bold text-emerald-400">✓</span>
+                      ) : enhancingStep === s.step ? (
+                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
+                      ) : (
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-750"></span>
+                      )}
+                    </div>
+                    <span className={`text-[10px] font-mono font-bold leading-none ${
+                      enhancingStep === s.step 
+                        ? "text-blue-400 animate-pulse font-extrabold" 
+                        : enhancingStep > s.step 
+                        ? "text-slate-400 line-through decoration-slate-800" 
+                        : "text-slate-600"
+                    }`}>
+                      {s.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Beautiful animated linear progress bar */}
+              <div className="w-full h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden relative">
+                <div 
+                  className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 transition-all duration-300"
+                  style={{ width: `${(enhancingStep / 5) * 100}%` }}
+                />
+              </div>
+
+              <p className="text-[9px] font-mono font-extrabold text-slate-500 animate-pulse uppercase tracking-wider">
+                Do not close or leave the viewfinder...
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ================= HEADER CONTROLS BAR ================= */}
       <div className="bg-[#0b0f19] border-b border-slate-850 px-4 py-3 shrink-0 flex items-center justify-between z-50">
         <div className="flex items-center gap-3">
@@ -758,43 +1249,13 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
         </div>
 
         {screen === "capture" && (
-          <div className="flex items-center gap-2">
-            {/* HDR Toggle */}
-            <button 
-              onClick={() => setIsHdrOn(!isHdrOn)}
-              className={`p-2 rounded-xl border text-[10px] font-black tracking-wider uppercase font-mono transition-all ${
-                isHdrOn 
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" 
-                  : "bg-slate-900 border-slate-800 text-slate-500"
-              }`}
-              title="Toggle HDR Enhancement Mode"
-            >
-              HDR: {isHdrOn ? "ACTIVE" : "OFF"}
-            </button>
-
-            {/* Resolution indicator */}
-            <select
-              value={resolution}
-              onChange={(e) => setResolution(e.target.value)}
-              className="bg-slate-900 border border-slate-800 text-[10px] font-black font-mono px-2 py-1.5 rounded-xl text-slate-300 focus:outline-none"
-            >
-              <option value="720p">HD (720p)</option>
-              <option value="1080p">FHD (1080p)</option>
-              <option value="4k">UHD (4K)</option>
-            </select>
-
-            {/* Flash Simulated */}
-            <button
-              onClick={() => setIsFlashOn(!isFlashOn)}
-              className={`p-2 rounded-xl border transition-all ${
-                isFlashOn 
-                  ? "bg-amber-500/20 border-amber-500/50 text-amber-400 animate-pulse" 
-                  : "bg-slate-900 border-slate-800 text-slate-400"
-              }`}
-            >
-              ⚡ Flash: {isFlashOn ? "ON" : "OFF"}
-            </button>
-          </div>
+          <button
+            onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
+            className="p-2.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-700 transition-all cursor-pointer shadow"
+            title="Camera Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
         )}
 
         {screen === "preview" && (
@@ -821,24 +1282,70 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
         {/* SCREEN 1: CAPTURE VIEW (WEBCAM OR SIMULATION CHOOSE) */}
         {screen === "capture" && (
           <div className="w-full h-full relative flex flex-col justify-between">
-            {/* Camera Viewfinder with Gesture Switch */}
+            {/* Camera Viewfinder with Gesture Switch and Touch Interaction */}
             <div 
               onDoubleClick={handleToggleFacingMode}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onClick={handleTapToFocus}
               className="absolute inset-0 w-full h-full flex items-center justify-center bg-black z-0 cursor-pointer"
-              title="Double click anywhere on preview to switch cameras"
+              title="Double tap to flip, pinch to zoom, tap to focus"
             >
               {isStreamActive ? (
                 <>
                   <video
-                    ref={videoRef}
+                    ref={videoRefCallback}
                     autoPlay
                     playsInline
                     muted
                     className="w-full h-full object-cover transition-transform"
                     style={{ transform: `scale(${zoomFactor}) ${facingMode === "user" ? "scaleX(-1)" : ""}` }}
                   />
+
+                  {/* Focus Ring Reticle */}
+                  {showFocusRing && focusRingPos && (
+                    <div 
+                      className="absolute border-2 border-yellow-400 rounded-full w-14 h-14 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 flex items-center justify-center animate-pulse"
+                      style={{ left: focusRingPos.x, top: focusRingPos.y }}
+                    >
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                    </div>
+                  )}
+
+                  {/* Google Camera Style Zoom Presets overlay */}
+                  <div className="absolute bottom-18 left-1/2 -translate-x-1/2 bg-black/60 border border-slate-800/80 px-3.5 py-1.5 rounded-full flex items-center gap-2 z-30 backdrop-blur-md">
+                    {[0.5, 1, 2, 3, 5].map((z) => (
+                      <button
+                        key={z}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setZoomFactor(z);
+                        }}
+                        className={`w-7 h-7 rounded-full text-[10px] font-mono font-black transition-all flex items-center justify-center ${
+                          zoomFactor === z ? "bg-amber-500 text-black font-black scale-110" : "text-slate-300 hover:text-white"
+                        }`}
+                      >
+                        {z}x
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Floating Reverse Camera Button overlay inside active stream */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleFacingMode();
+                    }}
+                    className="absolute top-4 right-4 bg-slate-950/85 hover:bg-slate-900 border border-slate-800 px-3 py-2 rounded-xl text-[10px] font-extrabold uppercase tracking-wider font-mono text-amber-400 flex items-center gap-1.5 shadow-xl transition-all active:scale-95 cursor-pointer z-30"
+                    title="Reverse Camera (Switch Front / Rear)"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />
+                    <span>Reverse Camera</span>
+                  </button>
+
                   {/* Real-time Status Overlay Indicator */}
-                  <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-black/85 border border-slate-800/80 px-4 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2 z-20">
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/85 border border-slate-800/80 px-4 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2 z-20">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
                     <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400">
                       {cameraStatusMessage || `${facingMode === "environment" ? "Rear" : "Front"} Camera Active ✓`}
@@ -847,7 +1354,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                   
                   {/* Micro-Help Overlay */}
                   <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-black/40 px-3 py-1 rounded-full backdrop-blur text-[8px] font-mono text-slate-400 tracking-wider pointer-events-none z-20 uppercase">
-                    💡 Tip: Double Tap Preview to Flip Camera (🔄)
+                    💡 Tip: Pinch to Zoom • Tap to Focus • Double Tap to Flip
                   </div>
                 </>
               ) : cameraPermissionError ? (
@@ -982,7 +1489,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                         onClick={handleToggleFacingMode}
                         className="text-[10px] font-bold text-amber-500 hover:text-amber-400 flex items-center gap-1 transition-all"
                       >
-                        🔄 Switch to {facingMode === "environment" ? "Front" : "Rear"} Camera
+                        🔄 Reverse Camera: Switch to {facingMode === "environment" ? "Front" : "Rear"}
                       </button>
 
                       <label className="text-[10px] font-bold text-blue-400 hover:text-blue-300 underline cursor-pointer">
@@ -1068,168 +1575,184 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
               </div>
             </div>
 
-            {/* ================= CAMERA SETTINGS MENUDRAWER OVERLAY ================= */}
+            {/* ================= CAMERA SETTINGS SLIDE-UP BOTTOM SHEET ================= */}
             <AnimatePresence>
               {settingsMenuOpen && (
-                <motion.div 
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 50 }}
-                  className="absolute right-4 top-4 bottom-4 w-72 bg-[#090e18]/95 border border-slate-800 backdrop-blur-md rounded-2xl p-4 z-40 flex flex-col gap-4 text-slate-200 shadow-2xl pointer-events-auto"
-                >
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <span className="text-xs font-black uppercase font-mono tracking-wider text-slate-300 flex items-center gap-1.5">
-                      <Settings className="w-3.5 h-3.5 text-blue-400" />
-                      Camera Control Panel
-                    </span>
-                    <button 
-                      onClick={() => setSettingsMenuOpen(false)}
-                      className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
-                    {/* Camera Device Source Selection */}
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">Default Lens</label>
-                      <div className="grid grid-cols-1 gap-1">
-                        <button
-                          onClick={() => {
-                            setFacingMode("environment");
-                            setSelectedDeviceId("");
-                          }}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-between ${
-                            facingMode === "environment" 
-                              ? "bg-blue-600/15 border-blue-500 text-blue-400" 
-                              : "bg-slate-900/40 border-transparent text-slate-400 hover:bg-slate-850"
-                          }`}
-                        >
-                          <span className="flex items-center gap-1.5">📷 Rear Camera</span>
-                          <span className="text-[8px] font-mono opacity-60">Environment</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setFacingMode("user");
-                            setSelectedDeviceId("");
-                          }}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-between ${
-                            facingMode === "user" 
-                              ? "bg-blue-600/15 border-blue-500 text-blue-400" 
-                              : "bg-slate-900/40 border-transparent text-slate-400 hover:bg-slate-850"
-                          }`}
-                        >
-                          <span className="flex items-center gap-1.5">🤳 Front Camera</span>
-                          <span className="text-[8px] font-mono opacity-60">User Selfie</span>
-                        </button>
-                      </div>
+                <>
+                  {/* Backdrop */}
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.6 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setSettingsMenuOpen(false)}
+                    className="absolute inset-0 bg-black/80 z-40 cursor-pointer pointer-events-auto"
+                  />
+                  
+                  {/* Bottom Sheet */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: "100%" }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: "100%" }}
+                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                    className="absolute bottom-0 inset-x-0 bg-[#090e18]/95 border-t border-slate-800 backdrop-blur-md rounded-t-3xl p-5 z-50 flex flex-col gap-4 text-slate-200 shadow-2xl max-h-[80%] overflow-y-auto pointer-events-auto"
+                  >
+                    {/* Drag Handle Indicator */}
+                    <div className="w-12 h-1 mx-auto bg-slate-700 rounded-full shrink-0" />
+                    
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                      <span className="text-xs font-black uppercase font-mono tracking-wider text-slate-300 flex items-center gap-1.5">
+                        <Settings className="w-4 h-4 text-blue-400" />
+                        Camera Control Panel
+                      </span>
+                      <button 
+                        onClick={() => setSettingsMenuOpen(false)}
+                        className="p-1.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-all"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
 
-                    {/* Resolution presets */}
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">Resolution</label>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {[
-                          { id: "720p", label: "720P" },
-                          { id: "1080p", label: "1080P" },
-                          { id: "4k", label: "4K (Sup)" }
-                        ].map((res) => (
+                    <div className="space-y-4">
+                      {/* Camera Device Source Selection */}
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">Default Lens</label>
+                        <div className="grid grid-cols-2 gap-2">
                           <button
-                            key={res.id}
-                            onClick={() => setResolution(res.id)}
-                            className={`py-2 rounded-xl text-[10px] font-black font-mono border transition-all ${
-                              resolution === res.id 
-                                ? "bg-indigo-600/20 border-indigo-500 text-indigo-400" 
-                                : "bg-slate-900/40 border-transparent text-slate-400 hover:bg-slate-850"
+                            onClick={() => {
+                              setFacingMode("environment");
+                              setSelectedDeviceId("");
+                            }}
+                            className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-between ${
+                              facingMode === "environment" 
+                                ? "bg-blue-600/15 border-blue-500 text-blue-400" 
+                                : "bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-850"
                             }`}
                           >
-                            {res.label}
+                            <span className="flex items-center gap-1.5">📷 Rear Camera</span>
+                            <span className="text-[8px] font-mono opacity-60">Environment</span>
                           </button>
-                        ))}
+                          <button
+                            onClick={() => {
+                              setFacingMode("user");
+                              setSelectedDeviceId("");
+                            }}
+                            className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-between ${
+                              facingMode === "user" 
+                                ? "bg-blue-600/15 border-blue-500 text-blue-400" 
+                                : "bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-850"
+                            }`}
+                          >
+                            <span className="flex items-center gap-1.5">🤳 Front Camera</span>
+                            <span className="text-[8px] font-mono opacity-60">User Selfie</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Resolution presets */}
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">Resolution</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { id: "720p", label: "720P" },
+                            { id: "1080p", label: "1080P" },
+                            { id: "4k", label: "4K (Sup)" }
+                          ].map((res) => (
+                            <button
+                              key={res.id}
+                              onClick={() => setResolution(res.id)}
+                              className={`py-2.5 rounded-xl text-[10px] font-black font-mono border transition-all ${
+                                resolution === res.id 
+                                  ? "bg-indigo-600/20 border-indigo-500 text-indigo-400" 
+                                  : "bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-850"
+                              }`}
+                            >
+                              {res.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Advanced Feature Toggles */}
+                      <div className="space-y-2.5 border-t border-slate-850 pt-3">
+                        <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">Advanced Settings</label>
+                        
+                        {/* HDR Toggle */}
+                        <div className="flex items-center justify-between py-1">
+                          <div className="text-left">
+                            <p className="text-[11px] font-bold text-slate-200">HDR Enhancement</p>
+                            <p className="text-[8px] text-slate-500">Auto shadow fill lighting</p>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={isHdrOn} 
+                            onChange={(e) => setIsHdrOn(e.target.checked)}
+                            className="w-8 h-4 rounded-full appearance-none bg-slate-800 checked:bg-blue-500 relative cursor-pointer transition-all before:content-[''] before:absolute before:w-3 before:h-3 before:rounded-full before:bg-white before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-all"
+                          />
+                        </div>
+
+                        {/* Flash Simulation */}
+                        <div className="flex items-center justify-between py-1">
+                          <div className="text-left">
+                            <p className="text-[11px] font-bold text-slate-200">⚡ Flash / Torch</p>
+                            <p className="text-[8px] text-slate-500">Enable flashlight simulation</p>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={isFlashOn} 
+                            onChange={(e) => setIsFlashOn(e.target.checked)}
+                            className="w-8 h-4 rounded-full appearance-none bg-slate-800 checked:bg-blue-500 relative cursor-pointer transition-all before:content-[''] before:absolute before:w-3 before:h-3 before:rounded-full before:bg-white before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-all"
+                          />
+                        </div>
+
+                        {/* 3x3 Grid Guidelines */}
+                        <div className="flex items-center justify-between py-1">
+                          <div className="text-left">
+                            <p className="text-[11px] font-bold text-slate-200">3x3 Rule of Thirds Grid</p>
+                            <p className="text-[8px] text-slate-500">Guides for straight alignment</p>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={gridOn} 
+                            onChange={(e) => setGridOn(e.target.checked)}
+                            className="w-8 h-4 rounded-full appearance-none bg-slate-800 checked:bg-blue-500 relative cursor-pointer transition-all before:content-[''] before:absolute before:w-3 before:h-3 before:rounded-full before:bg-white before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-all"
+                          />
+                        </div>
+
+                        {/* Auto Focus Tracking */}
+                        <div className="flex items-center justify-between py-1">
+                          <div className="text-left">
+                            <p className="text-[11px] font-bold text-slate-200">Auto Focus tracking</p>
+                            <p className="text-[8px] text-slate-500">Dynamic lens calibration</p>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={autoFocusOn} 
+                            onChange={(e) => setAutoFocusOn(e.target.checked)}
+                            className="w-8 h-4 rounded-full appearance-none bg-slate-800 checked:bg-blue-500 relative cursor-pointer transition-all before:content-[''] before:absolute before:w-3 before:h-3 before:rounded-full before:bg-white before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-all"
+                          />
+                        </div>
+
+                        {/* AI Enhance Pipeline */}
+                        <div className="flex items-center justify-between py-1">
+                          <div className="text-left">
+                            <p className="text-[11px] font-bold text-slate-200">🤖 AI Enhance Pipeline</p>
+                            <p className="text-[8px] text-slate-500">High contrast doc labels & OCR prep</p>
+                          </div>
+                          <input 
+                            type="checkbox" 
+                            checked={aiEnhanceOn} 
+                            onChange={(e) => setAiEnhanceOn(e.target.checked)}
+                            className="w-8 h-4 rounded-full appearance-none bg-slate-800 checked:bg-blue-500 relative cursor-pointer transition-all before:content-[''] before:absolute before:w-3 before:h-3 before:rounded-full before:bg-white before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-all"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    {/* Advanced Feature Toggles */}
-                    <div className="space-y-2.5 border-t border-slate-850 pt-3">
-                      <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">Advanced Settings</label>
-                      
-                      {/* HDR Toggle */}
-                      <div className="flex items-center justify-between py-1">
-                        <div className="text-left">
-                          <p className="text-[11px] font-bold text-slate-200">HDR Enhancement</p>
-                          <p className="text-[8px] text-slate-500">Auto shadow fill lighting</p>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={isHdrOn} 
-                          onChange={(e) => setIsHdrOn(e.target.checked)}
-                          className="w-8 h-4 rounded-full appearance-none bg-slate-800 checked:bg-blue-500 relative cursor-pointer transition-all before:content-[''] before:absolute before:w-3 before:h-3 before:rounded-full before:bg-white before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-all"
-                        />
-                      </div>
-
-                      {/* Flash Simulation */}
-                      <div className="flex items-center justify-between py-1">
-                        <div className="text-left">
-                          <p className="text-[11px] font-bold text-slate-200">⚡ Flash / Torch</p>
-                          <p className="text-[8px] text-slate-500">Enable flashlight simulation</p>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={isFlashOn} 
-                          onChange={(e) => setIsFlashOn(e.target.checked)}
-                          className="w-8 h-4 rounded-full appearance-none bg-slate-800 checked:bg-blue-500 relative cursor-pointer transition-all before:content-[''] before:absolute before:w-3 before:h-3 before:rounded-full before:bg-white before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-all"
-                        />
-                      </div>
-
-                      {/* 3x3 Grid Guidelines */}
-                      <div className="flex items-center justify-between py-1">
-                        <div className="text-left">
-                          <p className="text-[11px] font-bold text-slate-200">3x3 Rule of Thirds Grid</p>
-                          <p className="text-[8px] text-slate-500">Guides for straight alignment</p>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={gridOn} 
-                          onChange={(e) => setGridOn(e.target.checked)}
-                          className="w-8 h-4 rounded-full appearance-none bg-slate-800 checked:bg-blue-500 relative cursor-pointer transition-all before:content-[''] before:absolute before:w-3 before:h-3 before:rounded-full before:bg-white before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-all"
-                        />
-                      </div>
-
-                      {/* Auto Focus Tracking */}
-                      <div className="flex items-center justify-between py-1">
-                        <div className="text-left">
-                          <p className="text-[11px] font-bold text-slate-200">Auto Focus tracking</p>
-                          <p className="text-[8px] text-slate-500">Dynamic lens calibration</p>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={autoFocusOn} 
-                          onChange={(e) => setAutoFocusOn(e.target.checked)}
-                          className="w-8 h-4 rounded-full appearance-none bg-slate-800 checked:bg-blue-500 relative cursor-pointer transition-all before:content-[''] before:absolute before:w-3 before:h-3 before:rounded-full before:bg-white before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-all"
-                        />
-                      </div>
-
-                      {/* AI Enhance Pipeline */}
-                      <div className="flex items-center justify-between py-1">
-                        <div className="text-left">
-                          <p className="text-[11px] font-bold text-slate-200">🤖 AI Enhance Pipeline</p>
-                          <p className="text-[8px] text-slate-500">High contrast doc labels & OCR prep</p>
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          checked={aiEnhanceOn} 
-                          onChange={(e) => setAiEnhanceOn(e.target.checked)}
-                          className="w-8 h-4 rounded-full appearance-none bg-slate-800 checked:bg-blue-500 relative cursor-pointer transition-all before:content-[''] before:absolute before:w-3 before:h-3 before:rounded-full before:bg-white before:top-0.5 before:left-0.5 checked:before:translate-x-4 before:transition-all"
-                        />
-                      </div>
+                    <div className="border-t border-slate-800 pt-3 text-center">
+                      <p className="text-[8px] font-mono text-slate-500">Ultra-Pro AI Camera Firmware v2.6.3</p>
                     </div>
-                  </div>
-
-                  <div className="border-t border-slate-800 pt-2 text-center">
-                    <p className="text-[8px] font-mono text-slate-500">Ultra-Pro AI Camera Firmware v2.6.3</p>
-                  </div>
-                </motion.div>
+                  </motion.div>
+                </>
               )}
             </AnimatePresence>
 
@@ -1241,174 +1764,370 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
           <div className="w-full h-full flex flex-col md:flex-row relative">
             {/* Visual Workspace canvas/render area */}
             <div className="flex-1 bg-[#04060b] relative flex items-center justify-center p-4">
-              <div 
-                className="relative max-w-full max-h-full aspect-auto rounded-3xl overflow-hidden border border-slate-800 shadow-2xl transition-all"
-                style={{ transform: `rotate(${rotationAngle}deg)` }}
-              >
-                <img 
-                  referrerPolicy="no-referrer" 
-                  src={editingImage} 
-                  alt="Review captured evidence" 
-                  className="max-h-[60vh] md:max-h-[75vh] object-contain rounded-2xl" 
-                />
-
-                {/* Simulated Document Scanning Neon outline crop boundary */}
+              <div className="flex flex-col items-center gap-3 w-full h-full justify-center">
+                {/* 1. TOP BAR: Aspect Ratio & Crop Mode Controls when cropping is active */}
                 {cropActive && (
-                  <div 
-                    className="absolute border-2 border-dashed border-cyan-400 bg-cyan-400/10 rounded-xl"
-                    style={{
-                      left: `${cropBox.x}%`,
-                      top: `${cropBox.y}%`,
-                      width: `${cropBox.w}%`,
-                      height: `${cropBox.h}%`
-                    }}
-                  >
-                    <div className="absolute -top-3 -left-3 w-6 h-6 bg-cyan-400 rounded-full border-4 border-black cursor-move"></div>
-                    <div className="absolute -top-3 -right-3 w-6 h-6 bg-cyan-400 rounded-full border-4 border-black cursor-move"></div>
-                    <div className="absolute -bottom-3 -left-3 w-6 h-6 bg-cyan-400 rounded-full border-4 border-black cursor-move"></div>
-                    <div className="absolute -bottom-3 -right-3 w-6 h-6 bg-cyan-400 rounded-full border-4 border-black cursor-move"></div>
-                    
-                    <span className="absolute bottom-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[8px] font-mono text-cyan-300">
-                      Crop Area Locked
+                  <div className="w-full max-w-lg bg-[#090e18]/90 border border-slate-800 backdrop-blur px-3 py-2 rounded-2xl flex flex-wrap items-center justify-between gap-2 z-30">
+                    <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                      Aspect Ratio
                     </span>
+                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-none max-w-full">
+                      {[
+                        { id: "free", label: "Free" },
+                        { id: "1:1", label: "1:1" },
+                        { id: "4:3", label: "4:3" },
+                        { id: "16:9", label: "16:9" },
+                        { id: "doc", label: "Doc" },
+                        { id: "receipt", label: "Receipt" },
+                        { id: "idcard", label: "ID Card" }
+                      ].map((ratio) => (
+                        <button
+                          key={ratio.id}
+                          onClick={() => setCropAspectRatio(ratio.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[9px] font-mono font-black uppercase transition-all cursor-pointer ${
+                            cropAspectRatio === ratio.id 
+                              ? "bg-cyan-500 text-black font-black" 
+                              : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          {ratio.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. SMART AUTO-DETECTION PROMPT BANNER */}
+                {cropActive && showAutoCropPrompt && !autoCropApplied && (
+                  <div className="w-full max-w-lg bg-indigo-950/80 border border-indigo-500/30 p-2.5 rounded-2xl flex items-center justify-between gap-3 z-30 animate-pulse">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <div>
+                        <p className="text-[10px] font-black text-slate-200">AI Document Boundary Detected</p>
+                        <p className="text-[8px] text-slate-400">Suggest auto-aligning to standard crop bounds</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={applyAutoCrop}
+                        className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-black text-[9px] font-mono font-black uppercase rounded-lg transition-all cursor-pointer"
+                      >
+                        Auto Crop
+                      </button>
+                      <button
+                        onClick={() => setShowAutoCropPrompt(false)}
+                        className="p-1 text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. CORE WORKSPACE WORKBENCH */}
+                <div 
+                  ref={cropContainerRef}
+                  onWheel={handlePreviewWheel}
+                  onMouseDown={handlePanStart}
+                  onMouseMove={handlePanMove}
+                  onMouseUp={handlePanEnd}
+                  onMouseLeave={handlePanEnd}
+                  onTouchStart={handlePanStart}
+                  onTouchMove={handlePanMove}
+                  onTouchEnd={handlePanEnd}
+                  className={`relative max-w-full max-h-[50vh] md:max-h-[65vh] aspect-auto rounded-3xl overflow-hidden border border-slate-800 shadow-2xl transition-all ${
+                    previewZoom > 1 ? "cursor-grab active:cursor-grabbing" : ""
+                  }`}
+                  style={{ 
+                    transform: `rotate(${rotationAngle}deg)`,
+                  }}
+                >
+                  {/* The Image under review */}
+                  <img 
+                    referrerPolicy="no-referrer" 
+                    src={editingImage} 
+                    alt="Review captured evidence" 
+                    className="max-h-[50vh] md:max-h-[65vh] object-contain rounded-2xl pointer-events-none transition-all select-none"
+                    style={{
+                      transform: `scale(${previewZoom}) translate(${previewPan.x}px, ${previewPan.y}px)`,
+                      filter: showOriginalToggle
+                        ? "none"
+                        : `brightness(${enhanceSettings.brightness / 50}) contrast(${enhanceSettings.contrast / 50}) saturate(${1 + (enhanceSettings.sharpness / 50 - 1) * 0.2})`
+                    }}
+                  />
+
+                  {/* Hold to Compare floating action button */}
+                  <button
+                    onMouseDown={() => setShowOriginalToggle(true)}
+                    onMouseUp={() => setShowOriginalToggle(false)}
+                    onMouseLeave={() => setShowOriginalToggle(false)}
+                    onTouchStart={() => setShowOriginalToggle(true)}
+                    onTouchEnd={() => setShowOriginalToggle(false)}
+                    className="absolute top-3 right-3 bg-slate-950/90 hover:bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-slate-300 px-3 py-1.5 rounded-xl transition-all cursor-pointer z-35 flex items-center gap-1.5 shadow-lg select-none active:scale-95"
+                    title="Hold to view original unenhanced photo"
+                  >
+                    <Activity className="w-3.5 h-3.5 text-yellow-400" />
+                    Hold to Compare
+                  </button>
+
+                  {/* ACTIVE OCR READING INDICATOR */}
+                  {isOcrLoading && (
+                    <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-2 z-40">
+                      <span className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin"></span>
+                      <p className="text-[10px] font-black uppercase tracking-wider font-mono text-cyan-400 animate-pulse">Running AI Document Scan & OCR...</p>
+                      <p className="text-[8px] text-slate-500 font-mono">Enhancing contrast & parsing glyph segments</p>
+                    </div>
+                  )}
+
+                  {/* FULLY UNLOCKED INTERACTIVE CROP OVERLAY BOUNDARY */}
+                  {cropActive && !isOcrLoading && (
+                    <div 
+                      className="absolute border-2 border-dashed border-cyan-400 bg-cyan-400/10 rounded-xl"
+                      style={{
+                        left: `${cropBox.x}%`,
+                        top: `${cropBox.y}%`,
+                        width: `${cropBox.w}%`,
+                        height: `${cropBox.h}%`
+                      }}
+                    >
+                      {/* Inner gridlines matching Rule of Thirds */}
+                      <div className="absolute inset-0 grid grid-cols-3 pointer-events-none opacity-30">
+                        <div className="border-r border-cyan-300 h-full"></div>
+                        <div className="border-r border-cyan-300 h-full"></div>
+                      </div>
+                      <div className="absolute inset-0 grid grid-rows-3 pointer-events-none opacity-30">
+                        <div className="border-b border-cyan-300 w-full"></div>
+                        <div className="border-b border-cyan-300 w-full"></div>
+                      </div>
+
+                      {/* Outer Drag Handle overlay for the entire box movement */}
+                      <div 
+                        onMouseDown={(e) => handleDragStart(e, "move")}
+                        onTouchStart={(e) => handleDragStart(e, "move")}
+                        className="absolute inset-4 cursor-move"
+                        title="Drag to reposition crop selection"
+                      />
+
+                      {/* Four Corners (28-32px touch-friendly targets) */}
+                      <div 
+                        onMouseDown={(e) => handleDragStart(e, "nw")}
+                        onTouchStart={(e) => handleDragStart(e, "nw")}
+                        className="absolute -top-1.5 -left-1.5 w-7 h-7 border-t-4 border-l-4 border-cyan-400 cursor-nw-resize z-30"
+                      />
+                      <div 
+                        onMouseDown={(e) => handleDragStart(e, "ne")}
+                        onTouchStart={(e) => handleDragStart(e, "ne")}
+                        className="absolute -top-1.5 -right-1.5 w-7 h-7 border-t-4 border-r-4 border-cyan-400 cursor-ne-resize z-30"
+                      />
+                      <div 
+                        onMouseDown={(e) => handleDragStart(e, "sw")}
+                        onTouchStart={(e) => handleDragStart(e, "sw")}
+                        className="absolute -bottom-1.5 -left-1.5 w-7 h-7 border-b-4 border-l-4 border-cyan-400 cursor-sw-resize z-30"
+                      />
+                      <div 
+                        onMouseDown={(e) => handleDragStart(e, "se")}
+                        onTouchStart={(e) => handleDragStart(e, "se")}
+                        className="absolute -bottom-1.5 -right-1.5 w-7 h-7 border-b-4 border-r-4 border-cyan-400 cursor-se-resize z-30"
+                      />
+
+                      {/* Four Edges */}
+                      <div 
+                        onMouseDown={(e) => handleDragStart(e, "n")}
+                        onTouchStart={(e) => handleDragStart(e, "n")}
+                        className="absolute top-0 inset-x-5 h-3 cursor-n-resize z-20 hover:bg-cyan-400/25"
+                      />
+                      <div 
+                        onMouseDown={(e) => handleDragStart(e, "s")}
+                        onTouchStart={(e) => handleDragStart(e, "s")}
+                        className="absolute bottom-0 inset-x-5 h-3 cursor-s-resize z-20 hover:bg-cyan-400/25"
+                      />
+                      <div 
+                        onMouseDown={(e) => handleDragStart(e, "w")}
+                        onTouchStart={(e) => handleDragStart(e, "w")}
+                        className="absolute left-0 inset-y-5 w-3 cursor-w-resize z-20 hover:bg-cyan-400/25"
+                      />
+                      <div 
+                        onMouseDown={(e) => handleDragStart(e, "e")}
+                        onTouchStart={(e) => handleDragStart(e, "e")}
+                        className="absolute right-0 inset-y-5 w-3 cursor-e-resize z-20 hover:bg-cyan-400/25"
+                      />
+
+                      <span className="absolute bottom-2.5 left-2.5 bg-black/85 border border-slate-800/60 px-2 py-0.5 rounded text-[8px] font-mono text-cyan-300 font-bold z-10 select-none pointer-events-none">
+                        {cropAspectRatio === "free" ? "Free Crop" : `${cropAspectRatio.toUpperCase()} Box`}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 5. MAGNIFIER POPUP OVERLAY */}
+                  {cropActive && activeDrag && (
+                    <div 
+                      className="absolute w-24 h-24 rounded-full border-2 border-white shadow-2xl overflow-hidden pointer-events-none z-50 bg-[#090e18]"
+                      style={{
+                        left: `${magnifierOffset.x}%`,
+                        top: `calc(${magnifierOffset.y}% - 75px)`,
+                        transform: "translateX(-50%)",
+                      }}
+                    >
+                      <div 
+                        className="w-full h-full"
+                        style={{
+                          backgroundImage: `url(${editingImage})`,
+                          backgroundSize: "400%",
+                          backgroundPosition: `${magnifierOffset.x}% ${magnifierOffset.y}%`,
+                          backgroundRepeat: "no-repeat"
+                        }}
+                      />
+                      {/* Perfect crosshair */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-4 h-4 border border-cyan-400 rounded-full relative">
+                          <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-cyan-400 -translate-x-1/2"></div>
+                          <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-cyan-400 -translate-y-1/2"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. BOTTOM BAR: Interactive Zoom & Reset utilities */}
+                {cropActive && (
+                  <div className="w-full max-w-lg bg-slate-900/60 border border-slate-850 px-3 py-1.5 rounded-2xl flex items-center justify-between gap-4 z-30">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPreviewZoom(prev => Math.max(1, prev - 0.2))}
+                        className="w-7 h-7 rounded-lg bg-slate-800 text-slate-200 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer"
+                        title="Zoom Out"
+                      >
+                        -
+                      </button>
+                      <span className="text-[10px] font-mono text-slate-400 font-bold w-12 text-center">
+                        {Math.round(previewZoom * 100)}%
+                      </span>
+                      <button
+                        onClick={() => setPreviewZoom(prev => Math.min(4, prev + 0.2))}
+                        className="w-7 h-7 rounded-lg bg-slate-800 text-slate-200 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer"
+                        title="Zoom In"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={handleResetCrop}
+                        className="px-2.5 py-1 text-[9px] font-mono font-black uppercase rounded-lg border border-slate-850 hover:bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer"
+                      >
+                        Reset Crop
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Diagnostic Details Side Panel */}
-            <div className="w-full md:w-80 shrink-0 bg-[#090e18] border-t md:border-t-0 md:border-l border-slate-850 p-4 overflow-y-auto space-y-4 max-h-[40vh] md:max-h-full">
-              <div className="border-b border-slate-850 pb-3 flex justify-between items-center">
-                <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest font-mono flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                  AI Quality Report
-                </span>
-                <span className={`text-xs font-black font-mono px-2 py-0.5 rounded-lg ${
-                  qualityScore >= 85 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                }`}>
-                  IQ Score: {qualityScore}%
-                </span>
-              </div>
-
-              {/* Quality Warnings alert */}
-              {qualityWarnings.length > 0 && (
-                <div className="bg-amber-500/5 border border-amber-500/10 p-3 rounded-2xl space-y-1">
-                  <div className="flex items-center gap-1.5 text-amber-400 text-[10px] font-black uppercase tracking-wider font-mono">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    Focus Warning
-                  </div>
-                  <ul className="space-y-0.5">
-                    {qualityWarnings.map((w, idx) => (
-                      <li key={idx} className="text-[10px] text-slate-300 font-medium">{w}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Object recognition badge */}
-              <div className="space-y-1">
-                <span className="text-[9px] font-extrabold uppercase font-mono tracking-wider text-slate-500">Object Classification</span>
-                <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Bot className="w-4 h-4 text-violet-400 shrink-0" />
-                    <span className="text-xs font-bold text-slate-200">{detectedObject || "Scanning object..."}</span>
-                  </div>
-                  <span className="text-[9px] font-mono text-violet-400 font-bold bg-violet-500/5 px-2 py-0.5 rounded">
-                    {(detectionConfidence * 100).toFixed(0)}% Match
-                  </span>
-                </div>
-              </div>
-
-              {/* OCR Text extraction box */}
-              <div className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] font-extrabold uppercase font-mono tracking-wider text-slate-500 flex items-center gap-1">
-                    <FileText className="w-3.5 h-3.5 text-blue-400" />
-                    OCR Text Extracted
-                  </span>
-                  <button 
-                    onClick={() => {
-                      navigator.clipboard.writeText(extractedOcrText);
-                    }}
-                    className="text-[9px] font-bold text-blue-400 hover:underline"
-                  >
-                    Copy Text
-                  </button>
-                </div>
-                <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl">
-                  <pre className="text-[10px] font-mono text-slate-300 whitespace-pre-wrap leading-relaxed max-h-24 overflow-y-auto font-medium">
-                    {extractedOcrText || "No text parsed in standard mode."}
-                  </pre>
-                </div>
-              </div>
-
-              {/* Fine Tuning Sliders */}
-              <div className="space-y-3 pt-2 border-t border-slate-850">
-                <span className="text-[9px] font-extrabold uppercase font-mono tracking-wider text-slate-500 flex items-center gap-1">
-                  <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-                  HD Manual Fine Tuning
-                </span>
-                
-                <div className="space-y-2">
-                  <div className="text-xs space-y-1">
-                    <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                      <span>Brightness</span>
-                      <span>{enhanceSettings.brightness}%</span>
+            {/* Desktop Side Panel */}
+            <div className="hidden md:flex w-80 shrink-0 bg-[#090e18] border-l border-slate-850 p-4 flex-col gap-4 overflow-y-auto">
+               <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
+                  <Bot className="w-5 h-5 text-blue-400" />
+                  <span className="text-xs font-bold font-mono uppercase tracking-widest text-slate-200">AI Assistant</span>
+               </div>
+               
+               {/* Chat bubble */}
+               <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-2 relative">
+                  <div className="absolute -left-2 top-4 w-4 h-4 bg-slate-900 border-l border-b border-slate-800 transform rotate-45"></div>
+                  <p className="text-[11px] leading-relaxed text-slate-300">
+                     I detected a <strong className="text-violet-400 font-bold">{detectedObject || "document"}</strong>. 
+                     {qualityScore >= 80 ? " The image quality is excellent ⭐⭐⭐⭐⭐." : " The image quality is low and might be hard to read."}
+                  </p>
+                  <p className="text-[11px] leading-relaxed text-slate-300">
+                    {extractedOcrText ? "The extracted text appears readable." : "No text was detected."}
+                  </p>
+                  {suggestedTicketMeta?.category && (
+                    <div className="mt-2 p-2 bg-blue-950/30 border border-blue-900/40 rounded-lg">
+                      <p className="text-[10px] text-blue-400 font-bold mb-1">Suggested Action:</p>
+                      <p className="text-[10px] text-slate-300">Would you like to create a <strong className="text-white">{suggestedTicketMeta.category}</strong> complaint using this document?</p>
                     </div>
-                    <input 
-                      type="range" 
-                      min="10" 
-                      max="100"
-                      value={enhanceSettings.brightness}
-                      onChange={(e) => setEnhanceSettings(prev => ({ ...prev, brightness: Number(e.target.value) }))}
-                      className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                    />
+                  )}
+               </div>
+               
+               {/* Quality stats summary */}
+               <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-3 flex justify-between items-center mt-2">
+                  <div className="space-y-0.5">
+                     <p className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">Image Quality</p>
+                     <p className="text-xs font-bold text-emerald-400">{qualityScore}% - {qualityScore >= 80 ? "Excellent" : "Fair"}</p>
                   </div>
-
-                  <div className="text-xs space-y-1">
-                    <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                      <span>Contrast</span>
-                      <span>{enhanceSettings.contrast}%</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="10" 
-                      max="100"
-                      value={enhanceSettings.contrast}
-                      onChange={(e) => setEnhanceSettings(prev => ({ ...prev, contrast: Number(e.target.value) }))}
-                      className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                    />
+                  <div className="space-y-0.5 text-right">
+                     <p className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">Detected Evidence</p>
+                     <p className="text-xs font-bold text-violet-400">{(detectionConfidence * 100).toFixed(0)}% Match</p>
                   </div>
+               </div>
 
-                  <div className="text-xs space-y-1">
-                    <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                      <span>Sharpness</span>
-                      <span>{enhanceSettings.sharpness}%</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100"
-                      value={enhanceSettings.sharpness}
-                      onChange={(e) => setEnhanceSettings(prev => ({ ...prev, sharpness: Number(e.target.value) }))}
-                      className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Compression stats simulated */}
-              <div className="p-3 bg-slate-900 border border-slate-800 rounded-2xl text-[10px] font-mono text-slate-400 space-y-1">
-                <div className="flex justify-between">
-                  <span>RAW Photo size:</span>
-                  <span className="text-slate-300 font-bold">5.4 MB</span>
-                </div>
-                <div className="flex justify-between text-blue-400">
-                  <span>AI Compressed size:</span>
-                  <span className="font-bold">420 KB (-92%)</span>
-                </div>
-              </div>
+               <p className="text-[9px] text-slate-500 mt-auto text-center font-mono px-4">
+                  Tools like Smart Crop and Fix Document are available under the "More..." menu.
+               </p>
             </div>
+
+            {/* Mobile AI Assistant FAB */}
+            <div className="md:hidden absolute top-4 right-4 z-40">
+              <button 
+                onClick={() => setShowMobilePanel(true)}
+                className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center shadow-lg border border-blue-500 animate-pulse cursor-pointer"
+              >
+                <Bot className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            {/* Mobile AI Assistant Bottom Sheet */}
+            <AnimatePresence>
+              {showMobilePanel && (
+                <>
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.6 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowMobilePanel(false)}
+                    className="md:hidden absolute inset-0 bg-black/80 z-40 cursor-pointer pointer-events-auto"
+                  />
+                  <motion.div 
+                    initial={{ opacity: 0, y: "100%" }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: "100%" }}
+                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                    className="md:hidden absolute bottom-0 inset-x-0 bg-[#090e18]/95 border-t border-slate-800 backdrop-blur-md rounded-t-3xl p-5 z-50 flex flex-col gap-4 text-slate-200 shadow-2xl pointer-events-auto"
+                  >
+                     <div className="w-12 h-1 mx-auto bg-slate-700 rounded-full shrink-0" />
+                     <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <span className="text-xs font-black uppercase font-mono tracking-wider text-slate-300 flex items-center gap-1.5">
+                          <Bot className="w-4 h-4 text-blue-400" />
+                          AI Assistant
+                        </span>
+                        <button 
+                          onClick={() => setShowMobilePanel(false)}
+                          className="p-1.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-2">
+                        <p className="text-[11px] leading-relaxed text-slate-300">
+                           I detected a <strong className="text-violet-400 font-bold">{detectedObject || "document"}</strong>. 
+                           {qualityScore >= 80 ? " The image quality is excellent ⭐⭐⭐⭐⭐." : " The image quality is low and might be hard to read."}
+                        </p>
+                        <p className="text-[11px] leading-relaxed text-slate-300">
+                          {extractedOcrText ? "The extracted text appears readable." : "No text was detected."}
+                        </p>
+                        {suggestedTicketMeta?.category && (
+                          <div className="mt-2 p-2 bg-blue-950/30 border border-blue-900/40 rounded-lg">
+                            <p className="text-[10px] text-blue-400 font-bold mb-1">Suggested Action:</p>
+                            <p className="text-[10px] text-slate-300">Would you like to create a <strong className="text-white">{suggestedTicketMeta.category}</strong> complaint using this document?</p>
+                          </div>
+                        )}
+                     </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
@@ -1575,125 +2294,218 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
           </div>
         </div>
 
+        {/* Symmetrical scrollable row of all 11 enterprise-grade camera presets */}
+        {screen === "capture" && (
+          <div className="border-b border-slate-850 pb-2.5">
+            <div id="tour-camera-modes" className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none snap-x px-1 justify-start">
+              {[
+                { id: "standard", label: "Standard" },
+                { id: "hd", label: "HD Detail" },
+                { id: "document", label: "Doc Scan" },
+                { id: "night", label: "Night Mode" },
+                { id: "ultraclear", label: "Ultra Clear" },
+                { id: "portrait", label: "Portrait" },
+                { id: "macro", label: "Macro" },
+                { id: "whiteboard", label: "Whiteboard" },
+                { id: "lowlight", label: "Low Light" },
+                { id: "textenhance", label: "Text Enhance" },
+                { id: "ocr", label: "AI OCR" }
+              ].map((mode) => (
+                <button
+                  key={mode.id}
+                  onClick={() => setActiveMode(mode.id as any)}
+                  className={`px-3.5 py-1.5 rounded-full text-[11px] font-extrabold uppercase font-mono border tracking-wider transition-all cursor-pointer shrink-0 snap-center ${
+                    activeMode === mode.id 
+                      ? "bg-amber-500 border-amber-400 text-black font-black" 
+                      : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+                  }`}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Action Controls based on current active screen state */}
         <div className="flex items-center justify-between gap-4">
           
           {screen === "capture" && (
-            <>
-              {/* Left Action: Toggle Preset Modes */}
-              <div className="flex flex-wrap gap-1">
-                {[
-                  { id: "standard", label: "Standard", desc: "No filters" },
-                  { id: "hd", label: "HD Detail", desc: "Sharper focus" },
-                  { id: "document", label: "Doc Scan", desc: "Auto crop edge" },
-                  { id: "lowlight", label: "Low Light", desc: "Dark sight boost" },
-                  { id: "ai", label: "AI Enhance", desc: "Automatic optimization" },
-                  { id: "ultraclear", label: "Ultra Clear", desc: "Anti blur locked" }
-                ].map((mode) => (
-                  <button
-                    key={mode.id}
-                    onClick={() => setActiveMode(mode.id as any)}
-                    className={`px-2.5 py-1.5 rounded-xl text-[10px] font-extrabold uppercase font-mono border transition-all cursor-pointer ${
-                      activeMode === mode.id 
-                        ? "bg-blue-600 border-blue-500 text-white" 
-                        : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    {mode.label}
-                  </button>
-                ))}
+            <div className="grid grid-cols-4 items-center gap-2 w-full pt-2">
+              {/* 1. Gallery / Upload on the left */}
+              <div className="flex justify-start">
+                <label className="px-3 py-2.5 rounded-xl border border-slate-850 bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-850 hover:border-slate-750 transition-all flex items-center justify-center gap-1.5 text-[11px] font-black uppercase font-mono cursor-pointer shadow-md">
+                  <Upload className="w-4 h-4 text-blue-400" />
+                  <span>Gallery</span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                          if (evt.target?.result) {
+                            setEditingImage(evt.target.result as string);
+                            setOriginalImage(evt.target.result as string);
+                            setDetectedObject("Custom Device Upload");
+                            setDetectionConfidence(0.95);
+                            setExtractedOcrText("MANUAL DOCUMENT UPLOAD\nNAME: " + file.name + "\nSIZE: " + (file.size/1024).toFixed(1) + " KB");
+                            setSuggestedTicketMeta({
+                              category: "Other",
+                              severity: "Medium",
+                              title: "Custom Evidence: " + file.name.split(".")[0]
+                            });
+                            setScreen("preview");
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </label>
               </div>
 
-              {/* Center Trigger: Capture Button */}
-              <div className="flex items-center gap-3">
-                {/* Simulated Zoom Factor Slider (ChatGPT zoom Style) */}
-                <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-2xl mr-2">
-                  <ZoomIn className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  {[0.5, 1, 2, 3, 5].map((z) => (
-                    <button
-                      key={z}
-                      onClick={() => setZoomFactor(z)}
-                      className={`w-6 h-6 rounded-lg text-[9px] font-mono font-black transition-all ${
-                        zoomFactor === z ? "bg-amber-500 text-black" : "text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      {z}x
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-2.5">
-                  <button
-                    onClick={triggerCapture}
-                    className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 transition-all flex items-center justify-center cursor-pointer border-4 border-slate-900 ring-4 ring-red-600/30 shadow-xl"
-                    title="Capture live evidence snapshot"
-                  >
-                    <Camera className="w-7 h-7 text-white stroke-[2]" />
-                  </button>
-
-                  {/* Visible Switch Camera Button beside Capture Button */}
-                  <button
-                    onClick={handleToggleFacingMode}
-                    className="w-12 h-12 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 transition-all flex items-center justify-center cursor-pointer hover:text-amber-400 shadow-md"
-                    title="Switch Camera (Front / Rear)"
-                  >
-                    <RefreshCw className="w-5 h-5 text-slate-300" />
-                  </button>
-                </div>
+              {/* 2. Reverse Camera Switch center-left */}
+              <div className="flex justify-center">
+                <button
+                  onClick={handleToggleFacingMode}
+                  className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:text-amber-400 hover:border-slate-700 transition-all flex items-center justify-center shadow-lg active:scale-95 cursor-pointer"
+                  title="Reverse Camera (Switch Front / Rear)"
+                >
+                  <RefreshCw className="w-5 h-5 text-slate-300" />
+                </button>
               </div>
 
-              {/* Right Action: Cancel or Finish */}
-              <div className="flex gap-2">
+              {/* 3. Heavy active Capture Button in center */}
+              <div className="flex justify-center">
+                <button
+                  id="tour-camera-shutter"
+                  onClick={triggerCapture}
+                  className="w-18 h-18 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 transition-all flex items-center justify-center cursor-pointer border-4 border-slate-900 ring-4 ring-red-600/30 shadow-2xl relative"
+                  title="Take photo of issue"
+                >
+                  <span className="w-13 h-13 rounded-full border border-white/25 absolute"></span>
+                  <Camera className="w-7 h-7 text-white stroke-[2.5]" />
+                </button>
+              </div>
+
+              {/* 4. Cancel or Finish on the right */}
+              <div className="flex justify-end">
                 {capturedPhotos.length > 0 ? (
                   <button
                     onClick={handleFinalizeAllCaptures}
-                    className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-extrabold text-xs text-white rounded-2xl shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-extrabold text-[11px] uppercase tracking-wider font-mono text-white rounded-xl shadow-lg transition-all flex items-center gap-1 cursor-pointer"
                   >
-                    <span>Use {capturedPhotos.length} Snapshot{capturedPhotos.length > 1 ? "s" : ""} ✓</span>
+                    <span>Use {capturedPhotos.length} Pic{capturedPhotos.length > 1 ? "s" : ""} ✓</span>
                   </button>
                 ) : (
                   <button
                     onClick={onClose}
-                    className="px-4 py-2.5 bg-slate-900 hover:bg-slate-850 text-slate-300 font-extrabold text-xs rounded-2xl border border-slate-800 transition-all cursor-pointer"
+                    className="px-4 py-2.5 bg-slate-900 hover:bg-slate-850 text-slate-300 font-extrabold text-[11px] uppercase font-mono rounded-xl border border-slate-800 transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                 )}
               </div>
-            </>
+            </div>
           )}
 
           {screen === "preview" && (
             <>
-              {/* Left Action: Toggle Cropping */}
-              <div className="flex gap-1.5">
-                <button
-                  onClick={() => setCropActive(!cropActive)}
-                  className={`p-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
-                    cropActive 
-                      ? "bg-cyan-500/20 border-cyan-500 text-cyan-400" 
-                      : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <Crop className="w-4 h-4" />
-                  {cropActive ? "Confirm Crop Area" : "Toggle Smart Crop"}
-                </button>
-
+              {/* Left Action: Essential Editing Controls */}
+              <div className="flex flex-wrap items-center gap-2 relative">
                 <button
                   onClick={handleRotate}
                   className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 transition-all cursor-pointer flex items-center gap-1.5"
+                  title="Rotate Clockwise"
                 >
-                  <RefreshCw className="w-4 h-4" />
-                  Rotate 90°
+                  <RefreshCw className="w-4 h-4 text-violet-400" />
+                  Rotate
                 </button>
 
                 <button
-                  onClick={handleOpenAnnotation}
-                  className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs font-bold text-amber-500 hover:text-amber-400 transition-all cursor-pointer flex items-center gap-1.5"
+                  onClick={() => {
+                    applyAutoEnhance();
+                    setQualityScore(98);
+                  }}
+                  className={`p-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
+                    autoEnhanced 
+                      ? "bg-blue-600/25 border-blue-500 text-blue-400 font-black shadow" 
+                      : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-850"
+                  }`}
                 >
-                  <Edit3 className="w-4 h-4" />
-                  Draw & Circle Damage
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  AI Enhance
                 </button>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                    className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Grid className="w-4 h-4 text-slate-400" />
+                    More...
+                  </button>
+                  
+                  <AnimatePresence>
+                    {showMoreMenu && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute bottom-full left-0 mb-2 w-48 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden z-50 flex flex-col"
+                      >
+                        <button
+                          onClick={() => {
+                            if (cropActive) applyCropAndOCR();
+                            else setCropActive(true);
+                            setShowMoreMenu(false);
+                          }}
+                          className="flex items-center gap-2 px-4 py-3 text-xs font-bold text-slate-300 hover:bg-slate-850 transition-all text-left"
+                        >
+                          <Crop className="w-4 h-4 text-cyan-400" />
+                          {cropActive ? "Confirm Crop Area" : "Smart Crop"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsOcrLoading(true);
+                            setTimeout(() => {
+                              setIsOcrLoading(false);
+                              setEnhanceSettings(prev => ({ ...prev, contrast: 80, sharpness: 85 }));
+                            }, 800);
+                            setShowMoreMenu(false);
+                          }}
+                          className="flex items-center gap-2 px-4 py-3 text-xs font-bold text-slate-300 hover:bg-slate-850 border-t border-slate-850 transition-all text-left"
+                        >
+                          <Scan className="w-4 h-4 text-blue-400" />
+                          📄 Fix Document
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleOpenAnnotation();
+                            setShowMoreMenu(false);
+                          }}
+                          className="flex items-center gap-2 px-4 py-3 text-xs font-bold text-slate-300 hover:bg-slate-850 border-t border-slate-850 transition-all text-left"
+                        >
+                          <Edit3 className="w-4 h-4 text-amber-500" />
+                          Draw & Annotate
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleRestoreOriginal();
+                            setShowMoreMenu(false);
+                          }}
+                          className="flex items-center gap-2 px-4 py-3 text-xs font-bold text-red-400 hover:bg-slate-850 border-t border-slate-850 transition-all text-left"
+                        >
+                          <RefreshCw className="w-4 h-4 text-red-500" />
+                          ↺ Reset Image
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
 
               {/* Center spacing */}

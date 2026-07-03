@@ -5,9 +5,11 @@ import { Button } from "../../components/ui/button.tsx";
 import { Badge } from "../../components/ui/badge.tsx";
 import { 
   Search, BookOpen, ShieldCheck, Key, Laptop, HelpCircle, 
-  ChevronRight, CalendarCheck, DollarSign, ArrowLeft 
+  ChevronRight, CalendarCheck, DollarSign, ArrowLeft, Sparkles,
+  Play, Check, CheckCircle2, Compass, ArrowRight, Shield, User, Star
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../lib/AuthContext.tsx";
 
 interface Article {
   id: string;
@@ -62,10 +64,28 @@ const ARTICLES: Article[] = [
 ];
 
 export default function HelpCenter() {
+  const { dbUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const navigate = useNavigate();
+
+  const [bookmarks, setBookmarks] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("dcms_bookmarked_tours") || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleBookmark = (e: React.MouseEvent, tourName: string) => {
+    e.stopPropagation();
+    setBookmarks(prev => {
+      const next = prev.includes(tourName) ? prev.filter(x => x !== tourName) : [...prev, tourName];
+      localStorage.setItem("dcms_bookmarked_tours", JSON.stringify(next));
+      return next;
+    });
+  };
 
   const filtered = ARTICLES.filter(art => {
     const matchesCategory = activeCategory === "All" || art.category === activeCategory;
@@ -209,6 +229,322 @@ export default function HelpCenter() {
               </div>
             )}
           </div>
+
+          {/* Interactive Guided Systems Section */}
+          <Card className="border-cyan-150/50 dark:border-blue-950/40 bg-slate-50/50 dark:bg-[#0B1222]/50 rounded-3xl p-6 mt-8 shadow-sm">
+            <CardHeader className="p-0 pb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-cyan-500 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-cyan-500 animate-pulse" />
+                  SaaS Onboarding & Interactive Tutorials
+                </CardTitle>
+                <CardDescription className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-1">
+                  Replay or launch any of our customized guided tours to explore features, SLAs, and cognitive camera workflows.
+                </CardDescription>
+              </div>
+              <Button 
+                type="button"
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  const tours = ["home", "employee", "admin", "meeting", "ai-assistant", "employee-register-complaint", "employee-track-complaint", "employee-ai-assistant", "employee-camera-scanner", "employee-notifications", "employee-profile", "admin-dashboard-overview", "admin-complaint-management", "admin-reports", "admin-analytics", "admin-user-management"];
+                  tours.forEach(t => localStorage.removeItem("dcms_tour_completed_" + t));
+                  setBookmarks([]);
+                  localStorage.removeItem("dcms_bookmarked_tours");
+                  window.location.reload();
+                }}
+                className="text-[10px] font-bold h-7 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center gap-1 hover:text-red-500 hover:border-red-500 dark:hover:text-red-400 dark:hover:border-red-900 transition-all cursor-pointer rounded-lg"
+              >
+                Reset Walkthrough Progress
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0 space-y-6">
+
+              {/* Learning Progress Section */}
+              {(() => {
+                const allTours = [
+                  "home", "ai-assistant",
+                  ...(dbUser?.role === 'admin' 
+                    ? ["admin", "admin-dashboard-overview", "admin-complaint-management", "admin-reports", "meeting", "admin-user-management"]
+                    : ["employee", "employee-register-complaint", "employee-track-complaint", "employee-camera-scanner", "employee-notifications", "employee-profile"]
+                  )
+                ];
+                const completedCount = allTours.filter(t => localStorage.getItem("dcms_tour_completed_" + t) === "true").length;
+                const totalCount = allTours.length;
+                const progressPercent = Math.round((completedCount / totalCount) * 100) || 0;
+
+                return (
+                  <div className="bg-white dark:bg-[#111A2E]/50 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-800/50 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-3xs">
+                    <div className="flex-1 w-full">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[10.5px] font-extrabold uppercase tracking-widest text-slate-700 dark:text-slate-200">Onboarding Tutorial Progress</span>
+                        <span className="text-[11px] font-black text-cyan-600 dark:text-cyan-400 font-mono">{progressPercent}% Completed</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-550 dark:text-slate-400 font-semibold mt-1.5 block">
+                        {completedCount} of {totalCount} modules completed
+                      </span>
+                    </div>
+                    {progressPercent === 100 ? (
+                      <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-xl border border-emerald-200/50 dark:border-emerald-900/40 shrink-0">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Certified Specialist</span>
+                      </div>
+                    ) : (
+                      <span className="text-[9px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg shrink-0">
+                        Complete all to earn badge
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Bookmarked Tutorials Section */}
+              {(() => {
+                const bookmarkedItems = [
+                  { name: "Global Landing Sandbox Tour", tour: "home", target: "/", desc: "Experience the predictive operations classifier playpen." },
+                  { name: "Cognitive AI Assistant Guide", tour: "ai-assistant", target: "/dashboard/ai-assistant", desc: "Interact with Gemini to auto-draft or search directories." },
+                  { name: "Portal Overview Guide", tour: "employee", target: "/dashboard", desc: "Interactive tour of employee metrics and timelines." },
+                  { name: "File a Workplace Complaint", tour: "employee-register-complaint", target: "/dashboard/register", desc: "A detailed walkthrough of creating incident files step-by-step." },
+                  { name: "Live SLA & Case Tracker", tour: "employee-track-complaint", target: "/dashboard/my-complaints", desc: "Highlighting response queues, SLA timers, and feedback forms." },
+                  { name: "AI Web Camera OCR Scanner", tour: "employee-camera-scanner", target: "/dashboard/register", desc: "How to capture equipment evidence and auto-extract parameters." },
+                  { name: "Alert Center & Broadcasts", tour: "employee-notifications", target: "/dashboard/notifications", desc: "Review real-time ticket state shifts and emergency notices." },
+                  { name: "Personal Profile Settings", tour: "employee-profile", target: "/dashboard", desc: "Customize accounts, review keys, and audit active role levels." },
+                  { name: "Executive Control Room", tour: "admin", target: "/admin", desc: "Overview of administrative controls, KPIs, and dispatch workflows." },
+                  { name: "Executive KPI Indicators", tour: "admin-dashboard-overview", target: "/admin", desc: "Detailed audit of total workloads, bottlenecks, and backlogs." },
+                  { name: "Active Complaint Manager", tour: "admin-complaint-management", target: "/admin/complaints", desc: "Sorting case queues, assigning support agents, and utilizing AI." },
+                  { name: "Compliance Reports & PDFs", tour: "admin-reports", target: "/admin", desc: "Compiling and downloading complete compliance timeline spreadsheets." },
+                  { name: "Notice Broadcaster Center", tour: "meeting", target: "/admin/communication-center", desc: "Drafting company bulletins and auditing real-time read receipts." },
+                  { name: "Staff Account Permissions", tour: "admin-user-management", target: "/admin/management", desc: "Verify secure permissions, roles, and administrative hierarchies." }
+                ].filter(item => bookmarks.includes(item.tour));
+
+                if (bookmarkedItems.length === 0) return null;
+
+                return (
+                  <div className="space-y-3 pb-6 border-b border-slate-200/40 dark:border-slate-800/40">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-900/30 flex items-center gap-1.5 w-fit">
+                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> Bookmarked Tutorials
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {bookmarkedItems.map((item, idx) => {
+                        const comp = localStorage.getItem("dcms_tour_completed_" + item.tour) === "true";
+                        return (
+                          <div
+                            key={idx}
+                            className="p-3.5 bg-white dark:bg-[#111A2E]/50 border border-amber-200/40 dark:border-amber-900/30 rounded-xl transition-all group flex flex-col justify-between relative shadow-2xs"
+                          >
+                            <div>
+                              <div className="flex justify-between items-start gap-2 mb-1.5">
+                                <h5 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                                  {item.name}
+                                </h5>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => toggleBookmark(e, item.tour)}
+                                    className="p-1 hover:bg-slate-50 dark:hover:bg-slate-800 rounded transition-all cursor-pointer"
+                                  >
+                                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                                  </button>
+                                  {comp && <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-normal pr-2 mb-3">
+                                {item.desc}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                localStorage.removeItem("dcms_tour_completed_" + item.tour);
+                                window.dispatchEvent(new CustomEvent("start-product-tour", { detail: { name: item.tour } }));
+                              }}
+                              className="text-[9px] font-black uppercase text-cyan-500 flex items-center gap-1 font-mono hover:text-cyan-600 dark:hover:text-cyan-450 cursor-pointer w-fit"
+                            >
+                              <Play className="w-2.5 h-2.5" /> Launch Guide
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+              
+              {/* Onboarding Overview Section */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#22D3EE] bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-900/30">
+                  🚀 General Platform Setup
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { name: "Global Landing Sandbox Tour", tour: "home", target: "/", desc: "Experience the predictive operations classifier playpen." },
+                    { name: "Cognitive AI Assistant Guide", tour: "ai-assistant", target: "/dashboard/ai-assistant", desc: "Interact with Gemini to auto-draft or search directories." }
+                  ].map((item, idx) => {
+                    const comp = localStorage.getItem("dcms_tour_completed_" + item.tour) === "true";
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3.5 bg-white dark:bg-[#111A2E]/50 border border-slate-200 dark:border-slate-800 rounded-xl transition-all group flex flex-col justify-between relative shadow-2xs"
+                      >
+                        <div>
+                          <div className="flex justify-between items-start gap-2 mb-1.5">
+                            <h5 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                              {item.name}
+                            </h5>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={(e) => toggleBookmark(e, item.tour)}
+                                className="p-1 hover:bg-slate-50 dark:hover:bg-slate-800 rounded transition-all cursor-pointer"
+                              >
+                                <Star className={`w-3.5 h-3.5 ${bookmarks.includes(item.tour) ? 'fill-amber-500 text-amber-500' : 'text-slate-400'}`} />
+                              </button>
+                              {comp && <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-slate-550 dark:text-slate-400 font-medium leading-normal pr-2 mb-3">
+                            {item.desc}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            localStorage.removeItem("dcms_tour_completed_" + item.tour);
+                            window.dispatchEvent(new CustomEvent("start-product-tour", { detail: { name: item.tour } }));
+                          }}
+                          className="text-[9px] font-black uppercase text-cyan-500 flex items-center gap-1 font-mono hover:text-cyan-600 dark:hover:text-cyan-450 cursor-pointer w-fit"
+                        >
+                          <Play className="w-2.5 h-2.5" /> Launch Guide
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Employee Guided Guides */}
+              {(!dbUser || dbUser.role === 'employee' || dbUser.role === 'user') && (
+                <div className="space-y-3">
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8B5CF6] bg-purple-950/40 px-2 py-0.5 rounded border border-purple-900/30">
+                    👤 Employee Operational Walkthroughs
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {[
+                      { name: "Portal Overview Guide", tour: "employee", target: "/dashboard", desc: "Interactive tour of employee metrics and timelines." },
+                      { name: "File a Workplace Complaint", tour: "employee-register-complaint", target: "/dashboard/register", desc: "A detailed walkthrough of creating incident files step-by-step." },
+                      { name: "Live SLA & Case Tracker", tour: "employee-track-complaint", target: "/dashboard/my-complaints", desc: "Highlighting response queues, SLA timers, and feedback forms." },
+                      { name: "AI Web Camera OCR Scanner", tour: "employee-camera-scanner", target: "/dashboard/register", desc: "How to capture equipment evidence and auto-extract parameters." },
+                      { name: "Alert Center & Broadcasts", tour: "employee-notifications", target: "/dashboard/notifications", desc: "Review real-time ticket state shifts and emergency notices." },
+                      { name: "Personal Profile Settings", tour: "employee-profile", target: "/dashboard", desc: "Customize accounts, review keys, and audit active role levels." }
+                    ].map((item, idx) => {
+                      const comp = localStorage.getItem("dcms_tour_completed_" + item.tour) === "true";
+                      return (
+                        <div
+                          key={idx}
+                          className="p-3.5 bg-white dark:bg-[#111A2E]/50 border border-slate-200 dark:border-slate-800 rounded-xl transition-all group flex flex-col justify-between relative shadow-2xs"
+                        >
+                          <div>
+                            <div className="flex justify-between items-start gap-2 mb-1.5">
+                              <h5 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                                {item.name}
+                              </h5>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => toggleBookmark(e, item.tour)}
+                                  className="p-1 hover:bg-slate-50 dark:hover:bg-slate-800 rounded transition-all cursor-pointer"
+                                >
+                                  <Star className={`w-3.5 h-3.5 ${bookmarks.includes(item.tour) ? 'fill-amber-500 text-amber-500' : 'text-slate-400'}`} />
+                                </button>
+                                {comp && <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-slate-550 dark:text-slate-400 font-medium leading-normal pr-2 mb-3">
+                              {item.desc}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              localStorage.removeItem("dcms_tour_completed_" + item.tour);
+                              window.dispatchEvent(new CustomEvent("start-product-tour", { detail: { name: item.tour } }));
+                            }}
+                            className="text-[9px] font-black uppercase text-cyan-500 flex items-center gap-1 font-mono hover:text-cyan-600 dark:hover:text-cyan-450 cursor-pointer w-fit"
+                          >
+                            <Play className="w-2.5 h-2.5" /> Launch Guide
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Admin Operational Guides */}
+              {(!dbUser || dbUser.role === 'admin') && (
+                <div className="space-y-3">
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#F59E0B] bg-amber-955/40 px-2 py-0.5 rounded border border-amber-900/30">
+                    🛡️ HQ Administrator Operational Guides
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {[
+                      { name: "Executive Control Room", tour: "admin", target: "/admin", desc: "Overview of administrative controls, KPIs, and dispatch workflows." },
+                      { name: "Executive KPI Indicators", tour: "admin-dashboard-overview", target: "/admin", desc: "Detailed audit of total workloads, bottlenecks, and backlogs." },
+                      { name: "Active Complaint Manager", tour: "admin-complaint-management", target: "/admin/complaints", desc: "Sorting case queues, assigning support agents, and utilizing AI." },
+                      { name: "Compliance Reports & PDFs", tour: "admin-reports", target: "/admin", desc: "Compiling and downloading complete compliance timeline spreadsheets." },
+                      { name: "Notice Broadcaster Center", tour: "meeting", target: "/admin/communication-center", desc: "Drafting company bulletins and auditing real-time read receipts." },
+                      { name: "Staff Account Permissions", tour: "admin-user-management", target: "/admin/management", desc: "Verify secure permissions, roles, and administrative hierarchies." }
+                    ].map((item, idx) => {
+                      const comp = localStorage.getItem("dcms_tour_completed_" + item.tour) === "true";
+                      return (
+                        <div
+                          key={idx}
+                          className="p-3.5 bg-white dark:bg-[#111A2E]/50 border border-slate-200 dark:border-slate-800 rounded-xl transition-all group flex flex-col justify-between relative shadow-2xs"
+                        >
+                          <div>
+                            <div className="flex justify-between items-start gap-2 mb-1.5">
+                              <h5 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                                {item.name}
+                              </h5>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => toggleBookmark(e, item.tour)}
+                                  className="p-1 hover:bg-slate-50 dark:hover:bg-slate-800 rounded transition-all cursor-pointer"
+                                >
+                                  <Star className={`w-3.5 h-3.5 ${bookmarks.includes(item.tour) ? 'fill-amber-500 text-amber-500' : 'text-slate-400'}`} />
+                                </button>
+                                {comp && <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-slate-550 dark:text-slate-400 font-medium leading-normal pr-2 mb-3">
+                              {item.desc}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              localStorage.removeItem("dcms_tour_completed_" + item.tour);
+                              window.dispatchEvent(new CustomEvent("start-product-tour", { detail: { name: item.tour } }));
+                            }}
+                            className="text-[9px] font-black uppercase text-cyan-500 flex items-center gap-1 font-mono hover:text-cyan-600 dark:hover:text-cyan-450 cursor-pointer w-fit"
+                          >
+                            <Play className="w-2.5 h-2.5" /> Launch Guide
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

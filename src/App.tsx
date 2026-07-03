@@ -5,6 +5,9 @@
 
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import ProductTour from "./components/ProductTour.tsx";
+import AppInstallModal from "./components/AppInstallModal.tsx";
+import OnboardingWelcomeModal from "./components/OnboardingWelcomeModal.tsx";
 import { AuthProvider, useAuth } from "./lib/AuthContext.tsx";
 import Home from "./pages/Home.tsx";
 import AuthPage from "./pages/AuthPage.tsx";
@@ -103,6 +106,9 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ProductTour />
+        <AppInstallModal />
+        <OnboardingWelcomeModal />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth/user" element={<AuthRoute isAdmin={false} />} />
