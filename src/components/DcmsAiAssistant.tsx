@@ -5,9 +5,11 @@ import { supabase } from "../lib/supabase.ts";
 import { 
   MessageSquare, X, Send, Sparkles, RefreshCw, Cpu, Globe, AppWindow, 
   HardDrive, Info, Plus, ChevronRight, AlertTriangle, Check, BookOpen, Settings, User as UserIcon, Bell, Shield, ArrowRight, CornerDownLeft,
-  Paperclip, Mic, MicOff, Trash2, HelpCircle, FileText, ImageIcon, Lightbulb, Pin, DownloadCloud, Edit3, Search, Copy, CheckCircle2, Minus
+  Paperclip, Mic, MicOff, Trash2, HelpCircle, FileText, ImageIcon, Lightbulb, Pin, DownloadCloud, Edit3, Search, Copy, CheckCircle2, Minus,
+  MapPin, Clock, Building, Bot, Camera
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import DcmsCamera from "./DcmsCamera.tsx";
 
 /* ==========================================
    PROMPT SUGGESTIONS (CONTEXTUAL BY ROLE)
@@ -54,6 +56,15 @@ interface ChatMessage {
   suggestedCategory?: string;
   suggestedSeverity?: string;
   quickActions?: string[];
+  suggestedQueries?: string[];
+  physicalLocation?: {
+    requiresPhysical: boolean;
+    department: string;
+    room: string;
+    floor: string;
+    hours: string;
+    instructions: string;
+  };
   file?: {
     name: string;
     type: string;
@@ -343,6 +354,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
 
   // Files attachment local state
   const [attachedFile, setAttachedFile] = useState<{ name: string; type: string; size: number; data: string; extractedText?: string } | null>(null);
+  const [aiCameraActive, setAiCameraActive] = useState(false);
 
   // Dynamic progressive loading messages based on attachment state
   const [loadingText, setLoadingText] = useState("🤖 Understanding your question...");
@@ -802,6 +814,36 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
   const getLocalChatResponse = (text: string, mode: "visitor" | "user" | "admin") => {
     const clean = text.trim().toLowerCase();
 
+    // If it's a full question, a conversational query, or contains spaces indicating multiple words,
+    // we should ALWAYS send it to Gemini for smart Copilot support rather than intercepting it with flat rules!
+    const wordsCount = clean.split(/\s+/).length;
+    if (
+      wordsCount > 3 || 
+      clean.includes("?") || 
+      clean.includes("delay") || 
+      clean.includes("salary") || 
+      clean.includes("error") || 
+      clean.includes("pending") || 
+      clean.includes("why") || 
+      clean.includes("can i") || 
+      clean.includes("how do") || 
+      clean.includes("broken") || 
+      clean.includes("frustrated") || 
+      clean.includes("angry") || 
+      clean.includes("report") || 
+      clean.includes("show") || 
+      clean.includes("generate") || 
+      clean.includes("stats") || 
+      clean.includes("metric") || 
+      clean.includes("list") || 
+      clean.includes("summary") ||
+      clean.includes("wifi") ||
+      clean.includes("printer") ||
+      clean.includes("internet")
+    ) {
+      return null;
+    }
+
     // Greeting
     if (clean === "hi" || clean === "hello" || clean === "hey" || clean === "greetings" || clean === "hola" || clean === "good morning" || clean === "good afternoon" || clean === "good evening") {
       return {
@@ -813,7 +855,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     }
 
     // Register / Submit Ticket
-    if (clean.includes("register") || clean.includes("submit") || clean.includes("file") || clean.includes("create ticket") || clean.includes("new ticket") || clean.includes("report issue") || clean.includes("open ticket") || clean.includes("lodge")) {
+    if (clean === "register" || clean === "submit" || clean === "file" || clean === "create ticket" || clean === "new ticket") {
       return {
         text: "I can help you file a new operational or IT ticket right away! \n\nClick the **Pre-fill & File Ticket Now** button or the **📝 Register Ticket** action below to launch the ticket creation wizard.",
         suggestedCategory: "System Navigation",
@@ -823,7 +865,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     }
 
     // Track / Status
-    if (clean.includes("track") || clean.includes("status") || clean.includes("my ticket") || clean.includes("check ticket") || clean.includes("my complaints") || clean.includes("view complaints") || clean.includes("list my")) {
+    if (clean === "track" || clean === "status" || clean === "my tickets" || clean === "my complaints" || clean === "view complaints") {
       return {
         text: "You can track the live status, assigned department, and SLA counters of all your submitted complaints and requests in real-time.\n\nClick the **📁 View Tickets** action below to navigate to your ticket dashboard.",
         suggestedCategory: "System Navigation",
@@ -833,7 +875,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     }
 
     // Notice / Announcement
-    if (clean.includes("notice") || clean.includes("announcement") || clean.includes("news") || clean.includes("broadcast") || clean.includes("policy") || clean.includes("what's new") || clean.includes("alert")) {
+    if (clean === "notice" || clean === "announcement" || clean === "notices" || clean === "announcements") {
       return {
         text: "Stay up-to-date with company broadcasts, emergency updates, and department operations inside our central Notice Board.\n\nClick the **🔔 System Notices** action below to view active notices.",
         suggestedCategory: "General Query",
@@ -843,7 +885,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     }
 
     // Profile / Settings
-    if (clean.includes("profile") || clean.includes("password") || clean.includes("settings") || clean.includes("my account") || clean.includes("change password") || clean.includes("avatar")) {
+    if (clean === "profile" || clean === "password" || clean === "settings") {
       return {
         text: "You can view your current account details, update your profile picture, change your password, and customize operational preferences on your Account Profile page.\n\nClick below to access your profile settings.",
         suggestedCategory: "System Navigation",
@@ -853,42 +895,12 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     }
 
     // Contact / Support / Help
-    if (clean.includes("help") || clean.includes("support") || clean.includes("contact") || clean.includes("human") || clean.includes("admin") || clean.includes("phone") || clean.includes("email") || clean.includes("faq")) {
+    if (clean === "help" || clean === "support" || clean === "contact") {
       return {
         text: "For platform assistance, our Help Center is available 24/7 with interactive guides and FAQs. If you need direct administrative support, feel free to reach out to our Operations Control Desk at **ops-support@workplacehub.io**.\n\nClick below to open the Help Center.",
         suggestedCategory: "Customer Support",
         suggestedSeverity: "Low",
         quickActions: ["contact_support"]
-      };
-    }
-
-    // Salary query local help if simple
-    if (clean === "salary delayed" || clean === "salary delayed?" || clean === "my salary is delayed") {
-      return {
-        text: "We understand that payroll/salary delays can be frustrating. To address this, please file a ticket under the **Finance & Payroll** category so our payroll administrators can investigate the delay immediately.\n\nClick **📝 Register Ticket** below to start.",
-        suggestedCategory: "Finance & Payroll",
-        suggestedSeverity: "High",
-        quickActions: ["register_ticket"]
-      };
-    }
-
-    // Printer issue
-    if (clean === "printer jammed" || clean === "printer issue" || clean === "printer error") {
-      return {
-        text: "For physical workplace issues like printer jams, toner depletion, or hardware malfunctions, please submit a **Facilities & Infrastructure** support ticket so the office maintenance team can address it.\n\nClick **📝 Register Ticket** below to file.",
-        suggestedCategory: "Facilities & Infrastructure",
-        suggestedSeverity: "Medium",
-        quickActions: ["register_ticket"]
-      };
-    }
-
-    // Slow Wifi
-    if (clean === "slow wifi" || clean === "wifi issue" || clean === "internet is slow") {
-      return {
-        text: "WiFi and network performance issues are handled directly by our **IT & Systems** administration team. Please lodge a support ticket with your building number and floor details so we can optimize your access point.\n\nClick below to lodge an IT ticket.",
-        suggestedCategory: "IT & Systems",
-        suggestedSeverity: "Medium",
-        quickActions: ["register_ticket"]
       };
     }
 
@@ -1068,7 +1080,9 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         timestamp: Date.now(),
         suggestedCategory: cached.suggestedCategory,
         suggestedSeverity: cached.suggestedSeverity,
-        quickActions: cached.quickActions || []
+        quickActions: cached.quickActions || [],
+        suggestedQueries: cached.suggestedQueries || [],
+        physicalLocation: cached.physicalLocation
       };
 
       let reLoadedThreads = [...currentThreads];
@@ -1225,7 +1239,9 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         text: rawResult.text || "I was unable to analyze that request accurately.",
         suggestedCategory: rawResult.suggestedCategory,
         suggestedSeverity: rawResult.suggestedSeverity,
-        quickActions: rawResult.quickActions || []
+        quickActions: rawResult.quickActions || [],
+        suggestedQueries: rawResult.suggestedQueries || [],
+        physicalLocation: rawResult.physicalLocation
       };
       
       const fullText = rawResult.text || "I was unable to analyze that request accurately.";
@@ -1238,7 +1254,9 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         timestamp: Date.now(),
         suggestedCategory: rawResult.suggestedCategory,
         suggestedSeverity: rawResult.suggestedSeverity,
-        quickActions: rawResult.quickActions || []
+        quickActions: rawResult.quickActions || [],
+        suggestedQueries: rawResult.suggestedQueries || [],
+        physicalLocation: rawResult.physicalLocation
       };
 
       // Append empty AI Assistant response to active state
@@ -1572,7 +1590,10 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
   };
 
 
-  const currentSuggestions = dbUser?.role === "admin" ? ADMIN_SUGGESTIONS : USER_SUGGESTIONS;
+  const lastAssistantMsg = [...messages].reverse().find(m => m.sender === "assistant" && m.suggestedQueries && m.suggestedQueries.length > 0);
+  const currentSuggestions = (lastAssistantMsg && lastAssistantMsg.suggestedQueries)
+    ? lastAssistantMsg.suggestedQueries.map(q => ({ label: q, query: q }))
+    : (dbUser?.role === "admin" ? ADMIN_SUGGESTIONS : USER_SUGGESTIONS);
   const grouped = groupThreads(threads);
 
   // ==========================================
@@ -1796,6 +1817,75 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                       })}
                     </div>
                   )}
+
+                  {/* Physical Location Detail Card */}
+                  {!loading && m.sender === "assistant" && m.physicalLocation?.requiresPhysical && (
+                    <div className="mt-4 p-4 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-3">
+                      <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1.5 font-mono">
+                        <MapPin className="w-4 h-4 text-amber-500 shrink-0" />
+                        In-Person Department Visit Required
+                      </span>
+                      
+                      <div className="space-y-2.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                          <div className="p-3 bg-white dark:bg-[#121A2E] rounded-xl border border-slate-100 dark:border-slate-800/80 flex items-start gap-2.5">
+                            <Building className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider font-mono">Department</p>
+                              <p className="font-semibold text-slate-800 dark:text-slate-200">{m.physicalLocation.department}</p>
+                            </div>
+                          </div>
+
+                          <div className="p-3 bg-white dark:bg-[#121A2E] rounded-xl border border-slate-100 dark:border-slate-800/80 flex items-start gap-2.5">
+                            <Pin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider font-mono">Office / Floor</p>
+                              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                                {m.physicalLocation.room}, {m.physicalLocation.floor}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-white dark:bg-[#121A2E] rounded-xl border border-slate-100 dark:border-slate-800/80 flex items-start gap-2.5 text-xs">
+                          <Clock className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider font-mono">Office Hours</p>
+                            <p className="font-semibold text-slate-800 dark:text-slate-200">{m.physicalLocation.hours}</p>
+                          </div>
+                        </div>
+
+                        {m.physicalLocation.instructions && (
+                          <div className="p-3 bg-amber-50/50 dark:bg-amber-950/5 border border-amber-100 dark:border-amber-900/10 rounded-xl text-xs text-amber-850 dark:text-amber-300">
+                            <p className="font-extrabold text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-400 font-mono mb-1">Required Documents / Action</p>
+                            <p className="leading-relaxed font-medium">{m.physicalLocation.instructions}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Smart follow-up suggestions */}
+                  {!loading && m.sender === "assistant" && m.suggestedQueries && m.suggestedQueries.length > 0 && m.id === messages[messages.length - 1]?.id && (
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
+                      <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1 font-mono">
+                        <Lightbulb className="w-3.5 h-3.5 text-amber-500 animate-pulse animate-duration-1000" />
+                        Suggested Next Steps
+                      </span>
+                      <div className="flex flex-col gap-1.5">
+                        {m.suggestedQueries.map((q, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleSendMessage(q)}
+                            className="w-full text-left px-3.5 py-2.5 bg-slate-50 hover:bg-amber-50/50 dark:bg-slate-900/40 dark:hover:bg-amber-950/10 border border-slate-150 dark:border-slate-850 hover:border-amber-200 dark:hover:border-amber-900/30 text-slate-700 dark:text-slate-300 hover:text-amber-700 dark:hover:text-amber-400 font-semibold text-xs rounded-xl transition-all active:scale-99 cursor-pointer flex items-center gap-1.5"
+                          >
+                            <span>💡</span>
+                            <span>{q}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -1903,6 +1993,16 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
               className="w-9 h-9 shrink-0 bg-white dark:bg-[#12192A] hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl flex items-center justify-center cursor-pointer active:scale-95 transition-all shadow-2xs"
             >
               <Paperclip className="w-4 h-4" />
+            </button>
+
+            {/* Smart AI Camera Button */}
+            <button
+              onClick={() => setAiCameraActive(true)}
+              disabled={loading}
+              title="Capture intelligent snapshot using AI Camera"
+              className="w-9 h-9 shrink-0 bg-white dark:bg-[#12192A] hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-blue-550 dark:text-blue-400 hover:text-blue-600 rounded-xl flex items-center justify-center cursor-pointer active:scale-95 transition-all shadow-2xs"
+            >
+              <Camera className="w-4 h-4" />
             </button>
 
             {/* Voice Dictation Speech-to-Text Button */}
@@ -2205,9 +2305,19 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading}
                   title="Attach file upload"
-                  className="w-7.5 h-7.5 shrink-0 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:text-white text-slate-400 rounded-lg flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                  className="w-11 h-11 sm:w-8 sm:h-8 shrink-0 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:text-white text-slate-400 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm"
                 >
-                  <Paperclip className="w-3.5 h-3.5" />
+                  <Paperclip className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                </button>
+
+                {/* Smart AI Camera */}
+                <button
+                  onClick={() => setAiCameraActive(true)}
+                  disabled={loading}
+                  title="Capture live with AI Camera"
+                  className="w-11 h-11 sm:w-8 sm:h-8 shrink-0 bg-slate-850 hover:bg-slate-800 border border-slate-800 text-blue-400 hover:text-white rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm"
+                >
+                  <Camera className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                 </button>
 
                 {/* Voice Typing */}
@@ -2215,13 +2325,13 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                   onClick={handleToggleVoice}
                   disabled={loading}
                   title={isListening ? "Listening..." : "Voice typing"}
-                  className={`w-7.5 h-7.5 shrink-0 border rounded-lg flex items-center justify-center cursor-pointer transition-all active:scale-95 ${
+                  className={`w-11 h-11 sm:w-8 sm:h-8 shrink-0 border rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm ${
                     isListening 
                       ? "bg-red-650 border-red-500 text-white animate-pulse" 
                       : "bg-slate-850 hover:bg-slate-800 border-slate-800 text-slate-400 hover:text-white"
                   }`}
                 >
-                  {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                  {isListening ? <MicOff className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> : <Mic className="w-4 h-4 sm:w-3.5 sm:h-3.5" />}
                 </button>
 
                 <input
@@ -2230,15 +2340,15 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask AI or type support command..."
-                  className="flex-1 bg-[#121A2E] border border-slate-750 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-blue-500 font-semibold leading-normal shadow-inner transition-all"
+                  className="flex-1 bg-[#121A2E] border border-slate-750 rounded-xl px-4 py-3 sm:py-2 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-blue-500 font-semibold leading-normal shadow-inner transition-all h-11 sm:h-8"
                 />
                 
                 <button
                   onClick={() => handleSendMessage(inputMessage)}
                   disabled={loading || (!inputMessage.trim() && !attachedFile)}
-                  className="w-8 h-7.5 bg-gradient-to-r from-blue-605 to-indigo-605 text-white rounded-lg flex items-center justify-center cursor-pointer active:scale-95 transition-all text-xs"
+                  className="w-12 h-11 sm:w-10 sm:h-8 bg-gradient-to-r from-blue-605 to-indigo-605 text-white rounded-xl flex items-center justify-center cursor-pointer active:scale-95 transition-all text-xs shadow-sm"
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                 </button>
               </div>
             </motion.div>
@@ -2305,12 +2415,41 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
           className="w-13 h-13 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-xl hover:shadow-blue-500/20 z-50 border border-blue-400/30 cursor-grab active:cursor-grabbing relative"
           style={{ boxShadow: "0 0 35px rgba(59,130,246,0.35)" }}
         >
-          {isOpen ? <X className="w-5.5 h-5.5 animate-spin-once" /> : <Lightbulb className="w-5.5 h-5.5 text-amber-300 animate-pulse" />}
+          {isOpen ? <X className="w-5.5 h-5.5 animate-spin-once" /> : <Bot className="w-5.5 h-5.5 text-blue-100 animate-pulse" />}
           
           {!isOpen && (
             <span className="absolute top-0 right-0 w-3 h-3 bg-red-400 rounded-full border border-[#F8FAFC] dark:border-[#020617] animate-pulse"></span>
           )}
         </button>
+
+        {aiCameraActive && (
+          <DcmsCamera 
+            onClose={() => setAiCameraActive(false)}
+            onCapturePhotos={(photos) => {
+              const photo = photos[0];
+              if (photo) {
+                setAttachedFile({
+                  name: photo.name,
+                  type: "image/jpeg",
+                  size: photo.size,
+                  data: photo.dataUrl,
+                  extractedText: (photo as any).ocrText || ""
+                });
+                
+                // Set contextual details in input message if predicted
+                const meta = (photo as any).suggestedMeta;
+                if (meta) {
+                  setInputMessage(prev => {
+                    const pre = prev.trim();
+                    const info = `Diagnostic context: ${meta.title} (${meta.category}).`;
+                    return pre ? `${info}\n${pre}` : info;
+                  });
+                }
+              }
+              setAiCameraActive(false);
+            }}
+          />
+        )}
       </div>
   );
 }

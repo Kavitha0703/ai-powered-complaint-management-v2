@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { SupportAttachment, DraftTicket, UserNotification, TicketComment, StatusHistoryEntry } from "../types.ts";
 import { MediaGallery } from "../components/MediaGallery.tsx";
+import DcmsCamera from "../components/DcmsCamera.tsx";
 
 export const CATEGORIES = [
   'IT Support',
@@ -1403,7 +1404,7 @@ export function RegisterTicket() {
 
                     {/* Camera view active switcher */}
                     <div 
-                      onClick={() => { if (!cameraActive) startCamera(); }}
+                      onClick={() => { if (!cameraActive) setCameraActive(true); }}
                       className="border border-slate-200 dark:border-slate-800 p-5 rounded-2xl bg-slate-50/50 dark:bg-[#161F30]/35 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer flex flex-col items-center justify-center text-center transition-all"
                     >
                       <Camera className="w-8 h-8 text-slate-400 stroke-[1.5]" />
@@ -1414,78 +1415,33 @@ export function RegisterTicket() {
 
                   {/* Active Camera Viewfinder module */}
                   {cameraActive && (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="p-4 bg-slate-900 border border-slate-800 rounded-2xl relative overflow-hidden"
-                    >
-                      <h4 className="text-[10px] font-extrabold uppercase font-mono text-cyan-400 tracking-wider mb-2">📹 Systems Camera Viewfinder</h4>
-                      <div className="aspect-video rounded-xl overflow-hidden bg-black border border-slate-800 relative">
-                        <video 
-                          ref={(el) => {
-                            videoRef.current = el;
-                            if (el && streamRef.current && el.srcObject !== streamRef.current) {
-                              el.srcObject = streamRef.current;
-                            }
-                          }} 
-                          autoPlay 
-                          playsInline 
-                          muted 
-                          className={`w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
-                        ></video>
-                      </div>
+                    <DcmsCamera 
+                      onClose={() => setCameraActive(false)}
+                      onCapturePhotos={(photos) => {
+                        setAttachments(prev => [...prev, ...photos]);
+                        setCameraActive(false);
 
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2.5">
-                        <div className="flex items-center gap-2 text-slate-400">
-                          {devices.length > 1 && (
-                            <button 
-                              type="button" 
-                              onClick={toggleCameraDirection}
-                              className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-black dark:text-white p-1.5 px-2.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
-                              title="Reverse Camera"
-                            >
-                              <RefreshCw className="w-3.5 h-3.5" />
-                              <span className="text-[10px] font-bold">Reverse Camera</span>
-                            </button>
-                          )}
+                        // Extract AI Predictions and OCR from captured snapshot to autofill form
+                        const firstPhoto = photos[0];
+                        if (firstPhoto) {
+                          const meta = (firstPhoto as any).suggestedMeta;
+                          if (meta) {
+                            if (meta.title) setTitle(meta.title);
+                            if (meta.category) setType(meta.category);
+                            if (meta.severity) setSeverity(meta.severity as any);
+                          }
                           
-                          {devices.length > 1 && (
-                            <select 
-                              value={deviceId} 
-                              onChange={(e) => switchCamera(e.target.value)}
-                              className="text-[10px] font-bold bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-black dark:text-white rounded px-2 py-1.5 focus:outline-none"
-                            >
-                              {devices.map((d, i) => {
-                                let label = `Camera ${i + 1}`;
-                                const l = d.label.toLowerCase();
-                                if (l) {
-                                  if (l.includes('front') || l.includes('user')) label = 'Front Camera';
-                                  else if (l.includes('back') || l.includes('rear') || l.includes('environment')) {
-                                    if (l.includes('ultra wide')) label = 'Ultra Wide Camera';
-                                    else if (l.includes('telephoto')) label = 'Telephoto Camera';
-                                    else label = 'Rear Camera';
-                                  } else {
-                                    label = d.label;
-                                  }
-                                }
-                                return (
-                                  <option key={d.deviceId} value={d.deviceId}>{label}</option>
-                                );
-                              })}
-                            </select>
-                          )}
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Button type="button" onClick={captureSnapshot} className="bg-cyan-500 hover:bg-cyan-600 text-white font-bold text-[10px] py-1.5 h-7 px-3.5 rounded-lg flex items-center gap-1.5">
-                            Capture Snap
-                          </Button>
-                          <Button type="button" onClick={stopCamera} variant="ghost" className="text-slate-400 hover:text-white text-[10px] py-1.5 h-7 px-2">
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
+                          const ocr = (firstPhoto as any).ocrText;
+                          if (ocr) {
+                            setDesc(prev => {
+                              const base = prev.trim();
+                              const ocrBlock = `\n\n--- [AI Camera OCR Text Extracted] ---\n${ocr}`;
+                              return base ? `${base}${ocrBlock}` : ocrBlock.trim();
+                            });
+                          }
+                        }
+                      }}
+                    />
                   )}
 
                   {/* HIGH-END MULTIMEDIA ATTACHMENTS GALLERY */}

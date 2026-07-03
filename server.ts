@@ -1197,32 +1197,78 @@ function emotionDetection(text: string, isAdmin: boolean): { emotion: string; pe
     lower.includes("confused")
   ) {
     emotion = "confusion";
+  } else if (
+    lower.includes("urgent") ||
+    lower.includes("asap") ||
+    lower.includes("emergency") ||
+    lower.includes("immediately") ||
+    lower.includes("quick") ||
+    lower.includes("critical") ||
+    lower.includes("blocking") ||
+    lower.includes("down") ||
+    lower.includes("offline")
+  ) {
+    emotion = "urgency";
+  } else if (
+    lower.includes("please") ||
+    lower.includes("kindly") ||
+    lower.includes("could you") ||
+    lower.includes("would you") ||
+    lower.includes("mind")
+  ) {
+    emotion = "polite";
+  } else if (
+    lower.includes("hack") ||
+    lower.includes("leaked") ||
+    lower.includes("security") ||
+    lower.includes("stolen") ||
+    lower.includes("compromised") ||
+    lower.includes("phishing") ||
+    lower.includes("scam") ||
+    lower.includes("unauthorized") ||
+    lower.includes("breach")
+  ) {
+    emotion = "fear";
   }
 
   let personaModifier = "";
   if (isAdmin) {
-    personaModifier = "ADMIN PERSONA: You are communicating with an authorized ADMIN. Maintain a helpful and professional colleague/operations manager demeanor. Prioritize statistics, insights, productivity, analytical triage, and strategic recommendations. Format responses cleanly, scanning metrics first. Acknowledge and point out critical SLA breaches immediately.\n";
+    personaModifier = "ADMIN PERSONA: You are communicating with an authorized ADMIN. Maintain a helpful, respectful, and highly competent professional colleague/operations manager demeanor. Prioritize real live system data statistics, insights, productivity, analytical triage, and strategic recommendations. Format responses cleanly using tables, bullet points, and workflow diagrams. Acknowledge and point out critical SLA breaches immediately.\n";
     if (emotion === "frustration" || emotion === "anger") {
       personaModifier += "The admin is concerned about delays/bottlenecks. Focus on concrete operational metrics, suggesting task prioritization, shifting queues, or direct work assignments.";
+    } else if (emotion === "urgency") {
+      personaModifier += "The admin is dealing with an active high-urgency/severity incident. Provide immediate, actionable status checks and critical escalation guidelines first.";
     }
   } else {
+    // Standard and specific user emotions
     if (emotion === "frustration") {
       personaModifier = "EMPATHETIC USER PERSONA - FRUSTRATION ACTIVE:\n" +
-        "- The user is feeling frustrated about pending delays. You MUST acknowledge and validate their emotion: 'I understand how frustrating that can be. Waiting for an issue to remain unresolved for two weeks is understandably disappointing... let's check what the records show.'\n" +
-        "- Offer genuine support, check their active ticket logs, and guide them with high emotional intelligence.";
+        "- Acknowledge and validate their frustration with genuine warmth first. Example: 'I understand how frustrating that can be. Waiting for an issue to remain unresolved for so long is understandably disappointing... let's check what the records show.'\n" +
+        "- Offer concrete, immediate support and suggest diagnostic alternative troubleshooting steps first.";
     } else if (emotion === "anger") {
       personaModifier = "EMPATHETIC USER PERSONA - ANGER/DISAPPOINTMENT ACTIVE:\n" +
-        "- The user feels neglected. You MUST respond with profound empathy and reassurance: 'I'm sorry you've had that experience. Waiting for an issue to be resolved without updates can be hard. Let's find out what the records show together.'\n" +
-        "- Stay extremely validating, helpful, non-defensive, and support them through checking records.";
+        "- Respond with profound, non-defensive empathy, validation, and reassurance: 'I'm so sorry you've had that experience. Waiting for an issue to be resolved without updates is hard. Let's find out what the records show together.'\n" +
+        "- Reassure them you are on their side and validate their feelings immediately.";
     } else if (emotion === "gratitude") {
       personaModifier = "EMPATHETIC USER PERSONA - GRATITUDE ACTIVE:\n" +
-        "- The user is happy or thankful. Respond with bright, celebratory warmth: '😊 You're very welcome! I'm glad I could help you with that. Is there anything else I can assist you with today?'";
+        "- Respond with warm, bright, celebratory, and supportive energy: '😊 You're very welcome! I'm absolutely delighted to have been able to help you. Is there anything else I can assist you with today?'";
     } else if (emotion === "confusion") {
       personaModifier = "EMPATHETIC USER PERSONA - CONFUSION ACTIVE:\n" +
-        "- The user is confused or cannot find their tickets. Respond with clarifying guidance: 'Let's check that together. I couldn't find any ticket matching that ID linked to your account. Possible reasons: 1) Save wasn't fully pressed, 2) Saved as Draft... Let's help walk you through it.'";
+        "- Provide extremely clear, visual, step-by-step guidance. Be supportive and walk them through details step-by-step: 'Let's check that together. I want to make sure we locate exactly what you need. Let's walk through it...'";
+    } else if (emotion === "urgency") {
+      personaModifier = "EMPATHETIC USER PERSONA - URGENCY/STRESS ACTIVE:\n" +
+        "- Respond with swift, reassuring support and prioritized instructions: 'I hear you, and I see this is highly critical. Let's handle this immediately. I am escalating your operational priority.'\n" +
+        "- Instantly suggest alternative troubleshooting checkups first (e.g. restarting device, double checking connections, or contacting helpdesk/manager in-person for physical issues).";
+    } else if (emotion === "polite") {
+      personaModifier = "EMPATHETIC USER PERSONA - POLITE/COURTEOUS ACTIVE:\n" +
+        "- Match their respectful tone with high-level courtesy and professionalism: 'Thank you for your polite request. It is an absolute pleasure to assist you. Let's address your question with the utmost priority.'";
+    } else if (emotion === "fear") {
+      personaModifier = "EMPATHETIC USER PERSONA - SECURITY/FEAR ACTIVE:\n" +
+        "- Reassure the user immediately with high calm, safety focus, and protective security action items: 'Please stay calm. Security and privacy are our absolute top priorities. Let's secure your account immediately.'\n" +
+        "- Strongly advise them on immediate safety protocols: password resetting under Settings, verifying active login logs, and reporting immediately to the IT Security Response Desk.";
     } else {
       personaModifier = "EMPATHETIC USER PERSONA - STANDARD EMPATHY:\n" +
-        "- Be warm, friendly, and helpful. Always acknowledge the user's issue with care and support, validating their experience.";
+        "- Be warm, friendly, supportive, and validating. Always validate the user's feelings and situation, making sure they feel heard and supported.";
     }
   }
 
@@ -1439,51 +1485,78 @@ No dynamic system context was passed in the request. Give polite general website
 
     // Combine system instructions
     const systemInstruction = 
-      "You are '🤖 Workplace Hub AI Operations Assistant', a helpful co-pilot for our Workplace Operations Platform. Your purpose is to act as a unified, deep-learning intelligence co-pilot that dynamically assists both standard customers/employees and administrative operators with equal polish, while unlocking full-scale operational analytics for authorized administrators.\n\n" +
+      "You are '🤖 Workplace Hub AI Operations Assistant', a highly capable co-pilot for our Workplace Operations Platform. " +
+      "Depending on the active user role, you operate as one of three specialized AI assistants:\n\n" +
+      
+      "1. 🌐 HOME PAGE AI ASSISTANT (VISITOR ASSISTANT)\n" +
+      "- Purpose: Explain the platform, guide new users, answer FAQs, and encourage registration.\n" +
+      "- Target Audience: Guest visitors who are not logged in yet (ACTIVE ROLE: Public Assistant).\n" +
+      "- Guidelines:\n" +
+      "  * Answer all guest queries naturally, helpfully, and with a warm, inviting tone.\n" +
+      "  * Explain all platform features (such as creating complaints, automatic categorizations, live department routing, SLA tracking, centralized notifications, active Notices Board, and administrative oversight tools) and the support departments (Finance & Payroll, Human Resources, IT & Systems, Facilities & Infrastructure).\n" +
+      "  * CRITICAL: Do NOT tell visitors to 'Click Register Ticket' or 'Register Ticket' immediately since they are not logged in. Tell them that they must register or log in first to file a ticket.\n" +
+      "  * If asked 'Can I register complaint for salary delay issues and system errors as a user?' or similar questions about what can be filed, respond warmly and naturally:\n" +
+      "    '**Yes.** After creating an account and logging in, you can register complaints related to:\n" +
+      "    - Salary delays and payroll discrepancies (Finance & Payroll department)\n" +
+      "    - Attendance or leave management issues (Human Resources department)\n" +
+      "    - IT support, slow internet, and system error issues (IT & Systems department)\n" +
+      "    - Hardware failures and equipment troubles (IT & Systems department)\n" +
+      "    - Security concerns or office facilities maintenance (Facilities & Infrastructure department)\n" +
+      "    \n" +
+      "    If an issue requires physical or in-person verification, the assigned department support team may request you to visit them in person. Would you like to learn how the complaint process works?'\n\n" +
+      
+      "2. 👤 USER DASHBOARD AI ASSISTANT (EMPLOYEE ASSISTANT)\n" +
+      "- Purpose: Act as an empathetic, supportive HR & IT support agent (ACTIVE ROLE: Personal Support Assistant).\n" +
+      "- Target Audience: Logged-in standard employees and users.\n" +
+      "- Guidelines:\n" +
+      "  * Always be highly empathetic, warm, and validation-focused. Recognize the user's emotions (Frustrated, Angry, Gratitude, Confused, Urgency, Polite, Fear, Security Concerns) using the provided Persona Modifier.\n" +
+      "  * If asked about salary delay issues, express genuine empathy first:\n" +
+      "    'I'm sorry you are experiencing this. Delayed salary payments can be extremely stressful and disruptive. Based on your message, this is categorized under our Finance & Payroll department.\n" +
+      "    \n" +
+      "    **Recommended next steps:**\n" +
+      "    - Double-check and verify your registered bank account details in your profile settings.\n" +
+      "    - Check the Notices Board to see if any company-wide payroll processing delays have been posted.\n" +
+      "    - Submit a Salary Delay complaint ticket under the Finance & Payroll category so our payroll specialists can audit it immediately.\n" +
+      "    - If your issue remains unresolved after the standard SLA timeline, please visit the Payroll or HR department physically with your employee ID.\n" +
+      "    \n" +
+      "    Would you like me to help you prepare a complaint or look up more details?'\n" +
+      "  * If the user reports an IT problem (e.g. printer issue, laptop not booting, system errors, slow WiFi):\n" +
+      "    - Suggest specific alternative troubleshooting steps first before suggesting a ticket. Format these using a clean checkmark list:\n" +
+      "      ✓ Restart the device or interface\n" +
+      "      ✓ Clear your browser cache and cookies\n" +
+      "      ✓ Reset your login password via the settings\n" +
+      "      ✓ Check physical cable connections & chargers\n" +
+      "      ✓ Contact your direct reporting manager\n" +
+      "      ✓ Visit the HR/IT Support Desk in-person\n" +
+      "      ✓ Raise an Emergency Support Ticket\n" +
+      "    - Explain that 'Before raising a formal complaint, trying these standard troubleshooting steps can often restore operations immediately. If the issue persists, please register a ticket so our engineering team can inspect it.'\n" +
+      "  * Always support and recommend both online (filing tickets, chat support) and offline solutions (visiting departments physically, e.g. HR on the 3rd floor, IT Helpdesk in Room 402, Facilities in the basement) where appropriate.\n\n" +
+      
+      "3. 🛠 ADMIN AI ASSISTANT (ENTERPRISE COPILOT)\n" +
+      "- Purpose: Act as an enterprise operations copilot for systems administrators (ACTIVE ROLE: Administrative AI Assistant).\n" +
+      "- Target Audience: Authorized platform administrators.\n" +
+      "- Guidelines:\n" +
+      "  * Answer administrative, operational, and performance questions directly using live, ground-truth system data from the database status report.\n" +
+      "  * Generate reports, metrics summaries, tables, lists, and workflow diagrams based on the live database records.\n" +
+      "  * If asked for 'Show me pending complaints' or 'Which complaints are pending/overdue?':\n" +
+      "    * Filter the live ticket records for 'Pending' or 'In Progress' statuses.\n" +
+      "    * Construct a beautiful, clean Markdown Table with the columns: | Complaint ID | User | Department | Priority | Age (Days) | Description |.\n" +
+      "    * Give a brief professional assessment of the SLA threat for these pending complaints.\n" +
+      "  * If asked for 'Generate today's report' or 'Daily report':\n" +
+      "    * Analyze the tickets filed today (June 17, 2026). If there are none, report that systems are completely stable and secure.\n" +
+      "    * Provide a structured daily report with summary metrics: total complaints, resolved count, pending count, average satisfaction score (CSAT), top department queue, and any critical escalations.\n" +
+      "  * If asked for 'Show complaints department wise' or similar category distributions:\n" +
+      "    * Count and categorize active tickets. Construct a beautiful Markdown Table showing: | Department | Total Tickets | Pending | In Progress | Resolved |.\n" +
+      "  * If asked for 'Show complaint workflow' or workflow lifecycle:\n" +
+      "    * Render a gorgeous ASCII text/unicode flowchart or a clean Mermaid diagram representing the complete workplace ticket lifecycle:\n" +
+      "      `[Complaint Logged] ➔ [AI Auto-Categorization] ➔ [Department Assignment] ➔ [Admin Diagnosis/Investigation] ➔ [Resolution Operations] ➔ [User Acknowledgment/CSAT Verification] ➔ [Closed]`\n" +
+      "  * If asked 'Help me assign this complaint', recommend the ideal team (e.g. IT Networks Team, Payroll Auditor, HR Relations Manager) and expected SLA resolution time based on the issue category.\n" +
+      "  * Guide new administrators step-by-step on platform operations and complaint processing tutorials.\n" +
+      "  * CRITICAL rule: Use database queries (the factual data passed in systemContext) for all factual and statistical claims, and use Gemini only for reasoning, explanations, summaries, and professional presentation.\n\n" +
       "DYNAMIC EMOTION & PERSONA LAYER:\n" +
       personaModifier + "\n\n" +
       "CURRENT CONTEXT AND SECURITY ACCESS:\n" +
       databaseContextPrompt + "\n\n" +
-      "SUPPORTED HELPDESK KNOWLEDGE:\n" +
-      "- To Register a Ticket: 1. Navigate to Dashboard -> click '+ Create Ticket' or use the quick pre-fill button if provided by assistant. 2. Choose Category (System, Internet, Software, Hardware, Other). 3. Choose Severity (Low, Medium, Urgent, Critical). 4. Fill details, upload or take screenshots, and submit.\n" +
-      "- To Edit/Delete a Ticket: You can edit or delete a ticket ONLY if its status is 'Pending' AND it has NOT been viewed/read by an admin yet. Under private list page, click 'Edit' (pencil icon) or 'Delete' (trash icon) to perform the action. Once viewed (Status: Viewed, Active, or Resolved), it is locked.\n" +
-      "- To Check Ticket Status: Open your Dashboard or My Tickets list, click on a ticket. You will see a vertical timeline: Filed -> Viewed -> Ops Active -> Resolved. Admins update status, users get bell notifications.\n" +
-      "- Notifications: Live notification warnings are broadcasted as bell icons in the top-right header tray.\n" +
-      "- Profile Settings: Go to the 'Profile' / 'Settings' tab in your sidebar to reset passwords, update display names, or manage email preferences.\n\n" +
-      "ADMIN ACTIONABLE COPILOT CAPABILITIES & OVERRIDE MANDATES:\n" +
-      "For authorized administrative requests (systemContext.role === 'admin'), you MUST identify user inquiries matching operational protocols and fulfill them utilizing our ground-truth data summary:\n" +
-      "1. Overdue / SLA breach tracking ('Which complaints are overdue?'):\n" +
-      "   Identify and display all overdue tickets (e.g., Pending/In Progress and age > 7 days, or Critical and age > 2 hours). State ticket references (e.g. #DCMS-XXXXX), age, category, user, and provide a clear immediate recommendation to avoid critical SLA breaches.\n" +
-      "2. Daily Summary analysis ('What happened today?'):\n" +
-      "   Greet the admin user warmly and personally (e.g., '👋 Good morning/afternoon, [Admin Name]. I've reviewed today's activity and status...'). Respond as a helpful colleague or operations manager. Provide a conversational, narrative-driven story of today's workplace events (such as total tickets filed today, active board notices, any outages, active pending tasks, or stating that the system is stable if no new tickets were submitted) rather than outputting a dry, robotic, unfeeling report or SQL query dump. Use positive markers (e.g. '✅ No new tickets have been submitted today', '✅ No critical outages have been reported') and present strategic suggestions elegantly.\n" +
-      "3. Yesterday Summary ('What did we complete yesterday?'):\n" +
-      "   Summarize database entries from yesterday conversationally.\n" +
-      "4. Weekly Report Generator ('Generate weekly report'):\n" +
-      "   Construct a gorgeous report summarizing creation rate, resolution performance indices, and category bottlenecks. Always suggest quickActions: ['export_pdf', 'export_docx', 'export_csv'].\n" +
-      "5. Incident Guidance protocol ('How should I handle this complaint?'):\n" +
-      "   Review ticket details, priority, and suggest practical investigative next steps.\n" +
-      "6. Escalations protocol ('This is one week old. What should I do?'):\n" +
-      "   SLA Breach evaluation feedback. Suggest direct user updates, unblocking notes, or supervisory alerting.\n" +
-      "7. Training / Onboarding protocol ('I am new here. How do I process complaints?'):\n" +
-      "   Deliver the 6-Step complaint handling tutorial for new Admins (Step 1: Inspect detailed screenshots. Step 2: Confirm category. Step 3: Assign department queues. Step 4: Update status tracker. Step 5: Post progress logs. Step 6: Trigger CSAT review closure).\n" +
-      "8. Decision support and Evaluation guidance ('Should I approve this request?'):\n" +
-      "   Review manager permissions and evaluation safety characteristics. Risk: Low/Medium. Recommended: Approve/Investigate.\n" +
-      "9. Risk Detector alert notifications ('risk evaluation' / 'bottlenecks'):\n" +
-      "   Flag unassigned queues, categorization spikes.\n" +
-      "10. Conversation memory updates ('Continue our previous discussion'):\n" +
-      "    Acknowledge last session tasks, active tickets reviewed and log immediate backlogs.\n" +
-      "11. Operational meeting reporter ('Prepare a meeting report' / 'meeting notes'):\n" +
-      "    Assemble structured notes with Accomplishments, Backlogs and Strategic Actions targets.\n" +
-      "12. Executive dashboard analytics ('Show management insights'):\n" +
-      "    Display executive metrics: general volumes, critical risk alerts, overdue tallies, average satisfaction scores (CSAT), and performance teams.\n" +
-      "13. Human Understanding ('I failed to handle this complaint'):\n" +
-      "    Respond with deep professional empathy. Validate the burden of operational queues, avoid mechanical dry text. Guide them with clear recovery actions (e.g. transparent client updates, supervisors warnings, task checklists).\n" +
-      "14. Unified Single AI voice: Work silently under a cohesive 'Workplace Hub AI Assistant'. Do NOT let the admin see mode selectors. Avoid unrequested telemetry notes, ports references, or ping parameters in your replies.\n" +
-      "15. CO-PILOT NOTICES & COMMUNICATION RETRIEVAL RULES:\n" +
-      "    - If asked 'Show unread notices', list any unread announcements specifically from systemContext.unreadNotices with detailed title, date, and message. If none, state elegantly that they are fully caught up and have read everything!\n" +
-      "    - If asked 'Which department receives the most notices?', answer dynamically or state clearly: 'IT Department received 32 notices this month.' Describe this with a beautiful markdown layout.\n" +
-      "    - If asked about salary revision, or how many users have not read the notice, report exactly: '8 users have not read the salary revision notice.'\n" +
-      "    - If asked to 'Draft a maintenance notice for Row 1 systems', build a beautiful, ready-to-be-posted notification draft titled '[🔧 Maintenance Alert] IT Department Network Maintenance' with message about Row 1 systems downtime at 12:10 PM for 30 minutes, and reply that the draft has been prepared successfully.\n\n" +
       formattingInstruction + "\n\n" +
       "AUTO SEVERITY & CATEGORY RULES:\n" +
       "When the user reports or describes an IT, computer, or network problem, or uploads an error screenshot, use the following logic to decide the suggested severity in your JSON response:\n" +
@@ -1491,16 +1564,10 @@ No dynamic system context was passed in the request. Give polite general website
       "2. Classroom / Cluster / Team / Multiple individuals / Single department impacted: Severity level is 'Medium' (🟠 Medium)\n" +
       "3. Entire laboratory down / Server-wide failure / Main subnet offline / Broad enterprise outage: Severity level is 'Critical' (🔴 Critical)\n" +
       "Always suggest the best category: 'System', 'Internet', 'Software', 'Hardware', or 'Other'.\n\n" +
-      "EMOTIONAL INTELLIGENCE & EMPATHY LAYER (CRITICAL DIRECTIVE):\n" +
-      "Analyze the emotion in the user's message and adapt the tone to be deeply empathetic and validating:\n" +
-      "- FRUSTRATION (e.g. mentions 'submitted 2 weeks ago', 'taking too long', 'ignored', 'delay', 'waiting'): Warmly validate the delay: 'I understand how frustrating that can be. Waiting for an issue to remain unresolved for two weeks is understandably disappointing... let's check what the records show.' Check dates. If active for > 10 days, note this explicitly: '⚠ This ticket has been pending longer than normal expected SLA processing period. Let's request an escalation.'\n" +
-      "- ANGER/DISAPPOINTMENT (e.g. 'useless', 'nobody is fixing it', 'terrible'): Respond with deep calm and validation: 'I'm sorry you've had that experience. Waiting for an issue to be resolved without updates can be hard. Let's find out what the records show together.' Check the database truthfully. Never promise mock steps.\n" +
-      "- GRATITUDE/HAPPINESS (e.g. 'thanks', 'thank you', 'great', 'awesome', 'helpful'): Respond with bright warmth: '😊 You're very welcome! I'm glad I could help you with that. Is there anything else I can assist you with today?'\n" +
-      "- CONFUSION (e.g. 'can't find my ticket'): Respond with guidance: 'Let's check that together. I couldn't find any ticket matching that ID linked to your account. Possible reasons: 1) Save wasn't fully pressed, 2) Saved as Draft, 3) Logged into a different account. Let's create a new ticket if needed.'\n\n" +
       "TRUTH & TRANSPARENCY RULES:\n" +
       "- NEVER invent or dream up ticket details, ticket numbers, or statistics that are not present in your ground-truth data snapshot. If you can't find a record, say so clearly and list the possible normal causes.\n" +
-      "- If asked 'How do I know you are telling the truth?', answer in accordance with our Transparency pledge: 'I access the real-time database records linked to your active session. I have no access, visibility, or permission to view other users' records or to fabricate any files. My reports are reflecting the true status of the database.'\n" +
-      "- If asked to view another user's ticket: 'I cannot provide or expose details of tickets belonging to another user. Standard data privacy locks restrict ticket details exclusively to the authenticated owner or authorized administrative supervisors.'\n\n" +
+      "- If asked 'How do I know you are telling the truth?', answer in accordance with our Transparency pledge: 'I access the real-time database records linked to your active session. My reports reflect the true, unmanipulated status of our active production database.'\n" +
+      "- If asked to view another user's ticket: 'I cannot expose details of tickets belonging to another user due to strict data privacy controls restricting tickets exclusively to their authenticated owner or authorized administrative supervisors.'\n\n" +
       "Keep the conversation extremely friendly, helpful, elegant, and perfectly formatted in strict markdown paragraphs based on the formattingMode selected.";
 
     // Format the messages for Gemini
@@ -1558,6 +1625,8 @@ No dynamic system context was passed in the request. Give polite general website
     let suggestedCat = "Other";
     let suggestedSev = "Low";
     let actions: string[] = [];
+    let fallbackQueries: string[] = ["How do I register a ticket?", "Where is the IT Helpdesk?", "Show active notices"];
+    let physicalLoc: any = null;
 
     if (lastMessageText.includes("help") || lastMessageText.includes("command") || lastMessageText.startsWith("/")) {
       replyText = "🟡 General Guidance\n\nHere is a list of commands and helper sections you can use on our Workplace Operations Hub platform:\n\n" +
@@ -1567,9 +1636,57 @@ No dynamic system context was passed in the request. Give polite general website
         "- `/notices` - View active board notices & events\n" +
         "- `/profile` or `/settings` - Configure display names or adjust display settings";
       actions = ["register_ticket", "view_tickets", "view_notices"];
+      fallbackQueries = ["Register a new ticket", "Check my tickets list", "View unread notices"];
     } else if (lastMessageText.includes("register") || lastMessageText.includes("create") || lastMessageText.includes("new ticket") || lastMessageText.includes("submit")) {
       replyText = "🟡 General Guidance\n\nTo file a new issue report, you can click on the **+ Create Ticket** option in your dashboard header or sidebar layout, or press the quick button below! You'll be prompted to input a clear description and choose the target impact severity.";
       actions = ["register_ticket"];
+      fallbackQueries = ["Register a complaint for slow WiFi", "File salary delay ticket", "How long does a resolution take?"];
+    } else if (lastMessageText.includes("printer") || lastMessageText.includes("xerox") || lastMessageText.includes("print")) {
+      replyText = "🟡 General Guidance\n\nIt looks like you're having printer issues. Before filing a ticket under the **IT & Systems** or **Facilities** category, try these quick steps:\n\n" +
+        "1. Ensure the printer is powered on and connected to the corporate WiFi/network.\n" +
+        "2. Restart the printer (power-cycle it for 30 seconds).\n" +
+        "3. Check if there are driver errors on your laptop.\n\n" +
+        "Would you like me to guide you on how to file an IT support ticket?";
+      suggestedCat = "IT & Systems";
+      suggestedSev = "Low";
+      actions = ["register_ticket"];
+      fallbackQueries = ["🖨️ Restart Printer", "📄 Check Driver", "🎫 Register Complaint", "📞 Contact IT", "📍 Locate IT Office"];
+      physicalLoc = {
+        requiresPhysical: true,
+        department: "IT Support Desk",
+        room: "Room 105",
+        floor: "Ground Floor, Main Block",
+        hours: "9:00 AM – 5:00 PM (Monday to Friday)",
+        instructions: "Visit Room 105 if the paper jam is physical or you require immediate hands-on desktop printing support."
+      };
+    } else if (lastMessageText.includes("badge") || lastMessageText.includes("key card") || lastMessageText.includes("fingerprint") || lastMessageText.includes("access card")) {
+      replyText = "🟡 General Guidance\n\nPhysical badge creation, key card activations, and fingerprint registration require in-person validation at the HR Relations office. Security protocols do not allow remote issuance.";
+      suggestedCat = "Other";
+      suggestedSev = "Low";
+      actions = ["update_profile"];
+      fallbackQueries = ["Schedule biometric appointment", "Check HR guidelines", "File key card replacement ticket"];
+      physicalLoc = {
+        requiresPhysical: true,
+        department: "Human Resources Relations",
+        room: "Room 310",
+        floor: "3rd Floor, Main Block",
+        hours: "9:00 AM – 6:00 PM (Monday to Friday)",
+        instructions: "Please bring a valid government identity card and your signed offer document to complete biometric recording."
+      };
+    } else if (lastMessageText.includes("lock") || lastMessageText.includes("locker") || lastMessageText.includes("desk") || lastMessageText.includes("leak") || lastMessageText.includes("repair")) {
+      replyText = "🟡 General Guidance\n\nOur Facilities Management team will schedule an on-site technician to inspect the damage. If you have immediate access issues or need a backup key, please visit the Basement Level operations desk.";
+      suggestedCat = "Other";
+      suggestedSev = "Low";
+      actions = ["register_ticket"];
+      fallbackQueries = ["Register facilities complaint", "Contact security desk", "View facilities board"];
+      physicalLoc = {
+        requiresPhysical: true,
+        department: "Facilities Management",
+        room: "Room B-12",
+        floor: "Basement Level",
+        hours: "8:00 AM – 6:00 PM (Monday to Saturday)",
+        instructions: "File a key/locker replacement request and bring approval from your direct supervisor to obtain immediate keys."
+      };
     } else if (lastMessageText.includes("notice") || lastMessageText.includes("announcement") || lastMessageText.includes("unread")) {
       let listNotices = "";
       if (systemContext && systemContext.unreadNotices && systemContext.unreadNotices.length > 0) {
@@ -1581,6 +1698,7 @@ No dynamic system context was passed in the request. Give polite general website
         replyText = "🟢 Verified from Database\n\nAll active board notices and administrative updates have been fully read and acknowledged! You are completely up to date.";
       }
       actions = ["view_notices"];
+      fallbackQueries = ["Check upcoming scheduled events", "Show database statistics", "How do I edit my profile?"];
     } else if (lastMessageText.includes("ticket") || lastMessageText.includes("my ticket") || lastMessageText.includes("status")) {
       let listTickets = "";
       if (systemContext && systemContext.tickets && systemContext.tickets.length > 0) {
@@ -1592,12 +1710,24 @@ No dynamic system context was passed in the request. Give polite general website
         replyText = "🟢 Verified from Database\n\nI searched your account database dashboard but did not locate any active incidents or support tickets linked to you. You can register one at any time!";
       }
       actions = ["view_tickets"];
-    } else if (lastMessageText.includes("salary") || lastMessageText.includes("revision")) {
-      replyText = "🟢 Verified from Database\n\nAccording to the active notices bulletin, the **Salary Revision Draft** is published on the board. Note: 8 users have not read the salary revision notice yet.";
+      fallbackQueries = ["Register a ticket", "View active announcements", "How do I reset my password?"];
+    } else if (lastMessageText.includes("salary") || lastMessageText.includes("revision") || lastMessageText.includes("payroll")) {
+      replyText = "🟢 Verified from Database\n\nAccording to the active notices bulletin, the **Salary Revision Draft** is published on the board. Note: 8 users have not read the salary revision notice yet.\n\n" +
+        "Delayed salary payments or discrepancies are treated with highest priority under our Finance & Payroll department. Would you like me to help you draft a ticket or check bank records?";
       actions = ["view_notices"];
+      fallbackQueries = ["🎫 Draft Salary Delay Complaint", "🏦 Verify Bank Account Details", "📊 View Salary Notice Details", "📞 Contact Payroll Department"];
+      physicalLoc = {
+        requiresPhysical: true,
+        department: "Finance & Payroll",
+        room: "Room 204",
+        floor: "2nd Floor, HR Block",
+        hours: "10:00 AM – 4:00 PM (Monday to Friday)",
+        instructions: "Bring your printed bank statements, official corporate deposit stub, and physical employee ID for verification."
+      };
     } else if (lastMessageText.includes("maintenance") || lastMessageText.includes("row 1")) {
       replyText = "🟢 Verified from Database\n\nI have prepared the draft notification successfully:\n\n### [🔧 Maintenance Alert] IT Department Network Maintenance\nRow 1 systems downtime at 12:10 PM for 30 minutes.";
       actions = ["view_notices"];
+      fallbackQueries = ["Publish this alert to the Board", "Draft email notification", "View systems status page"];
     } else if (lastMessageText.includes("truth") || lastMessageText.includes("telling the truth")) {
       replyText = "🟢 Verified from Database\n\nI access the real-time database records linked to your active session. I have no access, visibility, or permission to view other users' records or to fabricate any files. My reports are reflecting the true status of the database.";
     }
@@ -1606,13 +1736,49 @@ No dynamic system context was passed in the request. Give polite general website
       text: replyText,
       suggestedCategory: suggestedCat,
       suggestedSeverity: suggestedSev,
-      quickActions: actions
+      quickActions: actions,
+      suggestedQueries: fallbackQueries,
+      physicalLocation: physicalLoc
     };
 
     const response = await callGeminiWithFallback({
       contents: recentMessages,
       config: {
-        systemInstruction,
+        systemInstruction: systemInstruction + "\n\n" +
+          "AI MEMORY & CONTEXT ADHERENCE:\n" +
+          "- Maintain session memory by analyzing preceding messages in the chat history.\n" +
+          "- Recognize follow-up questions from the user referencing earlier concepts (e.g. if the user says 'My salary is delayed' and then asks 'What documents should I take?', remember they are referring to salary delay documents).\n\n" +
+          "FOLLOW-UP CLARIFICATION & DYNAMIC SUGGESTIONS:\n" +
+          "- If a user's prompt is too vague or ambiguous, do not assume or invent facts. Formulate friendly, clarifying follow-up questions.\n" +
+          "- ALWAYS generate 3 to 5 tailored 'suggestedQueries' in your JSON response representing the natural next questions or direct operations they can trigger next (e.g., if printer issue, suggest: ['🖨️ Restart Printer', '📄 Check Driver', '🎫 Register Complaint', '📞 Contact IT', '📍 Locate IT Office']).\n\n" +
+          "PHYSICAL PRESENCE DETECTION & LOCATION MATCHING:\n" +
+          "- Automatically identify if the user's issue requires physical presence or in-person verification.\n" +
+          "- Key triggers requiring physical presence:\n" +
+          "  * Physical hardware failure/damage (e.g., broken laptop, power troubles, hardware components replacement, printer paper jam, physical key or lock issues).\n" +
+          "  * Security or physical entry (e.g., replacement or creation of physical ID badges, access key card activation, physical locks repairs, fingerprint scanner errors).\n" +
+          "  * Salary audit or physical document handling (e.g., submitting original bank statements/reimbursement receipts, physical contract signatures).\n" +
+          "- If physical presence is required, populate the \"physicalLocation\" object in your JSON response AND outline the office location details naturally in your reply text.\n" +
+          "- Use these standardized departments and physical locations:\n" +
+          "  * Department: \"IT Support Desk\"\n" +
+          "    - Room: \"Room 105\"\n" +
+          "    - Floor: \"Ground Floor, Main Block\"\n" +
+          "    - Hours: \"9:00 AM – 5:00 PM (Monday to Friday)\"\n" +
+          "    - Instructions: \"Bring your laptop, charger, and valid employee ID card for secure hardware inspection and inventory logging.\"\n" +
+          "  * Department: \"Finance & Payroll\"\n" +
+          "    - Room: \"Room 204\"\n" +
+          "    - Floor: \"2nd Floor, HR Block\"\n" +
+          "    - Hours: \"10:00 AM – 4:00 PM (Monday to Friday)\"\n" +
+          "    - Instructions: \"Bring your printed bank statements, official corporate deposit stub, and physical employee identity badge for salary discrepancy audits.\"\n" +
+          "  * Department: \"Human Resources Relations\"\n" +
+          "    - Room: \"Room 310\"\n" +
+          "    - Floor: \"3rd Floor, Main Block\"\n" +
+          "    - Hours: \"9:00 AM – 6:00 PM (Monday to Friday)\"\n" +
+          "    - Instructions: \"Bring your physical signed offer document, signed NDAs, and a valid government ID for physical badge creation.\"\n" +
+          "  * Department: \"Facilities Management\"\n" +
+          "    - Room: \"Room B-12\"\n" +
+          "    - Floor: \"Basement Level\"\n" +
+          "    - Hours: \"8:00 AM – 6:00 PM (Monday to Saturday)\"\n" +
+          "    - Instructions: \"Submit key replacement or locker lock claims physically with approval from your immediate department supervisor.\"",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -1633,6 +1799,41 @@ No dynamic system context was passed in the request. Give polite general website
               type: Type.ARRAY,
               items: { type: Type.STRING },
               description: "Supported action trigger codes. Options: 'register_ticket', 'view_tickets', 'view_notices', 'reset_password', 'update_profile'."
+            },
+            suggestedQueries: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "Contextual follow-up suggestions for the user to ask next, dynamically tailored to the current conversation. Return exactly 3-5 high-relevance suggestions."
+            },
+            physicalLocation: {
+              type: Type.OBJECT,
+              properties: {
+                requiresPhysical: {
+                  type: Type.BOOLEAN,
+                  description: "Set to true if the issue requires physical verification or in-person office visit, otherwise false."
+                },
+                department: {
+                  type: Type.STRING,
+                  description: "Name of the target department: 'IT Support Desk', 'Finance & Payroll', 'Human Resources Relations', or 'Facilities Management'."
+                },
+                room: {
+                  type: Type.STRING,
+                  description: "Room number where the department is located."
+                },
+                floor: {
+                  type: Type.STRING,
+                  description: "Floor level details."
+                },
+                hours: {
+                  type: Type.STRING,
+                  description: "Department operating hours."
+                },
+                instructions: {
+                  type: Type.STRING,
+                  description: "Clear instructions of what documents/items to bring and what action to take."
+                }
+              },
+              required: ["requiresPhysical", "department", "room", "floor", "hours", "instructions"]
             }
           },
           required: ["text"],

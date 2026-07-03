@@ -153,13 +153,13 @@ export default function Home() {
     }
   };
 
+  // Manage request cancellation
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   if (user && dbUser) {
     if (dbUser.role === 'admin') return <Navigate to="/admin" />;
     return <Navigate to="/dashboard" />;
   }
-
-  // Manage request cancellation
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   const getLocalAnalysis = (query: string) => {
     // Helper to auto-correct some common typos

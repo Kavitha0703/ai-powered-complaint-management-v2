@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Input } from "../../components/ui/input.tsx";
 import { MediaGallery } from "./MediaGallery.tsx";
 import { SupportAttachment } from "../types";
+import DcmsCamera from "./DcmsCamera.tsx";
 import { 
   Sparkles, ClipboardList, CheckCircle, Trash2, ArrowLeft, Save, 
   MessageSquare, UserPlus, Smile, Reply, Edit2, CornerDownRight, 
@@ -2025,87 +2026,13 @@ export function RemediationWorkspace({
       )}
 
       {liveCameraActive && (
-        <div className="fixed top-0 left-0 right-0 bottom-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#0b1329] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 w-full max-w-lg shadow-2xl flex flex-col gap-4 text-slate-800 dark:text-slate-100">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">📹</span>
-                <h3 className="text-sm font-extrabold uppercase font-mono tracking-wide text-indigo-600 dark:text-indigo-400">Live Camera Viewfinder</h3>
-              </div>
-              <Button 
-                onClick={stopLiveCamera} 
-                variant="ghost" 
-                className="h-7 w-7 p-0 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Video Feed viewport */}
-            <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-inner">
-              <video 
-                ref={videoRef}
-                autoPlay 
-                playsInline 
-                muted
-                className={`w-full h-full object-cover ${cameraFacingMode === "user" ? "scale-x-[-1]" : ""}`}
-              />
-              <div className="absolute top-3 left-3 bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-md text-[9px] font-black uppercase font-mono tracking-widest text-cyan-400 select-none flex items-center gap-1.5 border border-cyan-400/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                Live Feed
-              </div>
-            </div>
-
-            {/* Control HUD row */}
-            <div className="flex flex-col gap-3">
-              {/* Device Selector drop-down if multiple cameras are available */}
-              {cameraDevices.length > 0 && (
-                <div className="flex flex-col gap-1 text-left">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Video Source</label>
-                  <select 
-                    value={selectedCameraId}
-                    onChange={(e) => switchLiveCamera(e.target.value)}
-                    className="w-full h-9 bg-slate-50 dark:bg-[#111A2E] text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800/80 rounded-xl px-2.5 text-xs outline-none focus:border-indigo-500 font-medium"
-                  >
-                    {cameraDevices.map((d, i) => {
-                      let label = d.label || `Camera ${i + 1}`;
-                      const l = label.toLowerCase();
-                      if (l.includes('front') || l.includes('user')) label = 'Front Camera 🤳';
-                      else if (l.includes('back') || l.includes('environment')) {
-                        if (l.includes('ultra wide')) label = 'Rear Ultra Wide Camera 📸';
-                        else if (l.includes('telephoto')) label = 'Rear Telephoto Camera 📸';
-                        else label = 'Rear Camera 📸';
-                      }
-                      return (
-                        <option key={d.deviceId || i} value={d.deviceId}>
-                          {label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div className="flex items-center justify-between gap-3 pt-2">
-                <Button 
-                  onClick={toggleLiveCameraDirection}
-                  variant="outline"
-                  className="flex-1 h-10 text-xs font-bold border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl flex items-center justify-center gap-2 cursor-pointer bg-white dark:bg-slate-800"
-                >
-                  🔄 Toggle Camera
-                </Button>
-
-                <Button 
-                  onClick={captureLiveSnapshot}
-                  className="flex-1 h-10 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md border-none"
-                >
-                  📸 Capture Snapshot
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DcmsCamera 
+          onClose={() => setLiveCameraActive(false)}
+          onCapturePhotos={(photos) => {
+            setProofAttachments(prev => [...prev, ...photos]);
+            setLiveCameraActive(false);
+          }}
+        />
       )}
     </div>
   );

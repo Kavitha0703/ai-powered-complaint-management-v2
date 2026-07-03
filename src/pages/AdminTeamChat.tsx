@@ -14,9 +14,11 @@ import {
   Trash2, Search, Bell, Sparkles, Check, CheckCheck, CornerDownRight, X, Phone, Video,
   Pin, MoreVertical, Plus, Trash, Edit, Shield, ArrowRight, Volume2, ShieldAlert,
   Archive, FileText, CheckCircle2, Play, Pause, Mic, Square, Trash2 as TrashIcon, RotateCcw,
-  VolumeX, Menu, ChevronRight, ChevronLeft, PhoneOff, VideoOff, Monitor, Settings as SettingsIcon, Link2, Activity, CheckSquare, XCircle, ChevronDown, Minimize2, MicOff
+  VolumeX, Menu, ChevronRight, ChevronLeft, PhoneOff, VideoOff, Monitor, Settings as SettingsIcon, Link2, Activity, CheckSquare, XCircle, ChevronDown, Minimize2, MicOff,
+  Camera
 } from "lucide-react";
 import { AudioVisualizer } from "../components/AudioVisualizer";
+import DcmsCamera from "../components/DcmsCamera.tsx";
 
 interface ChatRoom {
   id: string;
@@ -109,6 +111,7 @@ export default function AdminTeamChat() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editInput, setEditInput] = useState<string>("");
   const [chatFiles, setChatFiles] = useState<Array<{ name: string; url: string; type: string }>>([]);
+  const [chatCameraActive, setChatCameraActive] = useState<boolean>(false);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   // Mention Suggestions popup state
@@ -3111,6 +3114,16 @@ export default function AdminTeamChat() {
                             <Paperclip className="w-4 h-4" />
                           </button>
 
+                          {/* Smart AI Camera */}
+                          <button
+                            type="button"
+                            onClick={() => setChatCameraActive(true)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer transition-all shrink-0 border-none bg-transparent"
+                            title="Take live snapshot with AI Camera"
+                          >
+                            <Camera className="w-4 h-4" />
+                          </button>
+
                           {/* Smiley Emoji helper */}
                           <button
                             type="button"
@@ -3847,6 +3860,25 @@ export default function AdminTeamChat() {
             )}
           </div>
         </div>
+      )}
+
+      {chatCameraActive && (
+        <DcmsCamera 
+          onClose={() => setChatCameraActive(false)}
+          onCapturePhotos={(photos) => {
+            photos.forEach((photo) => {
+              setChatFiles((prev) => [
+                ...prev,
+                {
+                  name: photo.name,
+                  url: photo.dataUrl,
+                  type: "image"
+                }
+              ]);
+            });
+            setChatCameraActive(false);
+          }}
+        />
       )}
 
     </div>
