@@ -4,6 +4,7 @@ import { Sparkles, HelpCircle, Cpu, ShieldCheck } from "lucide-react";
 import { useAuth } from "../lib/AuthContext.tsx";
 
 export default function AiAssistantPage() {
+    
   const { dbUser } = useAuth();
   const isAdmin = dbUser?.role === "admin";
 
@@ -29,7 +30,7 @@ export default function AiAssistantPage() {
         <div className="mt-4 md:mt-0 flex gap-2.5">
           <div className="px-4 py-2 bg-slate-105 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-xl flex items-center gap-2">
             <Cpu className="w-4 h-4 text-blue-500" />
-            <span className="text-[10px] font-mono font-bold text-slate-550 dark:text-slate-400">Gemini LLM Activated</span>
+            <span className="text-[10px] font-mono font-bold text-slate-550 dark:text-slate-400">{"Gemini LLM Activated"}</span>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "motion/react";
 
 // Duration Display Component
 export function CallDurationDisplay() {
+    
   const { durationRef } = useMeeting();
   const [seconds, setSeconds] = useState(durationRef.current);
 
@@ -29,6 +30,7 @@ export function CallDurationDisplay() {
 
 // Real-time Canvas-based Voice Wave Visualizer
 export function VoiceCanvasVisualizer({ volume, isSpeaking, color = "#10b981" }: { volume: number; isSpeaking: boolean; color?: string }) {
+    
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
@@ -147,6 +149,7 @@ export function VoiceCanvasVisualizer({ volume, isSpeaking, color = "#10b981" }:
 }
 
 export default function MeetingOverlay() {
+    
   const { 
     activeCall, setActiveCall, endHuddleCall, 
     localCamStream, screenStream, audioLevel, 
@@ -454,9 +457,9 @@ export default function MeetingOverlay() {
           {/* Decorative ambient background */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-32 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
           
-          <h2 className="text-xl lg:text-2xl font-bold text-white text-center mb-1 tracking-tight">Ready to join your team?</h2>
+          <h2 className="text-xl lg:text-2xl font-bold text-white text-center mb-1 tracking-tight">{"Ready to join your team?"}</h2>
           <p className="text-slate-400 text-sm text-center mb-8">
-            Incident Bridge #{activeCall.roomId} &bull; {activeCall.ticketTitle}
+            {"Incident Bridge #"}{activeCall.roomId} {"&bull;"}{activeCall.ticketTitle}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-8">
@@ -467,18 +470,16 @@ export default function MeetingOverlay() {
                   <div className="absolute inset-0 bg-gradient-to-tr from-[#111528] to-[#1a2342] animate-pulse flex flex-col items-center justify-center">
                     <span className="text-5xl filter drop-shadow-md mb-2">👩‍💼</span>
                     <span className="text-indigo-400 text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 px-2 py-1 rounded-md border border-indigo-500/20">
-                      Local Cam Loopback
-                    </span>
+                      {"Local Cam Loopback"}</span>
                   </div>
                   <div className="absolute bottom-3 left-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] uppercase font-bold px-2 py-0.5 rounded flex items-center gap-1.5 backdrop-blur-sm">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    Camera Ready
-                  </div>
+                    {"Camera Ready"}</div>
                 </>
               ) : (
                 <div className="text-center p-6 flex flex-col items-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-slate-800/80 flex items-center justify-center text-2xl shadow">🎙️</div>
-                  <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Voice Only Mode</span>
+                  <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">{"Voice Only Mode"}</span>
                 </div>
               )}
               {/* Micro level bar */}
@@ -490,31 +491,30 @@ export default function MeetingOverlay() {
             {/* Device settings list */}
             <div className="flex flex-col justify-center space-y-4 bg-[#161D30]/50 p-5 rounded-2xl border border-slate-850">
               <div className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800 pb-2 mb-1">
-                Security &amp; Device Status
-              </div>
+                {"Security &amp; Device Status"}</div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Microphone</span>
+                <span className="text-slate-400">{"Microphone"}</span>
                 {micPermission === "granted" ? (
-                  <span className="text-emerald-400 font-bold flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Granted</span>
+                  <span className="text-emerald-400 font-bold flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {"Granted"}</span>
                 ) : (
-                  <span className="text-amber-400 font-bold flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Pending Approval</span>
+                  <span className="text-amber-400 font-bold flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> {"Pending Approval"}</span>
                 )}
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Camera</span>
+                <span className="text-slate-400">{"Camera"}</span>
                 {activeCall.type === "video" ? (
                   camPermission === "granted" ? (
-                    <span className="text-emerald-400 font-bold flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Granted</span>
+                    <span className="text-emerald-400 font-bold flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {"Granted"}</span>
                   ) : (
-                    <span className="text-amber-400 font-bold flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Pending Approval</span>
+                    <span className="text-amber-400 font-bold flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> {"Pending Approval"}</span>
                   )
                 ) : (
-                  <span className="text-slate-500 italic">Muted</span>
+                  <span className="text-slate-500 italic">{"Muted"}</span>
                 )}
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">VoIP Stream</span>
-                <span className="text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded">AES-256 Encrypted</span>
+                <span className="text-slate-400">{"VoIP Stream"}</span>
+                <span className="text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded">{"AES-256 Encrypted"}</span>
               </div>
             </div>
           </div>
@@ -537,14 +537,12 @@ export default function MeetingOverlay() {
                 }, 100);
               }}
             >
-              Join Meeting
-            </button>
+              {"Join Meeting"}</button>
             <button 
               className="bg-slate-800 hover:bg-slate-700 h-12 text-slate-300 rounded-xl text-sm font-bold px-6 cursor-pointer flex items-center justify-center gap-2 transition-colors border border-slate-750" 
               onClick={endHuddleCall}
             >
-              <PhoneOff className="w-4 h-4" /> Cancel
-            </button>
+              <PhoneOff className="w-4 h-4" /> {"Cancel"}</button>
           </div>
         </div>
       </div>
@@ -561,7 +559,7 @@ export default function MeetingOverlay() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2.5">
             {activeCall.type === "video" ? <Video className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" /> : <Phone className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />}
-            <span className="text-white font-bold text-xs truncate max-w-[120px]">Ongoing Team Huddle</span>
+            <span className="text-white font-bold text-xs truncate max-w-[120px]">{"Ongoing Team Huddle"}</span>
           </div>
           <span className="text-slate-400 font-mono text-xs font-bold"><CallDurationDisplay /></span>
         </div>
@@ -574,7 +572,7 @@ export default function MeetingOverlay() {
           <button 
             onClick={(e) => { e.stopPropagation(); setShowConfirmLeave(true); }} 
             className="bg-rose-600 hover:bg-rose-700 text-white p-2 rounded-lg transition-colors shadow-sm"
-            title="Leave Call"
+            title={"Leave Call"}
           >
             <PhoneOff className="w-3.5 h-3.5" />
           </button>
@@ -627,13 +625,13 @@ export default function MeetingOverlay() {
           <button 
             onClick={() => setActiveCall(p => p ? { ...p, isMinimized: true } : null)} 
             className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-1.5 rounded-lg border border-slate-700" 
-            title="Minimize Call"
+            title={"Minimize Call"}
           >
             <Minimize2 className="w-4 h-4" />
           </button>
           <div className="h-4 w-px bg-slate-800" />
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-white font-bold text-sm tracking-tight truncate">#{activeCall.roomId} &bull; IT War Room</span>
+            <span className="text-white font-bold text-sm tracking-tight truncate">#{activeCall.roomId} {"&bull; IT War Room"}</span>
             <span className="text-slate-400 text-xs truncate max-w-[150px] sm:max-w-none hidden sm:inline">({activeCall.ticketTitle})</span>
           </div>
         </div>
@@ -644,7 +642,7 @@ export default function MeetingOverlay() {
           {isRecording && (
             <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 px-2.5 py-1 rounded-lg text-xs font-bold animate-pulse">
               <span className="w-2 h-2 rounded-full bg-rose-500" />
-              <span>REC {formatRecordingTimer(recordingSeconds)}</span>
+              <span>{"REC"}{formatRecordingTimer(recordingSeconds)}</span>
             </div>
           )}
 
@@ -657,7 +655,7 @@ export default function MeetingOverlay() {
               : "bg-rose-500/10 border-rose-500/20 text-rose-400 animate-pulse"
           }`}>
             <Signal className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Connection: </span>
+            <span className="hidden md:inline">{"Connection:"}</span>
             <span className="capitalize">{networkQuality}</span>
           </div>
 
@@ -681,16 +679,16 @@ export default function MeetingOverlay() {
                 <div className="flex-1 bg-black rounded-2xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col relative">
                   <div className="absolute top-4 left-4 bg-black/75 backdrop-blur px-3 py-1.5 rounded-lg border border-white/10 z-20 flex items-center gap-2 text-white shadow-lg">
                     <Monitor className="w-4 h-4 text-emerald-400 animate-pulse" />
-                    <span className="text-xs font-bold">Screen Sharing LIVE</span>
+                    <span className="text-xs font-bold">{"Screen Sharing LIVE"}</span>
                   </div>
                   <div className="absolute top-4 right-4 z-20">
                     <button
                       onClick={() => stopScreenShare()}
                       className="bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 transition-colors cursor-pointer border border-rose-500"
-                      title="Stop Sharing Your Screen"
+                      title={"Stop Sharing Your Screen"}
                     >
                       <X className="w-3.5 h-3.5 text-white" />
-                      <span>Stop Sharing</span>
+                      <span>{"Stop Sharing"}</span>
                     </button>
                   </div>
                   <div className="flex-1 relative">
@@ -715,7 +713,7 @@ export default function MeetingOverlay() {
                       <div className="text-2xl">👩‍💼</div>
                     </div>
                   )}
-                  <div className="absolute bottom-1.5 left-1.5 bg-black/60 px-1.5 py-0.5 rounded text-[9px] font-bold">{currentAdminName} (You)</div>
+                  <div className="absolute bottom-1.5 left-1.5 bg-black/60 px-1.5 py-0.5 rounded text-[9px] font-bold">{currentAdminName} {"(You)"}</div>
                 </div>
 
                 {/* Smaller preview strip for other participants */}
@@ -814,7 +812,7 @@ export default function MeetingOverlay() {
                         ) : hasCamera ? (
                           <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center">
                             <span className="text-6xl mb-3 animate-pulse">📹</span>
-                            <span className="text-slate-400 text-xs">Simulated Web Camera Feed</span>
+                            <span className="text-slate-400 text-xs">{"Simulated Web Camera Feed"}</span>
                           </div>
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center flex-col gap-4 bg-slate-950/40">
@@ -830,8 +828,7 @@ export default function MeetingOverlay() {
                             </div>
                             {isSpeakingNow && (
                               <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full animate-pulse tracking-wide">
-                                🎙️ Speaking
-                              </span>
+                                {"🎙️ Speaking"}</span>
                             )}
                           </div>
                         )}
@@ -840,7 +837,7 @@ export default function MeetingOverlay() {
                         {isSpeakingNow && (
                           <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-64 h-12 bg-black/75 rounded-2xl border border-white/10 flex items-center px-4 backdrop-blur-md shadow-2xl overflow-hidden z-15">
                             <div className="w-12 h-full py-2 shrink-0 flex items-center">
-                              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">VOICE</span>
+                              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">{"VOICE"}</span>
                             </div>
                             <div className="flex-1 h-full py-1">
                               <VoiceCanvasVisualizer volume={getParticipantVolume(p)} isSpeaking={isSpeakingNow} color={getParticipantColor(p)} />
@@ -854,18 +851,16 @@ export default function MeetingOverlay() {
                           <button 
                             onClick={() => setPinnedParticipantId(null)} 
                             className="bg-black/60 hover:bg-slate-800 text-white p-2.5 rounded-xl border border-white/10 flex items-center gap-1.5 text-xs font-bold transition-all"
-                            title="Unpin participant"
+                            title={"Unpin participant"}
                           >
                             <PinOff className="w-3.5 h-3.5 text-indigo-400" />
-                            Unpin Pinned View
-                          </button>
+                            {"Unpin Pinned View"}</button>
                         </div>
 
                         {/* Hand Raise indicator */}
                         {raisedHands[p.id] && (
                           <div className="absolute top-4 left-4 bg-amber-500 text-slate-950 px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-lg animate-bounce">
-                            <span>✋</span> Raised Hand
-                          </div>
+                            <span>✋</span> {"Raised Hand"}</div>
                         )}
 
                         {/* Name badge */}
@@ -905,7 +900,7 @@ export default function MeetingOverlay() {
                           <button 
                             onClick={() => setPinnedParticipantId(p.id)} 
                             className="bg-indigo-600 hover:bg-indigo-700 p-2 rounded-lg text-white"
-                            title="Pin view"
+                            title={"Pin view"}
                           >
                             <Pin className="w-3.5 h-3.5" />
                           </button>
@@ -979,8 +974,7 @@ export default function MeetingOverlay() {
                           <div className="w-[80%] h-[80%] rounded-xl bg-slate-950 flex flex-col items-center justify-center text-slate-400 border border-slate-700/50 shadow-md">
                             <span className="text-4xl mb-2 animate-pulse">📹</span>
                             <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
-                              Remote Camera
-                            </span>
+                              {"Remote Camera"}</span>
                           </div>
                         </div>
                       ) : (
@@ -1005,17 +999,15 @@ export default function MeetingOverlay() {
                         <button 
                           onClick={() => setPinnedParticipantId(p.id)} 
                           className="bg-indigo-600 hover:bg-indigo-700 p-2.5 rounded-xl text-white font-bold text-xs flex items-center gap-1 shadow-lg pointer-events-auto"
-                          title="Pin View"
+                          title={"Pin View"}
                         >
-                          <Pin className="w-3.5 h-3.5" /> Pin View
-                        </button>
+                          <Pin className="w-3.5 h-3.5" /> {"Pin View"}</button>
                       </div>
 
                       {/* Raised Hand indicator */}
                       {raisedHands[p.id] && (
                         <div className="absolute top-4 left-4 bg-amber-500 text-slate-950 px-3 py-1 rounded-xl text-xs font-black shadow-lg animate-bounce flex items-center gap-1">
-                          <span>✋</span> Hand Raised
-                        </div>
+                          <span>✋</span> {"Hand Raised"}</div>
                       )}
 
                       {/* Real-time Voice Wave overlay */}
@@ -1085,12 +1077,12 @@ export default function MeetingOverlay() {
                   {activeSidebarTab === "chat" ? (
                     <>
                       <MessageSquare className="w-4 h-4 text-indigo-400" />
-                      <span className="text-sm font-extrabold text-white uppercase tracking-wider">In-Call Chat Log</span>
+                      <span className="text-sm font-extrabold text-white uppercase tracking-wider">{"In-Call Chat Log"}</span>
                     </>
                   ) : (
                     <>
                       <Users className="w-4 h-4 text-indigo-400" />
-                      <span className="text-sm font-extrabold text-white uppercase tracking-wider">Participants list</span>
+                      <span className="text-sm font-extrabold text-white uppercase tracking-wider">{"Participants list"}</span>
                     </>
                   )}
                 </div>
@@ -1113,8 +1105,8 @@ export default function MeetingOverlay() {
                         return (
                           <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 py-12">
                             <MessageSquare className="w-10 h-10 mb-2 opacity-30" />
-                            <span className="text-xs font-semibold">No chat messages yet.</span>
-                            <span className="text-[10px] mt-1 max-w-[200px]">Send a chat message to the team. Spoken sentences are kept separate in captions.</span>
+                            <span className="text-xs font-semibold">{"No chat messages yet."}</span>
+                            <span className="text-[10px] mt-1 max-w-[200px]">{"Send a chat message to the team. Spoken sentences are kept separate in captions."}</span>
                           </div>
                         );
                       }
@@ -1147,13 +1139,13 @@ export default function MeetingOverlay() {
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleSendChatMessage()}
-                      placeholder="Type message to team..."
+                      placeholder={"Type message to team..."}
                       className="flex-1 bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-500"
                     />
                     <button 
                       onClick={handleSendChatMessage}
                       className="bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl transition-colors shadow"
-                      title="Send Message"
+                      title={"Send Message"}
                     >
                       <Send className="w-4 h-4" />
                     </button>
@@ -1183,7 +1175,7 @@ export default function MeetingOverlay() {
                         {/* Participant details & pins */}
                         <div className="flex items-center gap-2">
                           {isSpeakingNow && (
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" title="Speaking" />
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" title={"Speaking"} />
                           )}
                           <button 
                             onClick={() => {
@@ -1215,8 +1207,7 @@ export default function MeetingOverlay() {
                   onClick={postHuddleNotes}
                   className="w-full bg-slate-850 hover:bg-slate-800 text-slate-300 font-bold text-xs py-2.5 rounded-xl border border-slate-800 flex items-center justify-center gap-2 transition-all shadow-sm"
                 >
-                  <FileText className="w-4 h-4 text-indigo-400" /> Export Huddle Logs to Feed
-                </button>
+                  <FileText className="w-4 h-4 text-indigo-400" /> {"Export Huddle Logs to Feed"}</button>
               </div>
             </motion.div>
           )}
@@ -1258,7 +1249,7 @@ export default function MeetingOverlay() {
         {/* Left: Meeting code and mini time */}
         <div className="hidden md:flex flex-col justify-center text-left">
           <span className="text-white font-black text-sm font-mono tracking-tight">#{activeCall.roomId}</span>
-          <span className="text-slate-400 text-xs mt-0.5">IT Huddle Bridge</span>
+          <span className="text-slate-400 text-xs mt-0.5">{"IT Huddle Bridge"}</span>
         </div>
 
         {/* Center: Controls Buttons */}
@@ -1328,7 +1319,7 @@ export default function MeetingOverlay() {
                 ? "bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/30 hover:bg-amber-600" 
                 : "bg-slate-800 hover:bg-slate-750 text-white"
             }`} 
-            title="Raise Hand"
+            title={"Raise Hand"}
           >
             <Hand className="w-5 h-5" />
           </button>
@@ -1340,7 +1331,7 @@ export default function MeetingOverlay() {
               className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer bg-slate-800 hover:bg-slate-750 text-white ${
                 showMoreMenu ? "ring-2 ring-indigo-500" : ""
               }`} 
-              title="Reactions & Emojis"
+              title={"Reactions & Emojis"}
             >
               <Smile className="w-5 h-5" />
             </button>
@@ -1391,8 +1382,7 @@ export default function MeetingOverlay() {
             }`} 
             title={activeCall.isCaptionsOn ? "Turn Off Captions" : "Turn On Captions"}
           >
-            CC
-          </button>
+            {"CC"}</button>
 
           {/* Switch Call Mode (Voice <-> Video) */}
           <button 
@@ -1418,10 +1408,9 @@ export default function MeetingOverlay() {
           <button 
             onClick={() => setShowConfirmLeave(true)} 
             className="h-11 px-6 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-sm flex items-center justify-center shadow-lg transition-transform hover:scale-105"
-            title="Leave Bridge"
+            title={"Leave Bridge"}
           >
-            <PhoneOff className="w-4.5 h-4.5 mr-2 animate-pulse" /> Leave
-          </button>
+            <PhoneOff className="w-4.5 h-4.5 mr-2 animate-pulse" /> {"Leave"}</button>
         </div>
 
         {/* Right Side: Sidebar Toggles & Settings */}
@@ -1434,7 +1423,7 @@ export default function MeetingOverlay() {
                 ? "bg-indigo-600/25 text-indigo-400 border border-indigo-500/30" 
                 : "bg-slate-850 hover:bg-slate-800 border border-slate-800 text-slate-300"
             }`}
-            title="Participants"
+            title={"Participants"}
           >
             <Users className="w-4.5 h-4.5" />
             <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow">
@@ -1450,7 +1439,7 @@ export default function MeetingOverlay() {
                 ? "bg-indigo-600/25 text-indigo-400 border border-indigo-500/30" 
                 : "bg-slate-850 hover:bg-slate-800 border border-slate-800 text-slate-300"
             }`}
-            title="Chat log"
+            title={"Chat log"}
           >
             <MessageSquare className="w-4.5 h-4.5" />
             {activeCall.transcripts.length > 0 && (
@@ -1495,30 +1484,26 @@ export default function MeetingOverlay() {
               <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
                 ⚠️
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">Leave incident bridge?</h3>
+              <h3 className="text-lg font-bold text-white mb-2">{"Leave incident bridge?"}</h3>
               <p className="text-slate-400 text-xs mb-6">
-                Would you like to auto-save and compile the huddle's live chat log/transcripts to the general ticket activity stream?
-              </p>
+                {"Would you like to auto-save and compile the huddle's live chat log/transcripts to the general ticket activity stream?"}</p>
 
               <div className="flex flex-col gap-2">
                 <button 
                   onClick={() => handleLeaveMeetingConfirm(true)}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-bold text-xs transition-colors cursor-pointer"
                 >
-                  Yes, Save Chat &amp; Leave
-                </button>
+                  {"Yes, Save Chat &amp; Leave"}</button>
                 <button 
                   onClick={() => handleLeaveMeetingConfirm(false)}
                   className="bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl font-bold text-xs transition-colors cursor-pointer"
                 >
-                  No, Leave Without Saving
-                </button>
+                  {"No, Leave Without Saving"}</button>
                 <button 
                   onClick={() => setShowConfirmLeave(false)}
                   className="bg-slate-800 hover:bg-slate-700 text-slate-400 py-2.5 rounded-xl font-bold text-xs transition-colors cursor-pointer"
                 >
-                  Keep Chat Active
-                </button>
+                  {"Keep Chat Active"}</button>
               </div>
             </motion.div>
           </div>

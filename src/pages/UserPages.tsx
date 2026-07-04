@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+
 import { useAuth } from "../lib/AuthContext.tsx";
 import { supabase } from "../lib/supabase.ts";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -80,6 +81,7 @@ function setStoredItem<T>(key: string, value: T) {
    1. USER DASHBOARD STATS (RESTRUCTURED)
    ========================================== */
 export function UserDashboardStats() {
+    
   const { user, dbUser } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState({ total: 0, pending: 0, inProgress: 0, resolved: 0, critical: 0 });
@@ -130,14 +132,12 @@ export function UserDashboardStats() {
       <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10">
           <span className="text-xs bg-white/15 backdrop-blur border border-white/20 text-cyan-100 font-bold uppercase tracking-widest px-3 py-1 rounded-full">
-            🚀 2026 PREMIUM WORKSPACE
-          </span>
+            {"🚀 2026 PREMIUM WORKSPACE"}</span>
           <h1 className="text-3xl md:text-4xl font-extrabold mt-4 mb-2 tracking-tight">
             {getGreeting()}
           </h1>
           <p className="text-blue-50 max-w-xl text-sm font-medium leading-relaxed">
-            Monitor and audit all digital operations tickets, track direct SLA parameters, and communicate with dedicated diagnostic specialists in real-time.
-          </p>
+            {"Monitor and audit all digital operations tickets, track direct SLA parameters, and communicate with dedicated diagnostic specialists in real-time."}</p>
         </div>
         <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/3 w-72 h-72 bg-white/5 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 right-1/4 translate-y-1/2 w-56 h-56 bg-cyan-300/10 rounded-full blur-2xl"></div>
@@ -174,15 +174,14 @@ export function UserDashboardStats() {
           <CardHeader className="pb-3 border-b border-slate-50 dark:border-slate-850/30">
             <CardTitle className="text-lg font-extrabold tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
               <Activity className="w-5 h-5 text-purple-500" />
-              SLA Compliance and Metric Timeline
-            </CardTitle>
-            <CardDescription className="text-sm">SaaS operational response logs parsed over 5 business days</CardDescription>
+              {"SLA Compliance and Metric Timeline"}</CardTitle>
+            <CardDescription className="text-sm">{"SaaS operational response logs parsed over 5 business days"}</CardDescription>
           </CardHeader>
           <CardContent className="pt-4 h-[240px]">
             {stats.total === 0 ? (
                <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-500 gap-2">
                   <Activity className="w-8 h-8 opacity-20" />
-                  <span className="text-xs font-bold font-mono tracking-widest uppercase">No Data Records</span>
+                  <span className="text-xs font-bold font-mono tracking-widest uppercase">{"No Data Records"}</span>
                </div>
             ) : (
             <ResponsiveContainer width="100%" height="100%">
@@ -220,15 +219,14 @@ export function UserDashboardStats() {
           <CardHeader className="pb-3 border-b border-slate-50 dark:border-slate-850/30">
             <CardTitle className="text-lg font-extrabold tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-              SLA Category Audit
-            </CardTitle>
-            <CardDescription className="text-sm">Active and resolved ticket status weights</CardDescription>
+              {"SLA Category Audit"}</CardTitle>
+            <CardDescription className="text-sm">{"Active and resolved ticket status weights"}</CardDescription>
           </CardHeader>
           <CardContent className="pt-2 flex-grow flex items-center justify-center min-h-[160px]">
             {stats.total === 0 ? (
                <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-500 gap-2">
                   <Activity className="w-8 h-8 opacity-20" />
-                  <span className="text-xs font-bold font-mono tracking-widest uppercase">No Data Records</span>
+                  <span className="text-xs font-bold font-mono tracking-widest uppercase">{"No Data Records"}</span>
                </div>
             ) : (
               <ResponsiveContainer width="100%" height={150}>
@@ -260,9 +258,9 @@ export function UserDashboardStats() {
             )}
           </CardContent>
           <div className="p-3 bg-slate-50/50 dark:bg-slate-900/20 border-t border-slate-100 dark:border-slate-800/50 grid grid-cols-3 gap-1 text-center text-[10px] font-bold">
-            <div className="text-amber-500">● Pending ({stats.pending})</div>
-            <div className="text-blue-500">● Progress ({stats.inProgress})</div>
-            <div className="text-emerald-500">● Resolved ({stats.resolved})</div>
+            <div className="text-amber-500">{"● Pending ("}{stats.pending})</div>
+            <div className="text-blue-500">{"● Progress ("}{stats.inProgress})</div>
+            <div className="text-emerald-500">{"● Resolved ("}{stats.resolved})</div>
           </div>
         </Card>
       </div>
@@ -275,9 +273,9 @@ export function UserDashboardStats() {
           <Card className="border-slate-100 dark:border-slate-800 bg-white dark:bg-[#0B1222] shadow-2xs">
             <CardHeader className="pb-3 border-b border-slate-50 dark:border-slate-800/50">
               <CardTitle className="text-lg font-extrabold flex items-center justify-between">
-                <span>Recent Priority Tickets</span>
+                <span>{"Recent Priority Tickets"}</span>
                 <span onClick={() => navigate('/dashboard/my-complaints')} className="text-sm text-blue-500 hover:underline cursor-pointer flex items-center gap-1">
-                  View All <ArrowRight className="w-4 h-4" />
+                  {"View All"}<ArrowRight className="w-4 h-4" />
                 </span>
               </CardTitle>
             </CardHeader>
@@ -285,13 +283,13 @@ export function UserDashboardStats() {
               {recent.length === 0 ? (
                  <div className="py-8 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-2">
                     <Activity className="w-6 h-6 opacity-20" />
-                    <span className="text-xs font-bold font-mono tracking-widest uppercase">No Recent Records</span>
+                    <span className="text-xs font-bold font-mono tracking-widest uppercase">{"No Recent Records"}</span>
                  </div>
               ) : recent.map((ticket, i) => (
                 <div key={ticket.id} className="py-3 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-mono font-bold text-slate-450 uppercase">Workplace Hub-{ticket.id.toString().substring(0, 5).toUpperCase()}</span>
+                      <span className="text-xs font-mono font-bold text-slate-450 uppercase">{"Workplace Hub-"}{ticket.id.toString().substring(0, 5).toUpperCase()}</span>
                       <span className={`w-2 h-2 rounded-full ${ticket.severity === 'Critical' ? 'bg-red-500' : 'bg-blue-500'}`}></span>
                     </div>
                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate flex items-center gap-2">
@@ -299,7 +297,7 @@ export function UserDashboardStats() {
                         const IconComponent = CATEGORY_ICONS[ticket.issue_type] || Info;
                         return <IconComponent className="w-4 h-4 text-blue-500 shrink-0" />;
                       })()}
-                      <span>{ticket.issue_type} Issue</span>
+                      <span>{ticket.issue_type} {"Issue"}</span>
                     </p>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">{ticket.description}</p>
                   </div>
@@ -315,7 +313,7 @@ export function UserDashboardStats() {
                 </div>
               ))}
               {recent.length === 0 && (
-                <div className="text-center py-8 text-slate-400 text-xs">No registered tickets found.</div>
+                <div className="text-center py-8 text-slate-400 text-xs">{"No registered tickets found."}</div>
               )}
             </CardContent>
           </Card>
@@ -323,7 +321,7 @@ export function UserDashboardStats() {
           {/* Activity Logs Timeline */}
           <Card className="border-slate-100 dark:border-slate-800 bg-white dark:bg-[#0B1222] shadow-2xs">
             <CardHeader className="pb-3 border-b border-slate-50 dark:border-slate-800/50">
-              <CardTitle className="text-lg font-extrabold">Workflow Activity Trail</CardTitle>
+              <CardTitle className="text-lg font-extrabold">{"Workflow Activity Trail"}</CardTitle>
             </CardHeader>
             <CardContent className="pt-5">
               <div className="relative border-l border-slate-100 dark:border-slate-800 ml-2.5 pl-6 space-y-4">
@@ -331,18 +329,18 @@ export function UserDashboardStats() {
                   <div key={log.id} className="relative">
                     <span className="absolute -left-[30px] top-1.5 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 ring-4 ring-white dark:ring-[#0F172A]"></span>
                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                      Ticket status evolved to <span className="text-blue-500">{log.to_status}</span>
+                      {"Ticket status evolved to"}<span className="text-blue-500">{log.to_status}</span>
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Updated by {log.operator} • {new Date(log.changed_at).toLocaleDateString([], { month: "short", day: "numeric" })}
+                      {"Updated by"}{log.operator} • {new Date(log.changed_at).toLocaleDateString([], { month: "short", day: "numeric" })}
                     </p>
                   </div>
                 ))}
                 {myActivity.length === 0 && (
                   <div className="relative">
                     <span className="absolute -left-[30px] top-1.5 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 ring-4 ring-white dark:ring-[#0F172A]"></span>
-                    <p className="text-sm font-bold text-slate-400">Baseline initialized successfully.</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Ready to monitor future workflow changes.</p>
+                    <p className="text-sm font-bold text-slate-400">{"Baseline initialized successfully."}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{"Ready to monitor future workflow changes."}</p>
                   </div>
                 )}
               </div>
@@ -355,18 +353,15 @@ export function UserDashboardStats() {
           {/* Quick Actions (Dashboard ONLY) */}
           <Card className="border-slate-100 dark:border-slate-800 bg-white dark:bg-[#0B1222] shadow-2xs">
             <CardHeader className="pb-3 border-b border-slate-50 dark:border-slate-800/50">
-              <CardTitle className="text-lg font-extrabold">Instant Gateways</CardTitle>
+              <CardTitle className="text-lg font-extrabold">{"Instant Gateways"}</CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-2">
               <Button onClick={() => navigate('/dashboard/register')} className="w-full justify-start bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold rounded-xl h-10 shadow-sm text-sm">
-                ➕ File New Support Case
-              </Button>
+                {"➕ File New Support Case"}</Button>
               <Button onClick={() => navigate('/dashboard/my-complaints')} variant="outline" className="w-full justify-start text-sm rounded-xl h-10 border-slate-200 dark:border-slate-800 font-semibold">
-                📋 Review Open Tickets
-              </Button>
+                {"📋 Review Open Tickets"}</Button>
               <Button onClick={() => navigate('/dashboard/drafts')} variant="outline" className="w-full justify-start text-sm rounded-xl h-10 border-slate-200 dark:border-slate-800 font-semibold">
-                💾 Recover Pending Drafts
-              </Button>
+                {"💾 Recover Pending Drafts"}</Button>
             </CardContent>
           </Card>
 
@@ -374,8 +369,8 @@ export function UserDashboardStats() {
           <Card className="border-slate-100 dark:border-slate-800 bg-white dark:bg-[#0B1222] shadow-2xs">
             <CardHeader className="pb-3 border-b border-slate-50 dark:border-slate-800/50">
               <CardTitle className="text-base font-extrabold flex justify-between items-center">
-                <span>Core Notice Bulletin</span>
-                <Badge className="bg-blue-500 text-white hover:bg-blue-600 text-[9px] uppercase">Active</Badge>
+                <span>{"Core Notice Bulletin"}</span>
+                <Badge className="bg-blue-500 text-white hover:bg-blue-600 text-[9px] uppercase">{"Active"}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
@@ -389,11 +384,58 @@ export function UserDashboardStats() {
                 </div>
               ))}
               {notices.length === 0 && (
-                <p className="text-xs text-slate-400 text-center py-2">No active bulletins.</p>
+                <p className="text-xs text-slate-400 text-center py-2">{"No active bulletins."}</p>
               )}
             </CardContent>
           </Card>
         </div>
+      
+        {/* Accessibility */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ACCESSIBILITY"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"High Contrast Text"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Reduce Motion"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Privacy */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"PRIVACY"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Data Sharing"}</span>
+              <button className="w-8 h-4 rounded-full bg-blue-500"></button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Cookie Preferences"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* About */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ABOUT"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4 text-center">
+            <div className="text-sm font-black text-slate-900 dark:text-white">{"Workplace Hub"}</div>
+            <div className="text-xs text-slate-500">{"Version 4.1.0"}</div>
+            <div className="text-xs text-blue-500 hover:underline cursor-pointer">{"Terms of Service"}</div>
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );
@@ -411,10 +453,20 @@ const TICKET_TEMPLATES = [
 ];
 
 export function RegisterTicket() {
+    
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const editState = location.state as any;
+  const editState = (location.state as any) || (() => {
+    try {
+      const saved = localStorage.getItem("dcms_sandbox_prefill");
+      if (saved) {
+        localStorage.removeItem("dcms_sandbox_prefill");
+        return JSON.parse(saved);
+      }
+    } catch (e) {}
+    return null;
+  })();
 
   // Primary Fields
   const [title, setTitle] = useState(editState?.title || '');
@@ -1118,13 +1170,13 @@ export function RegisterTicket() {
           <div className="flex items-center gap-2.5 text-emerald-700 dark:text-emerald-400">
             <span className="p-1.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 rounded-lg text-sm">🛡️</span>
             <div>
-              <p className="font-bold">Unsaved Draft Recovered!</p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Subject: "{autosaveDraft.title || 'Untitled'}" (Autosaved {new Date(autosaveDraft.updated_at).toLocaleTimeString()})</p>
+              <p className="font-bold">{"Unsaved Draft Recovered!"}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{"Subject: \""}{autosaveDraft.title || 'Untitled'}{"\" (Autosaved"}{new Date(autosaveDraft.updated_at).toLocaleTimeString()})</p>
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
-            <Button onClick={restoreAutosave} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-8 rounded-xl px-4 text-xs">Restore Progress</Button>
-            <Button onClick={discardAutosave} size="sm" variant="ghost" className="h-8 rounded-xl text-slate-500 hover:text-slate-700">Wipe Draft</Button>
+            <Button onClick={restoreAutosave} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-8 rounded-xl px-4 text-xs">{"Restore Progress"}</Button>
+            <Button onClick={discardAutosave} size="sm" variant="ghost" className="h-8 rounded-xl text-slate-500 hover:text-slate-700">{"Wipe Draft"}</Button>
           </div>
         </motion.div>
       )}
@@ -1138,11 +1190,11 @@ export function RegisterTicket() {
         >
           <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
             <Layers className="w-4.5 h-4.5 animate-bounce" />
-            <span>Unfinished ticket draft discovered inside this workspace. Would you like to recover it?</span>
+            <span>{"Unfinished ticket draft discovered inside this workspace. Would you like to recover it?"}</span>
           </div>
           <div className="flex gap-2 shrink-0">
-            <Button onClick={recoverLatestDraft} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-8 rounded-xl px-4">Recover</Button>
-            <Button onClick={() => setRecoveryAvailable(false)} size="sm" variant="ghost" className="h-8 rounded-xl text-indigo-500">Dismiss</Button>
+            <Button onClick={recoverLatestDraft} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-8 rounded-xl px-4">{"Recover"}</Button>
+            <Button onClick={() => setRecoveryAvailable(false)} size="sm" variant="ghost" className="h-8 rounded-xl text-indigo-500">{"Dismiss"}</Button>
           </div>
         </motion.div>
       )}
@@ -1152,20 +1204,20 @@ export function RegisterTicket() {
         
         {/* Left column: Live Preview */}
         <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-6">
-          <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Real-time Ticket Preview</h3>
+          <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">{"Real-time Ticket Preview"}</h3>
           
           <Card className="border border-slate-200/80 dark:border-[#1E293B] shadow-lg rounded-2xl overflow-hidden bg-white dark:bg-[#0B1222] backdrop-blur-xl">
             <div className="h-2 w-full bg-blue-600"></div>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <span className="text-[10px] font-mono font-bold text-blue-500 uppercase tracking-widest bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded">TICKET_PREVIEW</span>
+                  <span className="text-[10px] font-mono font-bold text-blue-500 uppercase tracking-widest bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded">{"TICKET_PREVIEW"}</span>
                   <p className="text-[11px] text-slate-450 dark:text-slate-500 mt-1 font-semibold flex items-center gap-1">
                     {(() => {
                       const IconComponent = CATEGORY_ICONS[type] || Info;
                       return <IconComponent className="w-3.5 h-3.5 text-blue-500" />;
                     })()}
-                    <span>{type} Department Queue</span>
+                    <span>{type} {"Department Queue"}</span>
                   </p>
                 </div>
                 <Badge variant="outline" className={`text-[10px] tracking-wide px-2.5 py-0.5 capitalize font-extrabold ${
@@ -1174,8 +1226,7 @@ export function RegisterTicket() {
                   severity === 'Medium' ? 'bg-yellow-50 text-yellow-650 border-yellow-250' :
                   'bg-green-50 text-green-650 border-green-250'
                 }`}>
-                  {severity} Alert
-                </Badge>
+                  {severity} {"Alert"}</Badge>
               </div>
 
               {/* Title output */}
@@ -1193,7 +1244,7 @@ export function RegisterTicket() {
                 <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
                   <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
                     <Paperclip className="w-3.5 h-3.5 text-blue-500" />
-                    <span>Diagnostics Gallery PREVIEW</span>
+                    <span>{"Diagnostics Gallery PREVIEW"}</span>
                   </div>
                   <MediaGallery attachments={attachments} />
                 </div>
@@ -1209,13 +1260,13 @@ export function RegisterTicket() {
               
               {/* Form Heading description */}
               <div>
-                <h2 className="text-lg font-black text-slate-800 dark:text-white leading-tight">Submit Incident File</h2>
-                <p className="text-xs text-slate-450 dark:text-slate-400 mt-1">Include exact parameters, screenshot telemetry snapshots, and let Gemini AI classify routing parameters.</p>
+                <h2 className="text-lg font-black text-slate-800 dark:text-white leading-tight">{"Submit Incident File"}</h2>
+                <p className="text-xs text-slate-450 dark:text-slate-400 mt-1">{"Include exact parameters, screenshot telemetry snapshots, and let Gemini AI classify routing parameters."}</p>
               </div>
 
               {/* Ticket Templates Quick Select */}
               <div className="bg-slate-50 dark:bg-slate-900/25 border border-slate-150 dark:border-slate-800/80 p-4 rounded-xl space-y-2">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-blue-500">⚡ Click a template to instantly prefill:</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-blue-500">{"⚡ Click a template to instantly prefill:"}</span>
                 <div className="flex flex-wrap gap-2 pt-1">
                   {TICKET_TEMPLATES.map((tpl, i) => (
                     <button
@@ -1240,14 +1291,14 @@ export function RegisterTicket() {
                 {/* Section 1: Ticket Details */}
                 <div className="space-y-4">
                   <div className="border-b border-slate-100 dark:border-slate-800/80 pb-1">
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8B5CF6]">Step 1: Incident Description</span>
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8B5CF6]">{"Step 1: Incident Description"}</span>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold mb-1.5 block text-slate-700 dark:text-slate-300">Incident Subject Title</label>
+                    <label className="text-xs font-semibold mb-1.5 block text-slate-700 dark:text-slate-300">{"Incident Subject Title"}</label>
                     <Input 
                       id="tour-ticket-title"
-                      placeholder="E.g., Wireless printer offline after software firmware update" 
+                      placeholder={"E.g., Wireless printer offline after software firmware update"} 
                       value={title} 
                       onChange={e => setTitle(e.target.value)}
                       required 
@@ -1257,7 +1308,7 @@ export function RegisterTicket() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-semibold mb-1.5 block text-slate-700 dark:text-slate-300">Target Segment</label>
+                      <label className="text-xs font-semibold mb-1.5 block text-slate-700 dark:text-slate-300">{"Target Segment"}</label>
                       <Select value={type} onValueChange={(val: any) => setType(val)}>
                         <SelectTrigger id="tour-ticket-segment" className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800">
                           <SelectValue />
@@ -1271,7 +1322,7 @@ export function RegisterTicket() {
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold mb-1.5 block text-slate-700 dark:text-slate-300">Urgency Severity</label>
+                      <label className="text-xs font-semibold mb-1.5 block text-slate-700 dark:text-slate-300">{"Urgency Severity"}</label>
                       <Select value={severity} onValueChange={(val: any) => setSeverity(val)}>
                         <SelectTrigger id="tour-ticket-severity" className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800">
                           <SelectValue />
@@ -1286,10 +1337,10 @@ export function RegisterTicket() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold mb-1.5 block text-slate-700 dark:text-slate-300">Department</label>
+                    <label className="text-xs font-semibold mb-1.5 block text-slate-700 dark:text-slate-300">{"Department"}</label>
                     <Select value={department} onValueChange={(val) => setDepartment(val)}>
                       <SelectTrigger id="tour-ticket-department" className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800">
-                        <SelectValue placeholder="Select relevant department" />
+                        <SelectValue placeholder={"Select relevant department"} />
                       </SelectTrigger>
                       <SelectContent className="bg-white dark:bg-[#0B1222] border-slate-200 dark:border-slate-800">
                         {['IT', 'HR', 'Finance', 'Operations', 'Administration', 'Procurement', 'Security'].map(dept => (
@@ -1301,7 +1352,7 @@ export function RegisterTicket() {
 
                   <div>
                     <div className="flex justify-between items-center mb-1.5">
-                      <label className="text-xs font-semibold block text-slate-700 dark:text-slate-300">Operational Log Details</label>
+                      <label className="text-xs font-semibold block text-slate-700 dark:text-slate-300">{"Operational Log Details"}</label>
                       <button
                         type="button"
                         onClick={voiceActive ? stopVoiceRecording : startVoiceRecording}
@@ -1314,13 +1365,13 @@ export function RegisterTicket() {
                       >
                         <Mic className={`w-3.5 h-3.5 ${voiceActive ? "text-white" : "text-blue-500"}`} />
                         {voiceTranscribing ? (
-                          <span className="animate-pulse">Transcribing Voice...</span>
+                          <span className="animate-pulse">{"Transcribing Voice..."}</span>
                         ) : voiceActive ? (
                           <span className="flex items-center gap-1">
-                            Recording... <span>🎤 Level: {voiceLevel.toFixed(0)}</span>
+                            {"Recording..."}<span>{"🎤 Level:"}{voiceLevel.toFixed(0)}</span>
                           </span>
                         ) : (
-                          <span>Speech-to-Text Dictation</span>
+                          <span>{"Speech-to-Text Dictation"}</span>
                         )}
                       </button>
                     </div>
@@ -1332,13 +1383,13 @@ export function RegisterTicket() {
                           <span className="w-1 bg-red-500 rounded-full animate-bounce" style={{ height: Math.max(8, voiceLevel) + "px", animationDelay: '0.3s' }} />
                           <span className="w-1 bg-red-500 rounded-full animate-bounce" style={{ height: Math.max(4, voiceLevel / 1.5) + "px", animationDelay: '0.5s' }} />
                         </div>
-                        <span>Speak clearly. Clicking again will finalize audio recording and run transcription.</span>
+                        <span>{"Speak clearly. Clicking again will finalize audio recording and run transcription."}</span>
                       </div>
                     )}
 
                     <Textarea 
                       id="tour-ticket-desc"
-                      placeholder="Describe the issue, diagnostics logs, or steps leading to the malfunction..."
+                      placeholder={"Describe the issue, diagnostics logs, or steps leading to the malfunction..."}
                       value={desc}
                       onChange={e => setDesc(e.target.value)}
                       required
@@ -1358,7 +1409,7 @@ export function RegisterTicket() {
                             <Check className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
                           </div>
                         </div>
-                        <span className="text-[10px] text-slate-500 font-semibold group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Submit Request Anonymously</span>
+                        <span className="text-[10px] text-slate-500 font-semibold group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">{"Submit Request Anonymously"}</span>
                       </label>
                       <Button
                         type="button"
@@ -1378,7 +1429,7 @@ export function RegisterTicket() {
                 {/* Section 2: Upload Actions & Snapshots */}
                 <div className="space-y-4">
                   <div className="border-b border-slate-100 dark:border-slate-800/80 pb-1">
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8B5CF6]">Step 2: Supporting Attachments</span>
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8B5CF6]">{"Step 2: Supporting Attachments"}</span>
                   </div>
 
                   {/* Virtual Drag and Drop selector */}
@@ -1401,8 +1452,8 @@ export function RegisterTicket() {
                         }}
                       />
                       <UploadCloud className="w-8 h-8 text-slate-400 stroke-[1.5]" />
-                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-2">Browse Diagnostic Documents</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Images, PDFs, TXT, ZIP or Video clips up to 5MB</p>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-2">{"Browse Diagnostic Documents"}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{"Images, PDFs, TXT, ZIP or Video clips up to 5MB"}</p>
                     </div>
 
                     {/* Camera view active switcher */}
@@ -1412,8 +1463,8 @@ export function RegisterTicket() {
                       className="border border-slate-200 dark:border-slate-800 p-5 rounded-2xl bg-slate-50/50 dark:bg-[#161F30]/35 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer flex flex-col items-center justify-center text-center transition-all"
                     >
                       <Camera className="w-8 h-8 text-slate-400 stroke-[1.5]" />
-                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-2">Use Digital Live Camera</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Take snapshots of hardware failures live</p>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-2">{"Use Digital Live Camera"}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{"Take snapshots of hardware failures live"}</p>
                     </div>
                   </div>
 
@@ -1452,7 +1503,7 @@ export function RegisterTicket() {
                   {attachments.length > 0 && (
                     <div className="bg-slate-50/50 dark:bg-[#161F30]/15 p-4 border border-slate-100 dark:border-slate-800/80 rounded-2xl space-y-3">
                       <div className="flex justify-between items-center border-b border-slate-200/50 dark:border-slate-800 pb-1.5">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Loaded Incident Attachments ({attachments.length})</span>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{"Loaded Incident Attachments ("}{attachments.length})</span>
                         {attachments.some(a => a.type === 'image') && (
                           <Button
                             type="button"
@@ -1490,7 +1541,7 @@ export function RegisterTicket() {
                       <span>{submissionNotification.message}</span>
                     </div>
                     {submissionNotification.type === 'error' && (
-                      <span className="text-[10px] bg-red-100 dark:bg-red-950/50 text-red-650 px-2 py-0.5 rounded-lg shrink-0">5s Limit</span>
+                      <span className="text-[10px] bg-red-100 dark:bg-red-950/50 text-red-650 px-2 py-0.5 rounded-lg shrink-0">{"5s Limit"}</span>
                     )}
                   </motion.div>
                 )}
@@ -1504,8 +1555,7 @@ export function RegisterTicket() {
                       variant="outline" 
                       className="text-xs border-slate-200 dark:border-slate-800 h-10 px-4 rounded-xl font-bold"
                     >
-                      Save Local Draft
-                    </Button>
+                      {"Save Local Draft"}</Button>
                     <Button 
                       type="button" 
                       onClick={() => {
@@ -1514,8 +1564,7 @@ export function RegisterTicket() {
                       variant="ghost" 
                       className="text-xs h-10 px-4 rounded-xl text-slate-400 hover:text-red-500"
                     >
-                      Discard
-                    </Button>
+                      {"Discard"}</Button>
                   </div>
                   <Button 
                     id="tour-ticket-submit"
@@ -1539,6 +1588,53 @@ export function RegisterTicket() {
           </Card>
         </div>
 
+      
+        {/* Accessibility */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ACCESSIBILITY"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"High Contrast Text"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Reduce Motion"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Privacy */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"PRIVACY"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Data Sharing"}</span>
+              <button className="w-8 h-4 rounded-full bg-blue-500"></button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Cookie Preferences"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* About */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ABOUT"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4 text-center">
+            <div className="text-sm font-black text-slate-900 dark:text-white">{"Workplace Hub"}</div>
+            <div className="text-xs text-slate-500">{"Version 4.1.0"}</div>
+            <div className="text-xs text-blue-500 hover:underline cursor-pointer">{"Terms of Service"}</div>
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );
@@ -1548,6 +1644,7 @@ export function RegisterTicket() {
    3. SAVE DRAFT COMPLAINTS LIST (PHASE 8 EXTRA)
    ========================================== */
 export function DraftTickets() {
+    
   const [drafts, setDrafts] = useState<DraftTicket[]>([]);
   const navigate = useNavigate();
 
@@ -1565,8 +1662,8 @@ export function DraftTickets() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Draft Tickets</h2>
-        <p className="text-xs text-slate-450 dark:text-slate-400 mt-1 font-bold">Saved but NOT submitted. Visible only to you.</p>
+        <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{"Draft Tickets"}</h2>
+        <p className="text-xs text-slate-450 dark:text-slate-400 mt-1 font-bold">{"Saved but NOT submitted. Visible only to you."}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1592,14 +1689,14 @@ export function DraftTickets() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-3">
                 <Badge variant="secondary" className="capitalize font-bold text-[9px] bg-indigo-50 text-indigo-600 border border-indigo-100">{d.issue_type}</Badge>
-                <button onClick={(e) => clearDraft(d.id, e)} className="text-slate-400 hover:text-red-500 font-bold">✕ Delete</button>
+                <button onClick={(e) => clearDraft(d.id, e)} className="text-slate-400 hover:text-red-500 font-bold">{"✕ Delete"}</button>
               </div>
               <h4 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">{d.title}</h4>
-              <p className="text-xs text-slate-450 dark:text-slate-400 mt-1.5 line-clamp-3 leading-relaxed italic">&ldquo;{d.description}&rdquo;</p>
+              <p className="text-xs text-slate-450 dark:text-slate-400 mt-1.5 line-clamp-3 leading-relaxed italic">{"&ldquo;"}{d.description}{"&rdquo;"}</p>
               
               <div className="content-end mt-4 pt-3 border-t border-slate-50 dark:border-slate-800/40 text-[10px] text-slate-400 font-semibold flex justify-between">
-                <span>Attachments: {d.attachments?.length || 0}</span>
-                <span>Mod: {new Date(d.updated_at).toLocaleDateString()}</span>
+                <span>{"Attachments:"}{d.attachments?.length || 0}</span>
+                <span>{"Mod:"}{new Date(d.updated_at).toLocaleDateString()}</span>
               </div>
             </CardContent>
           </Card>
@@ -1608,15 +1705,60 @@ export function DraftTickets() {
         {drafts.length === 0 && (
           <div className="col-span-full py-16 text-center bg-white dark:bg-[#0B1222] rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
             <span className="text-4xl mb-4">💾</span>
-            <h4 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Workspace Draft Empty</h4>
+            <h4 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{"Workspace Draft Empty"}</h4>
             <p className="text-[#94A3B8] max-w-sm mx-auto mb-6 text-sm">
-              When creating a ticket, choose 'Save Local Draft' to prevent operational work loss.
-            </p>
+              {"When creating a ticket, choose 'Save Local Draft' to prevent operational work loss."}</p>
             <Button onClick={() => navigate('/dashboard/register')} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 shadow-md rounded-xl">
-              File New Ticket
-            </Button>
+              {"File New Ticket"}</Button>
           </div>
         )}
+      
+        {/* Accessibility */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ACCESSIBILITY"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"High Contrast Text"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Reduce Motion"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Privacy */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"PRIVACY"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Data Sharing"}</span>
+              <button className="w-8 h-4 rounded-full bg-blue-500"></button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Cookie Preferences"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* About */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ABOUT"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4 text-center">
+            <div className="text-sm font-black text-slate-900 dark:text-white">{"Workplace Hub"}</div>
+            <div className="text-xs text-slate-500">{"Version 4.1.0"}</div>
+            <div className="text-xs text-blue-500 hover:underline cursor-pointer">{"Terms of Service"}</div>
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );
@@ -1626,6 +1768,7 @@ export function DraftTickets() {
    4. SEPARATE USER ACTION NOTIFICATIONS (PHASE 5/8)
    ========================================== */
 export function UserNotificationsView() {
+    
   const { user } = useAuth();
   const [notifs, setNotifs] = useState<UserNotification[]>([]);
   const [activeCategory, setActiveCategory] = useState<"All" | "Tickets" | "Notices" | "Approvals" | "AI Recommendations">("All");
@@ -1677,8 +1820,8 @@ export function UserNotificationsView() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Support Alerts & Notifications</h2>
-        <p className="text-xs text-slate-450 dark:text-slate-400 mt-1">Review dedicated system responses, administrative viewing updates, and ticket remarks directed to your account.</p>
+        <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{"Support Alerts & Notifications"}</h2>
+        <p className="text-xs text-slate-450 dark:text-slate-400 mt-1">{"Review dedicated system responses, administrative viewing updates, and ticket remarks directed to your account."}</p>
       </div>
 
       {/* Categories Filter Tabs */}
@@ -1728,9 +1871,9 @@ export function UserNotificationsView() {
 
             <div className="flex gap-2.5 shrink-0">
               {item.unread && (
-                <button onClick={() => markRead(item.id)} className="text-[10px] text-blue-600 hover:underline font-bold">Mark Read</button>
+                <button onClick={() => markRead(item.id)} className="text-[10px] text-blue-600 hover:underline font-bold">{"Mark Read"}</button>
               )}
-              <button onClick={() => deleteNotif(item.id)} className="text-[10.5px] text-slate-400 hover:text-red-500">✕ Delete</button>
+              <button onClick={() => deleteNotif(item.id)} className="text-[10.5px] text-slate-400 hover:text-red-500">{"✕ Delete"}</button>
             </div>
           </div>
         ))}
@@ -1738,12 +1881,58 @@ export function UserNotificationsView() {
         {filteredNotifs.length === 0 && (
           <div className="col-span-full py-16 text-center bg-white dark:bg-[#0B1222] rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
             <span className="text-4xl mb-4">📭</span>
-            <h4 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Notice Cache Empty</h4>
+            <h4 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{"Notice Cache Empty"}</h4>
             <p className="text-[#94A3B8] max-w-sm mx-auto text-sm">
-              No notifications exist for category '{activeCategory}' currently.
-            </p>
+              {"No notifications exist for category '"}{activeCategory}{"' currently."}</p>
           </div>
         )}
+      
+        {/* Accessibility */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ACCESSIBILITY"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"High Contrast Text"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Reduce Motion"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Privacy */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"PRIVACY"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Data Sharing"}</span>
+              <button className="w-8 h-4 rounded-full bg-blue-500"></button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Cookie Preferences"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* About */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ABOUT"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4 text-center">
+            <div className="text-sm font-black text-slate-900 dark:text-white">{"Workplace Hub"}</div>
+            <div className="text-xs text-slate-500">{"Version 4.1.0"}</div>
+            <div className="text-xs text-blue-500 hover:underline cursor-pointer">{"Terms of Service"}</div>
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );
@@ -1753,6 +1942,7 @@ export function UserNotificationsView() {
    5. MY COMPLAINTS LIST WITH DETAILS (PHASE 3/4 STATUS PROGRESSION)
    ========================================== */
 export function MyTickets() {
+    
   const { user } = useAuth();
   const navigate = useNavigate();
   const [tickets, setTickets] = useState<any[]>([]);
@@ -1974,8 +2164,8 @@ export function MyTickets() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-black text-slate-805 dark:text-white tracking-tight">Active Portal Support Tickets</h2>
-        <p className="text-xs text-slate-550 dark:text-slate-400 mt-1">Audit active progress lines, check SLA target compliance, recover ticket previews and add remarks.</p>
+        <h2 className="text-2xl font-black text-slate-805 dark:text-white tracking-tight">{"Active Portal Support Tickets"}</h2>
+        <p className="text-xs text-slate-550 dark:text-slate-400 mt-1">{"Audit active progress lines, check SLA target compliance, recover ticket previews and add remarks."}</p>
       </div>
 
       {/* Grid of registered cases */}
@@ -1995,7 +2185,7 @@ export function MyTickets() {
             >
               <div>
                 <div className="flex items-center justify-between gap-4 mb-3">
-                  <span className="text-[9.5px] font-mono font-bold text-slate-450 uppercase">Workplace Hub-{c.id.toString().substring(0, 5).toUpperCase()}</span>
+                  <span className="text-[9.5px] font-mono font-bold text-slate-450 uppercase">{"Workplace Hub-"}{c.id.toString().substring(0, 5).toUpperCase()}</span>
                   <div className="flex items-center gap-1.5">
                     <Badge variant="outline" className={`capitalize font-bold text-[9px] ${
                       currSeverity === 'Critical' ? 'bg-red-50 text-red-600 border-red-250' :
@@ -2056,9 +2246,9 @@ export function MyTickets() {
                     const IconComponent = CATEGORY_ICONS[c.issue_type] || Info;
                     return <IconComponent className="w-3.5 h-3.5 text-blue-500 shrink-0" />;
                   })()}
-                  <span>{c.issue_type} Segment</span>
+                  <span>{c.issue_type} {"Segment"}</span>
                 </span>
-                <span className="text-blue-500 font-extrabold flex items-center gap-1">Track & Dialog ➔</span>
+                <span className="text-blue-500 font-extrabold flex items-center gap-1">{"Track & Dialog ➔"}</span>
               </div>
             </div>
           )})}
@@ -2066,22 +2256,19 @@ export function MyTickets() {
         {tickets.length === 0 && (
           <div className="col-span-full py-16 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-[#0B1222] flex flex-col items-center justify-center">
             <span className="text-4xl mb-4">📋</span>
-            <h4 className="text-xl font-bold text-slate-800 dark:text-white mb-2">No Tickets Yet</h4>
+            <h4 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{"No Tickets Yet"}</h4>
             <p className="text-[#94A3B8] max-w-sm mx-auto mb-6 text-sm">
-              You haven't submitted any tickets.
-            </p>
+              {"You haven't submitted any tickets."}</p>
             <div className="flex flex-col gap-3 items-center">
               <Button onClick={() => navigate('/dashboard/register')} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 shadow-md rounded-xl">
-                Create Ticket
-              </Button>
+                {"Create Ticket"}</Button>
               <div className="mt-4 text-xs text-[#94A3B8] flex flex-col items-center">
-                <span>Need help?</span>
+                <span>{"Need help?"}</span>
                 <button 
                   onClick={() => navigate('/dashboard/ai-assistant')} 
                   className="text-blue-500 hover:text-blue-400 font-bold mt-1 flex items-center gap-1 transition-colors"
                 >
-                  Ask Workplace Hub AI Assistant ➔
-                </button>
+                  {"Ask Workplace Hub AI Assistant ➔"}</button>
               </div>
             </div>
           </div>
@@ -2128,15 +2315,14 @@ export function MyTickets() {
                 {/* upper split bar controls */}
                 <div className="p-5.5 border-b border-slate-50 dark:border-slate-800/60 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/40">
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-mono font-black text-blue-500 uppercase tracking-widest bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded">TICKET_DEEP_AUDIT</span>
-                    <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-150">Workplace Hub-{c.id.toString().substring(0, 8).toUpperCase()}</h3>
+                    <span className="text-[10px] font-mono font-black text-blue-500 uppercase tracking-widest bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded">{"TICKET_DEEP_AUDIT"}</span>
+                    <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-150">{"Workplace Hub-"}{c.id.toString().substring(0, 8).toUpperCase()}</h3>
                   </div>
                   <button 
                     onClick={() => setSelectedTicket(null)}
                     className="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors"
                   >
-                    ✕ Close
-                  </button>
+                    {"✕ Close"}</button>
                 </div>
 
                 {/* Double sided scroll track */}
@@ -2145,23 +2331,22 @@ export function MyTickets() {
                   {/* LEFT PANE: Operational Details log & SLA Target */}
                   <div className="p-6 space-y-6">
                     <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">Ticket Classification</span>
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">{"Ticket Classification"}</span>
                       <h4 className="text-md font-black text-slate-850 dark:text-white mt-1 leading-tight">{parsed.title}</h4>
                       
                       <div className="flex gap-2.5 mt-2 flex-wrap">
-                        <Badge variant="outline" className="text-[10px] bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800/80 uppercase font-black tracking-wider text-slate-500">{c.issue_type} Segment</Badge>
+                        <Badge variant="outline" className="text-[10px] bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800/80 uppercase font-black tracking-wider text-slate-500">{c.issue_type} {"Segment"}</Badge>
                         <Badge variant="outline" className={`text-[10px] uppercase font-black tracking-wider ${
                           currSeverity === 'Critical' ? 'bg-red-50 text-red-650 border-red-150' : 'bg-slate-50 text-slate-500'
-                        }`}>{currSeverity} Alarm</Badge>
+                        }`}>{currSeverity} {"Alarm"}</Badge>
                       </div>
                     </div>
 
                     {/* Detailed text */}
                     <div className="space-y-2">
-                      <span className="text-[10px] font-extrabold uppercase text-[#8B5CF6] tracking-wider font-mono">Operations Log Log</span>
+                      <span className="text-[10px] font-extrabold uppercase text-[#8B5CF6] tracking-wider font-mono">{"Operations Log Log"}</span>
                       <p className="text-xs text-slate-650 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-[#111A2E]/40 border border-slate-100 dark:border-slate-800/80 p-4.5 rounded-2xl italic">
-                        &ldquo;{parsed.description}&rdquo;
-                      </p>
+                        {"&ldquo;"}{parsed.description}{"&rdquo;"}</p>
                     </div>
 
                     {/* SLA countdown targets */}
@@ -2184,8 +2369,7 @@ export function MyTickets() {
                     <div className="bg-blue-50/15 dark:bg-blue-950/10 border border-blue-100 dark:border-blue-900/30 p-4 rounded-xl space-y-1">
                       <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-1">
                         <Sparkles className="w-3.5 h-3.5 animate-pulse text-blue-500" />
-                        Gemini AI Condensed Synopsis
-                      </span>
+                        {"Gemini AI Condensed Synopsis"}</span>
                       <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed font-medium">
                         {loadingSummary ? "Analyzing diagnostic paragraphs..." : aiSummary}
                       </p>
@@ -2194,7 +2378,7 @@ export function MyTickets() {
                     {/* RENDER ATTACHMENTS FOR WORKSTATIONS */}
                     {tAttachments.length > 0 && (
                       <div className="space-y-3">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Supporting attachments ledger</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{"Supporting attachments ledger"}</span>
                         
                         {/* WhatsApp preview grid */}
                         {storedImages.length > 0 && (
@@ -2208,7 +2392,7 @@ export function MyTickets() {
                                 }}
                                 className="aspect-square bg-slate-50 border border-slate-100 rounded-lg overflow-hidden cursor-zoom-in hover:brightness-95"
                               >
-                                <img src={img.dataUrl} alt="Attachments log zoomed" className="w-full h-full object-cover" />
+                                <img src={img.dataUrl} alt={"Attachments log zoomed"} className="w-full h-full object-cover" />
                               </div>
                             ))}
                           </div>
@@ -2220,7 +2404,7 @@ export function MyTickets() {
                             {storedDocs.map((doc) => (
                               <div key={doc.id} className="flex justify-between items-center p-2 rounded bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-[10px]">
                                 <span className="font-mono text-slate-550 truncate max-w-[150px]">{doc.name}</span>
-                                <span className="font-extrabold text-slate-400 uppercase">{(doc.size / 1024).toFixed(1)} KB</span>
+                                <span className="font-extrabold text-slate-400 uppercase">{(doc.size / 1024).toFixed(1)} {"KB"}</span>
                               </div>
                             ))}
                           </div>
@@ -2233,7 +2417,7 @@ export function MyTickets() {
                       {hasBeenViewed ? (
                         <div className="flex items-center gap-2 text-xs text-slate-450 dark:text-slate-500 font-bold bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-850 w-full justify-center">
                           <Eye className="w-4.5 h-4.5 text-blue-500 animate-pulse" />
-                          <span>🔒 Active support review cycle initiated. Modification restricted.</span>
+                          <span>{"🔒 Active support review cycle initiated. Modification restricted."}</span>
                         </div>
                       ) : (
                         <>
@@ -2255,17 +2439,15 @@ export function MyTickets() {
                               }}
                               className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-9 px-4 rounded-xl text-xs flex items-center gap-1"
                             >
-                              <Edit3 className="w-3.5 h-3.5" /> Edit Details
-                            </Button>
+                              <Edit3 className="w-3.5 h-3.5" /> {"Edit Details"}</Button>
                             <Button 
                               onClick={() => handleDeleteTicket(c)}
                               variant="outline" 
                               className="text-red-500 border-slate-100 dark:border-slate-850 hover:bg-red-50 h-9 px-4 rounded-xl text-xs flex items-center gap-1"
                             >
-                              <Trash2 className="w-3.5 h-3.5" /> Discard Ticket
-                            </Button>
+                              <Trash2 className="w-3.5 h-3.5" /> {"Discard Ticket"}</Button>
                           </div>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase">Pre-viewed modification mode</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase">{"Pre-viewed modification mode"}</span>
                         </>
                       )}
                     </div>
@@ -2276,13 +2458,13 @@ export function MyTickets() {
                         {ratingSubmitted[c.id] ? (
                           <div className="p-4 bg-emerald-50/40 dark:bg-emerald-950/15 border border-emerald-100 dark:border-[#1F332E] rounded-2xl text-xs font-bold text-center text-emerald-600 flex items-center justify-center gap-2">
                             <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                            <span>Operational satisfaction scorecard recorded. Thank you!</span>
+                            <span>{"Operational satisfaction scorecard recorded. Thank you!"}</span>
                           </div>
                         ) : (
                           <form onSubmit={submitSatisfactionRating} className="bg-slate-50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-850 p-5 rounded-2xl space-y-4">
                             <div className="text-center">
-                              <span className="text-[10px] font-black uppercase tracking-widest text-[#8B5CF6]">Step 3: Verification Scorecard</span>
-                              <h4 className="text-xs font-black text-slate-800 dark:text-white mt-1 leading-none">Rate resolution operations quality</h4>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-[#8B5CF6]">{"Step 3: Verification Scorecard"}</span>
+                              <h4 className="text-xs font-black text-slate-800 dark:text-white mt-1 leading-none">{"Rate resolution operations quality"}</h4>
                             </div>
 
                             {/* Stars rating */}
@@ -2302,15 +2484,14 @@ export function MyTickets() {
                             </div>
 
                             <Textarea 
-                              placeholder="Any comments regarding resolution quality or professional operations speed? (Optional)..."
+                              placeholder={"Any comments regarding resolution quality or professional operations speed? (Optional)..."}
                               value={ratingDraftDesc}
                               onChange={e => setRatingDraftDesc(e.target.value)}
                               className="text-xs min-h-16 bg-white dark:bg-[#0B1222] resize-none"
                             />
 
                             <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-9 rounded-xl text-xs">
-                              Submit Scorecard Feedback
-                            </Button>
+                              {"Submit Scorecard Feedback"}</Button>
                           </form>
                         )}
                       </div>
@@ -2323,7 +2504,7 @@ export function MyTickets() {
                     
                     {/* Upper timeline timeline */}
                     <div className="space-y-5 overflow-y-auto pr-1">
-                      <span className="text-[10px] font-black uppercase text-slate-400 block tracking-wider">Operational Triage Progression</span>
+                      <span className="text-[10px] font-black uppercase text-slate-400 block tracking-wider">{"Operational Triage Progression"}</span>
                       
                       {/* Interactive circular checkpoint milestone indicator with timestamps */}
                       <div className="grid grid-cols-4 gap-2.5 pb-4 border-b border-slate-50 dark:border-slate-850/60 text-center">
@@ -2391,16 +2572,14 @@ export function MyTickets() {
                           <div className="bg-emerald-50/15 dark:bg-emerald-950/10 border-2 border-dashed border-emerald-500/30 p-4 rounded-xl space-y-3 mt-1 shadow-2xs">
                             <div className="space-y-1">
                               <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-widest flex items-center gap-1.5 label-satisfaction">
-                                🏁 Resolution Recommendation Note
-                              </span>
+                                {"🏁 Resolution Recommendation Note"}</span>
                               <p className="text-xs font-bold text-slate-700 dark:text-slate-205 leading-relaxed bg-white dark:bg-[#0B1222] border border-emerald-100 dark:border-[#1E3029] p-3 rounded-lg italic">
-                                &ldquo;{actualNote}&rdquo;
-                              </p>
+                                {"&ldquo;"}{actualNote}{"&rdquo;"}</p>
                             </div>
 
                             {afterFiles.length > 0 && (
                               <div className="space-y-1.5 pt-1.5 border-t border-emerald-100/30">
-                                <span className="text-[9.5px] uppercase font-bold text-slate-450 tracking-wider block">📸 Resolution Screenshot Proof</span>
+                                <span className="text-[9.5px] uppercase font-bold text-slate-450 tracking-wider block">{"📸 Resolution Screenshot Proof"}</span>
                                 <div className="bg-white/45 dark:bg-black/25 p-2 rounded-lg border border-emerald-100/25">
                                   <MediaGallery attachments={afterFiles} allowEdit={false} />
                                 </div>
@@ -2412,18 +2591,17 @@ export function MyTickets() {
 
                       {/* Communications Remarks Dialogue block */}
                       <div className="space-y-4 pt-1.5">
-                        <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 block">SUPPORT LOG remarks sync</span>
+                        <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 block">{"SUPPORT LOG remarks sync"}</span>
                         
                         <div className="space-y-3">
                           {/* Baseline creation statement */}
                           <div className="p-3 bg-slate-50 dark:bg-[#131E33] border border-slate-150 dark:border-slate-800Rounded border-slate-100 text-[10.5px] text-slate-500 rounded-xl leading-relaxed">
-                            <span className="text-blue-500 font-extrabold mr-1">🟢 AUDIT BEGIN:</span> Incident files dispatches targets matching priority window {currSeverity} severity successfully.
-                          </div>
+                            <span className="text-blue-500 font-extrabold mr-1">{"🟢 AUDIT BEGIN:"}</span> {"Incident files dispatches targets matching priority window"}{currSeverity} {"severity successfully."}</div>
 
                           {/* Viewed alert announcement */}
                           {hasBeenViewed && (
                             <div className="p-3 bg-blue-50/20 dark:bg-blue-950/20 border border-blue-100/30 p-3 rounded-xl text-[10.5px] text-slate-550 flex items-center gap-1.5 leading-relaxed">
-                              <span>📂 Administrative operations leads reviewed the log index and opened an active diagnostic review.</span>
+                              <span>{"📂 Administrative operations leads reviewed the log index and opened an active diagnostic review."}</span>
                             </div>
                           )}
 
@@ -2445,7 +2623,7 @@ export function MyTickets() {
                           })}
 
                           {activeComments.length === 0 && !hasBeenViewed && (
-                            <p className="text-[10px] italic text-slate-400 text-center py-4 font-semibold">No operational remarks recorded. Type beneath to request updates.</p>
+                            <p className="text-[10px] italic text-slate-400 text-center py-4 font-semibold">{"No operational remarks recorded. Type beneath to request updates."}</p>
                           )}
                         </div>
                       </div>
@@ -2455,14 +2633,13 @@ export function MyTickets() {
                     {c.status !== 'Resolved' && (
                       <form onSubmit={handleAddNoteSubmit} className="pt-4 border-t border-slate-50 dark:border-slate-850/50 flex gap-2">
                         <Input 
-                          placeholder="Type quick operations remark details..."
+                          placeholder={"Type quick operations remark details..."}
                           value={supplementaryNote}
                           onChange={e => setSupplementaryNote(e.target.value)}
                           className="text-xs h-9.5 rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
                         />
                         <Button type="submit" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-9.5 px-4 rounded-xl text-xs">
-                          Post Remark
-                        </Button>
+                          {"Post Remark"}</Button>
                       </form>
                     )}
 
@@ -2582,6 +2759,7 @@ export function parseNotice(n: any): ParsedNotice {
    6. Bulletins broadcasts lists (RE-ARCHITECTED ENHANCED VERSION)
    ========================================== */
 export function Notices() {
+    
   const [rawNotices, setRawNotices] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
@@ -2736,11 +2914,9 @@ export function Notices() {
         <div>
           <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <Megaphone className="w-6 h-6 text-blue-500" />
-            System Notice Broadcasts
-          </h2>
+            {"System Notice Broadcasts"}</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Review live infrastructure alerts, upcoming downtime schedules, mandatory compliance reviews, and company policy bulletins.
-          </p>
+            {"Review live infrastructure alerts, upcoming downtime schedules, mandatory compliance reviews, and company policy bulletins."}</p>
         </div>
       </div>
 
@@ -2749,7 +2925,7 @@ export function Notices() {
         <div className="space-y-3">
           <div className="flex items-center gap-1.5 px-1">
             <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-            <span className="text-[11px] font-black uppercase text-amber-600 dark:text-amber-500 tracking-wider">Featured Workspace Directives ({featuredNotices.length})</span>
+            <span className="text-[11px] font-black uppercase text-amber-600 dark:text-amber-500 tracking-wider">{"Featured Workspace Directives ("}{featuredNotices.length})</span>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
@@ -2778,16 +2954,13 @@ export function Notices() {
                   <div className="flex-1 space-y-2.5 z-10 relative">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full ${styles.badgeText}`}>
-                        {fn.category} Critical Update
-                      </span>
+                        {fn.category} {"Critical Update"}</span>
                       {isAck ? (
                         <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-800/80 text-emerald-400 border border-emerald-900/60 flex items-center gap-1">
-                          ✓ Acknowledged Directive
-                        </span>
+                          {"✓ Acknowledged Directive"}</span>
                       ) : (
                         <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-800/80 text-amber-400 border border-amber-900/60 animate-pulse">
-                          ⚠ Unread Notice
-                        </span>
+                          {"⚠ Unread Notice"}</span>
                       )}
                       <span className="text-[9.5px] font-mono text-white/70 ml-auto whitespace-nowrap">
                         {new Date(fn.created_at).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
@@ -2816,7 +2989,7 @@ export function Notices() {
                         {isAck ? "✓ Acknowledged" : "Mark Acknowledged"}
                       </Button>
                       
-                      <span className="text-[10px] text-white/60 font-medium">Please review guidelines explicitly. Contact Operations in case of failures.</span>
+                      <span className="text-[10px] text-white/60 font-medium">{"Please review guidelines explicitly. Contact Operations in case of failures."}</span>
                     </div>
                   </div>
                 </Card>
@@ -2834,7 +3007,7 @@ export function Notices() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <Input 
               type="text" 
-              placeholder="Search announcements, tags, messages..." 
+              placeholder={"Search announcements, tags, messages..."} 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 h-10 text-xs bg-slate-50/50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800 rounded-2xl"
@@ -2843,7 +3016,7 @@ export function Notices() {
 
           {/* Quick Stats Indicator */}
           <div className="flex items-center gap-2 justify-end text-xs font-bold text-slate-500 px-1">
-            <span>Bulletins Parsed:</span>
+            <span>{"Bulletins Parsed:"}</span>
             <Badge className="bg-blue-50 hover:bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400 font-extrabold rounded-lg">{filteredNotices.length}</Badge>
           </div>
         </div>
@@ -2904,8 +3077,7 @@ export function Notices() {
                     </Badge>
                     {isAck && (
                       <span className="text-[8.5px] font-bold text-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-500/10 flex items-center gap-1">
-                        ✓ Acknowledged
-                      </span>
+                        {"✓ Acknowledged"}</span>
                     )}
                     <span className="text-[10px] font-mono font-bold text-slate-400 ml-auto sm:ml-0 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700/60 px-2 py-0.5 rounded-full">
                       {new Date(n.created_at).toLocaleDateString([], { month: "short", day: "numeric" })}
@@ -2945,12 +3117,58 @@ export function Notices() {
         {filteredNotices.length === 0 && (
           <div className="col-span-full py-16 text-center bg-white dark:bg-[#0B1222] rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800/60 flex flex-col items-center justify-center">
             <span className="text-4xl mb-4">📢</span>
-            <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Notice Cache Empty</h4>
+            <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-2">{"Notice Cache Empty"}</h4>
             <p className="text-[#94A3B8] max-w-sm mx-auto text-xs max-w-xs leading-relaxed">
-              No bulletins exist for category '{activeCategory}' matching your query. We will broadcast updates as they arise.
-            </p>
+              {"No bulletins exist for category '"}{activeCategory}{"' matching your query. We will broadcast updates as they arise."}</p>
           </div>
         )}
+      
+        {/* Accessibility */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ACCESSIBILITY"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"High Contrast Text"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Reduce Motion"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Privacy */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"PRIVACY"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Data Sharing"}</span>
+              <button className="w-8 h-4 rounded-full bg-blue-500"></button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Cookie Preferences"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* About */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ABOUT"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4 text-center">
+            <div className="text-sm font-black text-slate-900 dark:text-white">{"Workplace Hub"}</div>
+            <div className="text-xs text-slate-500">{"Version 4.1.0"}</div>
+            <div className="text-xs text-blue-500 hover:underline cursor-pointer">{"Terms of Service"}</div>
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );
@@ -2960,6 +3178,7 @@ export function Notices() {
    7. USER PROFILE SUMMARY
    ========================================== */
 export function UserProfile() {
+    
   const { user, dbUser } = useAuth();
   const [stats, setStats] = useState({ total: 0, resolved: 0 });
 
@@ -2979,8 +3198,8 @@ export function UserProfile() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h2 className="text-2xl font-black text-slate-805 dark:text-white tracking-tight">Active Client Identity</h2>
-        <p className="text-xs text-slate-450 dark:text-slate-400 mt-1">Review active logged operations segments, connection parameters and registered credentials.</p>
+        <h2 className="text-2xl font-black text-slate-805 dark:text-white tracking-tight">{"Active Client Identity"}</h2>
+        <p className="text-xs text-slate-450 dark:text-slate-400 mt-1">{"Review active logged operations segments, connection parameters and registered credentials."}</p>
       </div>
 
       <Card className="border border-slate-100 dark:border-[#1E293B] shadow-lg bg-white dark:bg-[#0B1222] backdrop-blur-xl">
@@ -2993,19 +3212,19 @@ export function UserProfile() {
               <h3 className="text-lg font-black text-slate-800 dark:text-white">{dbUser?.name || 'Helper Account'}</h3>
               <p className="text-xs text-slate-450 dark:text-slate-400">{dbUser?.email || user?.email}</p>
               <div className="flex justify-center md:justify-start gap-2 pt-1">
-                <Badge className="bg-blue-600 text-white uppercase text-[9px] font-extrabold tracking-wider px-2 py-0.5">Business User Client</Badge>
-                <Badge variant="outline" className="text-[9px] font-extrabold tracking-wider border-slate-200 dark:border-slate-800">SaaS Gateway Active</Badge>
+                <Badge className="bg-blue-600 text-white uppercase text-[9px] font-extrabold tracking-wider px-2 py-0.5">{"Business User Client"}</Badge>
+                <Badge variant="outline" className="text-[9px] font-extrabold tracking-wider border-slate-200 dark:border-slate-800">{"SaaS Gateway Active"}</Badge>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50 dark:border-slate-850/50">
             <div className="bg-slate-50/50 dark:bg-[#162033]/20 p-4 rounded-xl border border-slate-100 dark:border-slate-850/60">
-              <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">Logged Tickets</span>
+              <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">{"Logged Tickets"}</span>
               <span className="text-2xl font-black text-slate-800 dark:text-white mt-1.5 block leading-none">{stats.total}</span>
             </div>
             <div className="bg-emerald-50/10 dark:bg-[#11302A]/10 p-4 rounded-xl border border-emerald-100/30 dark:border-[#1A2E2A]">
-              <span className="text-[9px] font-extrabold text-[#10B981] uppercase tracking-widest block">Resolved SLA</span>
+              <span className="text-[9px] font-extrabold text-[#10B981] uppercase tracking-widest block">{"Resolved SLA"}</span>
               <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1.5 block leading-none">{stats.resolved}</span>
             </div>
           </div>
@@ -3019,6 +3238,7 @@ export function UserProfile() {
    8. CLIENT SETTINGS PANEL
    ========================================== */
 export function UserSettings() {
+    
   const { theme, setTheme } = useTheme();
   const [accent, setAccent] = useState(() => localStorage.getItem("dcms_brand_accent") || "blue");
   const [notifCrit, setNotifCrit] = useState(true);
@@ -3047,8 +3267,8 @@ export function UserSettings() {
   return (
     <div className="max-w-3xl mx-auto space-y-8 font-sans">
       <div>
-        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">System Preferences</h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Configure workspace aesthetic colors, dashboard lightmodes, and system operations notification limits.</p>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{"System Preferences"}</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{"Configure workspace aesthetic colors, dashboard lightmodes, and system operations notification limits."}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -3056,7 +3276,7 @@ export function UserSettings() {
         {/* Aspect 1: Theme selection */}
         <Card className="md:col-span-3 border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222]">
           <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
-            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">workspace theme</CardTitle>
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"THEME"}<CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"workspace theme"}</CardTitle> {"BRANDING"}</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -3141,10 +3361,10 @@ export function UserSettings() {
         {/* Aspect 2: Accent color branding */}
         <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1.5">
           <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
-            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">system branding accent</CardTitle>
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"system branding accent"}</CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
-            <p className="text-[11px] text-slate-500 leading-relaxed">Customize UI focus borders, checkmarks, and special visual headers dynamically.</p>
+            <p className="text-[11px] text-slate-500 leading-relaxed">{"Customize UI focus borders, checkmarks, and special visual headers dynamically."}</p>
             <div className="flex flex-col gap-2">
               {accentsList.map((ax) => (
                 <div 
@@ -3160,9 +3380,23 @@ export function UserSettings() {
                     <div className={`w-4 h-4 rounded-full ring-2 ring-offset-2 ring-transparent transition-all ${ax.color} ${accent === ax.id ? 'scale-110' : ''}`}></div>
                     <span className="text-xs text-slate-705 dark:text-slate-300">{ax.label}</span>
                   </div>
-                  {accent === ax.id && <span className="text-xs text-blue-500 font-bold">Active</span>}
+                  {accent === ax.id && <span className="text-xs text-blue-500 font-bold">{"Active"}</span>}
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+
+        {/* Language Preferences */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1.5">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"LANGUAGE"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <p className="text-[11px] text-slate-500 leading-relaxed">{"Change the language of the entire application interface."}</p>
+            <div className="flex flex-col gap-2">
+               
             </div>
           </CardContent>
         </Card>
@@ -3170,16 +3404,16 @@ export function UserSettings() {
         {/* Aspect 3: SLA Notifications */}
         <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1.5">
           <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
-            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">email notifications</CardTitle>
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"email notifications"}</CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-5">
-            <p className="text-[11px] text-slate-500 leading-relaxed">Toggle operational threshold limits and email dispatch intervals for filed incident tickets.</p>
+            <p className="text-[11px] text-slate-500 leading-relaxed">{"Toggle operational threshold limits and email dispatch intervals for filed incident tickets."}</p>
             
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-900/50 rounded-xl">
                 <div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250">Critical Incidents Alert</p>
-                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">Instant alerts when 2-hour SLA is breached</p>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250">{"Critical Incidents Alert"}</p>
+                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">{"Instant alerts when 2-hour SLA is breached"}</p>
                 </div>
                 <div 
                   onClick={() => setNotifCrit(!notifCrit)}
@@ -3191,8 +3425,8 @@ export function UserSettings() {
 
               <div className="flex items-center justify-between p-3 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-900/50 rounded-xl">
                 <div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250">SLA Daily Executive Summary</p>
-                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">Aggregate metric summary dispatched at 17:00 UTC</p>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250">{"SLA Daily Executive Summary"}</p>
+                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">{"Aggregate metric summary dispatched at 17:00 UTC"}</p>
                 </div>
                 <div 
                   onClick={() => setNotifSla(!notifSla)}
@@ -3208,17 +3442,17 @@ export function UserSettings() {
         {/* Aspect 4: Onboarding & Interactive Tutorials */}
         <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-3">
           <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
-            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">onboarding & tutorial preferences</CardTitle>
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"onboarding & tutorial preferences"}</CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
-            <p className="text-[11px] text-slate-500 leading-relaxed">Customize guided walkthrough prompts, automated platform tours, and contextual onboarding indicators.</p>
+            <p className="text-[11px] text-slate-500 leading-relaxed">{"Customize guided walkthrough prompts, automated platform tours, and contextual onboarding indicators."}</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               
               <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-900/50 rounded-xl">
                 <div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250">Smart Assistant Suggestions & Tips</p>
-                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">Show helpful contextual overlays and tips during periods of inactivity</p>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250">{"Smart Assistant Suggestions & Tips"}</p>
+                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">{"Show helpful contextual overlays and tips during periods of inactivity"}</p>
                 </div>
                 <div 
                   onClick={toggleSuggestions}
@@ -3230,8 +3464,8 @@ export function UserSettings() {
 
               <div className="flex flex-col sm:flex-row items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-900/50 rounded-xl gap-3">
                 <div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250">Interactive Guide Replay</p>
-                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">Immediately launch the main portal operations guide</p>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250">{"Interactive Guide Replay"}</p>
+                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">{"Immediately launch the main portal operations guide"}</p>
                 </div>
                 <Button
                   type="button"
@@ -3243,14 +3477,13 @@ export function UserSettings() {
                   }}
                   className="text-[10px] font-bold h-7 cursor-pointer"
                 >
-                  Replay Tour
-                </Button>
+                  {"Replay Tour"}</Button>
               </div>
 
               <div className="flex flex-col sm:flex-row items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-900/50 rounded-xl gap-3">
                 <div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250 text-red-500">Reset Tutorial Milestones</p>
-                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">Mark all guided procedures as incomplete and trigger welcome screen on next sign-in</p>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250 text-red-500">{"Reset Tutorial Milestones"}</p>
+                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">{"Mark all guided procedures as incomplete and trigger welcome screen on next sign-in"}</p>
                 </div>
                 <Button
                   type="button"
@@ -3266,14 +3499,13 @@ export function UserSettings() {
                   }}
                   className="text-[10px] font-bold h-7 border-red-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer"
                 >
-                  Reset Milestones
-                </Button>
+                  {"Reset Milestones"}</Button>
               </div>
 
               <div className="flex flex-col sm:flex-row items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-900/50 rounded-xl gap-3">
                 <div>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250 font-sans">Clear Walkthrough History</p>
-                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">Erase saved walkthrough logs without resetting login status</p>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-250 font-sans">{"Clear Walkthrough History"}</p>
+                  <p className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">{"Erase saved walkthrough logs without resetting login status"}</p>
                 </div>
                 <Button
                   type="button"
@@ -3286,11 +3518,57 @@ export function UserSettings() {
                   }}
                   className="text-[10px] font-bold h-7 cursor-pointer"
                 >
-                  Clear Progress
-                </Button>
+                  {"Clear Progress"}</Button>
               </div>
 
             </div>
+          </CardContent>
+        </Card>
+
+      
+        {/* Accessibility */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ACCESSIBILITY"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"High Contrast Text"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Reduce Motion"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Privacy */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"PRIVACY"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Data Sharing"}</span>
+              <button className="w-8 h-4 rounded-full bg-blue-500"></button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{"Cookie Preferences"}</span>
+              <button className="w-8 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* About */}
+        <Card className="border border-slate-200/80 dark:border-slate-800/60 bg-white dark:bg-[#0B1222] md:col-span-1">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ABOUT"}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4 text-center">
+            <div className="text-sm font-black text-slate-900 dark:text-white">{"Workplace Hub"}</div>
+            <div className="text-xs text-slate-500">{"Version 4.1.0"}</div>
+            <div className="text-xs text-blue-500 hover:underline cursor-pointer">{"Terms of Service"}</div>
           </CardContent>
         </Card>
 
@@ -3303,6 +3581,7 @@ export function UserSettings() {
    9. FEEDBACK SYSTEM SUBMISSIONS
    ========================================== */
 export function UserFeedback() {
+    
   const { user } = useAuth();
   const [rating, setRating] = useState<number>(0);
   const [hoverRating, setHoverRating] = useState<number>(0);
@@ -3357,16 +3636,16 @@ export function UserFeedback() {
     <div className="max-w-xl mx-auto space-y-8">
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-black text-slate-805 dark:text-white tracking-tight">Operational Support Feedback</h2>
-          <p className="text-xs text-slate-450 dark:text-slate-400 mt-1">Provide satisfaction feedback regarding administrative remediation quality, dispatch routing speed and dashboard accessibility.</p>
+          <h2 className="text-2xl font-black text-slate-805 dark:text-white tracking-tight">{"Operational Support Feedback"}</h2>
+          <p className="text-xs text-slate-450 dark:text-slate-400 mt-1">{"Provide satisfaction feedback regarding administrative remediation quality, dispatch routing speed and dashboard accessibility."}</p>
         </div>
 
         <Card className="border border-slate-150 dark:border-[#1E293B] shadow-lg bg-white dark:bg-[#0B1222]">
           <CardContent className="p-8">
             <form onSubmit={handleFeedback} className="space-y-6">
               <div className="text-center space-y-1.5">
-                <label className="text-xs font-extrabold uppercase tracking-widest text-[#8B5CF6]">Platform Experience</label>
-                <p className="text-xs text-slate-500">Rate your overall experience with the IT Support Center</p>
+                <label className="text-xs font-extrabold uppercase tracking-widest text-[#8B5CF6]">{"Platform Experience"}</label>
+                <p className="text-xs text-slate-500">{"Rate your overall experience with the IT Support Center"}</p>
                 
                 <div className="flex justify-center gap-1.5 pt-3">
                   {[1,2,3,4,5].map((st) => (
@@ -3385,9 +3664,9 @@ export function UserFeedback() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-705 dark:text-slate-350">Platform Improvement Comments</label>
+                <label className="text-xs font-bold text-slate-705 dark:text-slate-350">{"Platform Improvement Comments"}</label>
                 <Textarea 
-                  placeholder="What details can we enhance to better serve your technical remediation cycles?..."
+                  placeholder={"What details can we enhance to better serve your technical remediation cycles?..."}
                   value={desc}
                   onChange={e => setDesc(e.target.value)}
                   required
@@ -3405,7 +3684,7 @@ export function UserFeedback() {
 
       {pastFeedback.length > 0 && (
         <div className="space-y-4 pt-6 mt-6 border-t border-slate-200 dark:border-slate-800">
-          <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">Your Past Feedback</h3>
+          <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{"Your Past Feedback"}</h3>
           <div className="space-y-4">
             {pastFeedback.map(f => {
               const state = responses[f.id] || {};
@@ -3420,13 +3699,13 @@ export function UserFeedback() {
                         <span className="text-[10px] text-slate-400 ml-2">{new Date(f.created_at).toLocaleDateString()}</span>
                       </div>
                       {state.status === "Resolved" && (
-                         <span className="text-[9px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded uppercase tracking-wider">Resolved</span>
+                         <span className="text-[9px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded uppercase tracking-wider">{"Resolved"}</span>
                       )}
                     </div>
                     <p className="text-sm text-slate-700 dark:text-slate-300 italic">"{f.message}"</p>
                     {state.reply && (
                       <div className="mt-3 p-3 bg-slate-50 dark:bg-[#111A2E]/50 rounded-lg border border-slate-100 dark:border-slate-800/60">
-                        <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest mb-1">Company Response</p>
+                        <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest mb-1">{"Company Response"}</p>
                         <p className="text-xs text-slate-700 dark:text-slate-300">{state.reply}</p>
                       </div>
                     )}

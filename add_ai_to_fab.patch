@@ -1,0 +1,27 @@
+--- src/components/DashboardLayout.tsx
++++ src/components/DashboardLayout.tsx
+@@ -628,6 +628,21 @@
+                             <Bell className="w-4.5 h-4.5" />
+                           </button>
+                         </div>
++                        
++                        {/* Action 3: AI Assistant */}
++                        <div className="flex items-center gap-2 group relative">
++                          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#0B1222] border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap absolute right-[110%] mr-2">
++                            AI Assistant
++                          </span>
++                          <button 
++                            onClick={() => {
++                              setFabOpen(false);
++                              navigate(dbUser?.role === 'admin' ? "/admin/ai-assistant" : "/dashboard/ai-assistant");
++                            }}
++                            className="w-11 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all border border-indigo-500"
++                            title="Open AI Assistant"
++                          >
++                            <Sparkles className="w-4.5 h-4.5" />
++                          </button>
++                        </div>
++
+                       </motion.div>
+                     )}
+                   </AnimatePresence>

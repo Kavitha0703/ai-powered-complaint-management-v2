@@ -22,6 +22,7 @@ interface MediaGalleryProps {
 }
 
 export function MediaGallery({ attachments, onDelete, allowEdit = false }: MediaGalleryProps) {
+    
   // Separate media (images & videos) from documents
   const mediaItems = useMemo(() => {
     return attachments.filter(a => a.type === "image" || a.type === "video");
@@ -239,7 +240,7 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
                         onDelete(item.id);
                       }}
                       className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 hover:bg-red-650 text-white flex items-center justify-center transition-colors shadow-sm z-10"
-                      title="Remove attachment"
+                      title={"Remove attachment"}
                     >
                       ×
                     </button>
@@ -249,7 +250,7 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
                   {isLastImage && (
                     <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-xs flex flex-col items-center justify-center font-bold text-white transition-colors hover:bg-slate-950/70">
                       <span className="text-xl">+{mediaItems.length - 3}</span>
-                      <span className="text-[10px] uppercase tracking-wider text-slate-300/90 font-mono mt-1">See Gallery</span>
+                      <span className="text-[10px] uppercase tracking-wider text-slate-300/90 font-mono mt-1">{"See Gallery"}</span>
                     </div>
                   )}
                 </div>
@@ -265,7 +266,7 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
           {mediaItems.length > 0 && (
             <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
               <Paperclip className="w-3.5 h-3.5 text-blue-500" />
-              <span>Supporting Documents ({documentItems.length})</span>
+              <span>{"Supporting Documents ("}{documentItems.length})</span>
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -280,7 +281,7 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="truncate font-semibold text-[11px] text-slate-700 dark:text-slate-200">{doc.name}</span>
-                    <span className="text-[9.5px] text-slate-400 font-medium uppercase font-mono mt-0.5">{(doc.size / 1024).toFixed(1)} KB</span>
+                    <span className="text-[9.5px] text-slate-400 font-medium uppercase font-mono mt-0.5">{(doc.size / 1024).toFixed(1)} {"KB"}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -295,7 +296,7 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
                       document.body.removeChild(link);
                     }}
                     className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg"
-                    title="Download document file"
+                    title={"Download document file"}
                   >
                     <Download className="w-3.5 h-3.5" />
                   </button>
@@ -328,7 +329,7 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
             <div className="bg-slate-950/80 p-4 border-b border-slate-900 flex justify-between items-center text-white z-20">
               <div className="flex flex-col text-left">
                 <span className="text-[10px] font-mono font-black text-cyan-400 tracking-widest uppercase">
-                  LIGHTBOX VIEW ({currentIndex + 1} / {mediaItems.length})
+                  {"LIGHTBOX VIEW ("}{currentIndex + 1} / {mediaItems.length})
                 </span>
                 <span className="text-xs font-bold font-mono text-slate-300 truncate max-w-[250px] sm:max-w-md mt-0.5">
                   {activeMedia.name}
@@ -342,7 +343,7 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
                     <button 
                       onClick={handleZoomIn} 
                       className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
-                      title="Zoom In (Max 4x)"
+                      title={"Zoom In (Max 4x)"}
                     >
                       <ZoomIn className="w-4.5 h-4.5" />
                     </button>
@@ -350,14 +351,14 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
                       onClick={handleZoomOut} 
                       disabled={zoom === 1}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-white disabled:opacity-40 hover:bg-slate-900 transition-colors"
-                      title="Zoom Out"
+                      title={"Zoom Out"}
                     >
                       <ZoomOut className="w-4.5 h-4.5" />
                     </button>
                     <button 
                       onClick={handleRotate} 
                       className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
-                      title="Rotate 90°"
+                      title={"Rotate 90°"}
                     >
                       <RotateCw className="w-4.5 h-4.5" />
                     </button>
@@ -366,7 +367,7 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
                 <button 
                   onClick={handleDownload} 
                   className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
-                  title="Download File"
+                  title={"Download File"}
                 >
                   <Download className="w-4.5 h-4.5" />
                 </button>
@@ -374,7 +375,7 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
                   <button 
                     onClick={handleDelete} 
                     className="p-1.5 rounded-lg text-red-400 hover:text-red-500 hover:bg-red-950/40 transition-colors border border-red-900/50"
-                    title="Delete Attachment"
+                    title={"Delete Attachment"}
                   >
                     <Trash2 className="w-4.5 h-4.5" />
                   </button>
@@ -383,8 +384,7 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
                   onClick={() => setLightboxOpen(false)} 
                   className="p-1 px-2.5 bg-slate-900 hover:bg-slate-800 rounded-lg text-slate-300 hover:text-white text-xs font-bold transition-colors ml-2 flex items-center gap-1"
                 >
-                  <X className="w-4 h-4" /> Close
-                </button>
+                  <X className="w-4 h-4" /> {"Close"}</button>
               </div>
             </div>
 
@@ -416,7 +416,7 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
                 >
                   <img 
                     src={activeMedia.dataUrl} 
-                    alt="Lightbox High-res Detail" 
+                    alt={"Lightbox High-res Detail"} 
                     className="max-h-[80vh] max-w-[95vw] sm:max-w-[80vw] object-contain transition-transform duration-200 rounded-lg"
                     style={{
                       transform: `scale(${zoom}) rotate(${rotation}deg)`,
@@ -433,14 +433,14 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
                   <button 
                     onClick={handlePrev}
                     className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-slate-800 bg-slate-900/60 text-white flex items-center justify-center hover:bg-slate-950 transition-colors hover:scale-105 z-10"
-                    title="Previous Attachment"
+                    title={"Previous Attachment"}
                   >
                     <ChevronLeft className="w-6 h-6" />
                   </button>
                   <button 
                     onClick={handleNext}
                     className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-slate-800 bg-slate-900/60 text-white flex items-center justify-center hover:bg-slate-950 transition-colors hover:scale-105 z-10"
-                    title="Next Attachment"
+                    title={"Next Attachment"}
                   >
                     <ChevronRight className="w-6 h-6" />
                   </button>
@@ -469,7 +469,7 @@ export function MediaGallery({ attachments, onDelete, allowEdit = false }: Media
                         <Play className="w-3.5 h-3.5 fill-current text-slate-300" />
                       </div>
                     ) : (
-                      <img src={item.dataUrl} alt="Thumbnail carousel" className="w-full h-full object-cover" />
+                      <img src={item.dataUrl} alt={"Thumbnail carousel"} className="w-full h-full object-cover" />
                     )}
                   </div>
                 ))}

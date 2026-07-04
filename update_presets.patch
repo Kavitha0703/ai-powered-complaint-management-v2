@@ -1,0 +1,79 @@
+--- src/components/DcmsCamera.tsx
++++ src/components/DcmsCamera.tsx
+@@ -1650,6 +1650,44 @@
+                       </div>
+ 
++                      {/* Camera Presets */}
++                      <div className="space-y-1.5 border-t border-slate-850 pt-3">
++                        <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">Capture Mode</label>
++                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
++                          {[
++                            { id: "standard", label: "Standard" },
++                            { id: "hd", label: "HD Detail" },
++                            { id: "document", label: "Doc Scan" },
++                            { id: "night", label: "Night Mode" },
++                            { id: "ultraclear", label: "Ultra Clear" },
++                            { id: "portrait", label: "Portrait" },
++                            { id: "macro", label: "Macro" },
++                            { id: "whiteboard", label: "Whiteboard" },
++                            { id: "lowlight", label: "Low Light" },
++                            { id: "textenhance", label: "Text Enhance" },
++                            { id: "ocr", label: "AI OCR" }
++                          ].map((mode) => (
++                            <button
++                              key={mode.id}
++                              onClick={() => {
++                                setActiveMode(mode.id as any);
++                                setSettingsMenuOpen(false);
++                              }}
++                              className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all text-center flex items-center justify-center ${
++                                activeMode === mode.id 
++                                  ? "bg-amber-500/20 border-amber-500 text-amber-400" 
++                                  : "bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-850"
++                              }`}
++                            >
++                              {mode.label}
++                            </button>
++                          ))}
++                        </div>
++                      </div>
++
+                       {/* Resolution presets */}
+                       <div className="space-y-1.5 border-t border-slate-850 pt-3">
+                         <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">Resolution</label>
+@@ -2297,36 +2335,6 @@
+ 
+-        {/* Symmetrical scrollable row of all 11 enterprise-grade camera presets */}
+-        {screen === "capture" && (
+-          <div className="border-b border-slate-850 pb-2.5">
+-            <div id="tour-camera-modes" className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none snap-x px-1 justify-start">
+-              {[
+-                { id: "standard", label: "Standard" },
+-                { id: "hd", label: "HD Detail" },
+-                { id: "document", label: "Doc Scan" },
+-                { id: "night", label: "Night Mode" },
+-                { id: "ultraclear", label: "Ultra Clear" },
+-                { id: "portrait", label: "Portrait" },
+-                { id: "macro", label: "Macro" },
+-                { id: "whiteboard", label: "Whiteboard" },
+-                { id: "lowlight", label: "Low Light" },
+-                { id: "textenhance", label: "Text Enhance" },
+-                { id: "ocr", label: "AI OCR" }
+-              ].map((mode) => (
+-                <button
+-                  key={mode.id}
+-                  onClick={() => setActiveMode(mode.id as any)}
+-                  className={`px-3.5 py-1.5 rounded-full text-[11px] font-extrabold uppercase font-mono border tracking-wider transition-all cursor-pointer shrink-0 snap-center ${
+-                    activeMode === mode.id 
+-                      ? "bg-amber-500 border-amber-400 text-black font-black" 
+-                      : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+-                  }`}
+-                >
+-                  {mode.label}
+-                </button>
+-              ))}
+-            </div>
+-          </div>
+-        )}
+-
+         {/* Action Controls based on current active screen state */}

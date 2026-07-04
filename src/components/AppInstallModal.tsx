@@ -13,6 +13,7 @@ interface AppInstallModalProps {
 }
 
 export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClose }: AppInstallModalProps) {
+    
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"install" | "scan" | "share" | "help">("install");
   
@@ -169,8 +170,8 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
           <div className="w-full md:w-56 bg-slate-950/45 border-r border-slate-800/80 p-5 flex flex-col justify-between">
             <div className="space-y-6">
               <div>
-                <h3 className="font-extrabold text-white text-base tracking-tight mt-1">App Installer</h3>
-                <p className="text-[10px] text-slate-500 mt-1">Workplace Hub PWA</p>
+                <h3 className="font-extrabold text-white text-base tracking-tight mt-1">{"App Installer"}</h3>
+                <p className="text-[10px] text-slate-500 mt-1">{"Workplace Hub PWA"}</p>
               </div>
 
               {/* Rails menu list */}
@@ -222,10 +223,9 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
                     <Smartphone className="w-8 h-8 text-blue-400" />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-white text-lg">Install Workplace Hub</h4>
+                    <h4 className="font-extrabold text-white text-lg">{"Install Workplace Hub"}</h4>
                     <p className="text-slate-400 text-xs mt-2 leading-relaxed">
-                      Run directly from your home screen with no app store downloads. Works offline and syncs automatically.
-                    </p>
+                      {"Run directly from your home screen with no app store downloads. Works offline and syncs automatically."}</p>
                   </div>
                   <button
                     onClick={triggerNativePWAInstall}
@@ -236,9 +236,9 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
                     }`}
                   >
                     {isInstalled ? (
-                      <><Check className="w-4 h-4" /> Installed Successfully</>
+                      <><Check className="w-4 h-4" /> {"Installed Successfully"}</>
                     ) : (
-                      <><Smartphone className="w-4 h-4" /> Install on this Device</>
+                      <><Smartphone className="w-4 h-4" /> {"Install on this Device"}</>
                     )}
                   </button>
                 </div>
@@ -247,10 +247,9 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
               {activeTab === "scan" && (
                 <div className="space-y-6 text-center">
                   <div>
-                    <h4 className="font-extrabold text-white text-lg">Scan to Install</h4>
+                    <h4 className="font-extrabold text-white text-lg">{"Scan to Install"}</h4>
                     <p className="text-slate-400 text-xs mt-2 leading-relaxed">
-                      Point your phone's camera at this QR code to open the installer on your mobile device.
-                    </p>
+                      {"Point your phone's camera at this QR code to open the installer on your mobile device."}</p>
                   </div>
                   <div className="bg-white p-4 rounded-2xl inline-block mx-auto border-4 border-slate-800 shadow-xl">
                     <QRCode value={installUrl} size={160} level="H" />
@@ -261,10 +260,9 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
               {activeTab === "share" && (
                 <div className="space-y-6">
                   <div className="text-center">
-                    <h4 className="font-extrabold text-white text-lg">Share Install Link</h4>
+                    <h4 className="font-extrabold text-white text-lg">{"Share Install Link"}</h4>
                     <p className="text-slate-400 text-xs mt-2 leading-relaxed">
-                      Send the installation link to your coworkers or open it on another device.
-                    </p>
+                      {"Send the installation link to your coworkers or open it on another device."}</p>
                   </div>
 
                   <div className="space-y-3">
@@ -280,17 +278,16 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
                       className="w-full h-11 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
                     >
                       <Share2 className="w-4 h-4" />
-                      📤 Share Install Link
-                    </button>
+                      {"📤 Share Install Link"}</button>
                   </div>
 
                   <form onSubmit={handleSendEmail} className="pt-4 border-t border-slate-800 space-y-3">
-                    <label className="text-xs font-bold text-slate-300">Email to device</label>
+                    <label className="text-xs font-bold text-slate-300">{"Email to device"}</label>
                     <div className="flex gap-2">
                       <input
                         type="email"
                         required
-                        placeholder="you@company.com"
+                        placeholder={"you@company.com"}
                         value={emailAddress}
                         onChange={e => setEmailAddress(e.target.value)}
                         className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 text-xs text-white outline-none focus:border-blue-500"
@@ -310,31 +307,31 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
               {activeTab === "help" && (
                 <div className="space-y-6">
                   <div>
-                    <h4 className="font-extrabold text-white text-lg text-center">Installation Help</h4>
+                    <h4 className="font-extrabold text-white text-lg text-center">{"Installation Help"}</h4>
                   </div>
                   
                   <div className="space-y-4">
                     <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-lg">🍎</span>
-                        <h5 className="font-bold text-sm text-white">iOS / iPhone</h5>
+                        <h5 className="font-bold text-sm text-white">{"iOS / iPhone"}</h5>
                       </div>
                       <p className="text-xs text-slate-400 leading-relaxed">
-                        1. Open the install link in <strong>Safari</strong>.<br/>
-                        2. Tap the <strong>Share</strong> button (📤) at the bottom.<br/>
-                        3. Scroll down and tap <strong>Add to Home Screen</strong>.
+                        {"1. Open the install link in"}<strong>{"Safari"}</strong>.<br/>
+                        {"2. Tap the"}<strong>{"Share"}</strong> {"button (📤) at the bottom."}<br/>
+                        {"3. Scroll down and tap"}<strong>{"Add to Home Screen"}</strong>.
                       </p>
                     </div>
 
                     <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
                       <div className="flex items-center gap-2 mb-2">
                         <AndroidIcon className="w-5 h-5 text-emerald-400" />
-                        <h5 className="font-bold text-sm text-white">Android</h5>
+                        <h5 className="font-bold text-sm text-white">{"Android"}</h5>
                       </div>
                       <p className="text-xs text-slate-400 leading-relaxed">
-                        1. Open the install link in <strong>Chrome</strong>.<br/>
-                        2. A banner should appear at the bottom asking you to install.<br/>
-                        3. If not, tap the three dots (⋮) and select <strong>Install app</strong>.
+                        {"1. Open the install link in"}<strong>{"Chrome"}</strong>.<br/>
+                        {"2. A banner should appear at the bottom asking you to install."}<br/>
+                        {"3. If not, tap the three dots (⋮) and select"}<strong>{"Install app"}</strong>.
                       </p>
                     </div>
                   </div>

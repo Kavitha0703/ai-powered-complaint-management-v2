@@ -21,7 +21,9 @@ import HelpCenter from "./pages/HelpCenter.tsx";
 import AdminManagement from "./pages/AdminManagement.tsx";
 import { LayoutDashboard, FileText, Bell, MessageSquare, ClipboardList, Shield, User as UserIcon, Settings, Layers, Sparkles, BookOpen, Network, UserCog } from "lucide-react";
 
+
 function UserPortal() {
+    
   const { user, dbUser, loading } = useAuth();
   
   if (loading) return null;
@@ -52,6 +54,7 @@ import { MeetingProvider } from "./lib/MeetingContext.tsx";
 import MeetingOverlay from "./components/MeetingOverlay.tsx";
 
 function AdminPortal() {
+    
   const { user, dbUser, loading } = useAuth();
 
   if (loading) return null;
@@ -60,9 +63,9 @@ function AdminPortal() {
      return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
            <Shield className="w-16 h-16 text-red-500 mb-4" />
-           <h1 className="text-3xl font-bold text-slate-800">Access Denied</h1>
-           <p className="text-slate-600 mt-2">Only authorized administrator accounts can access this portal.</p>
-           <a href="/dashboard" className="mt-6 text-primary-600 hover:underline">Return to Dashboard</a>
+           <h1 className="text-3xl font-bold text-slate-800">{"Access Denied"}</h1>
+           <p className="text-slate-600 mt-2">{"Only authorized administrator accounts can access this portal."}</p>
+           <a href="/dashboard" className="mt-6 text-primary-600 hover:underline">{"Return to Dashboard"}</a>
         </div>
      );
   }
@@ -93,6 +96,7 @@ function AdminPortal() {
 }
 
 function AuthRoute({ isAdmin }: { isAdmin: boolean }) {
+    
   const { user, dbUser, loading } = useAuth();
   if (loading) return null;
   if (user && dbUser) {
@@ -103,12 +107,15 @@ function AuthRoute({ isAdmin }: { isAdmin: boolean }) {
 }
 
 export default function App() {
+    
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <ProductTour />
-        <AppInstallModal />
-        <OnboardingWelcomeModal />
+      
+        <BrowserRouter>
+          
+          <ProductTour />
+          <AppInstallModal />
+          <OnboardingWelcomeModal />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth/user" element={<AuthRoute isAdmin={false} />} />
@@ -146,7 +153,8 @@ export default function App() {
           </Route>
 
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      
     </AuthProvider>
   );
 }

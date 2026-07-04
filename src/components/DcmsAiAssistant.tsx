@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import DcmsCamera from "./DcmsCamera.tsx";
+import StructuredDataRenderer from "./StructuredDataRenderer.tsx";
 
 /* ==========================================
    PROMPT SUGGESTIONS (CONTEXTUAL BY ROLE)
@@ -57,6 +58,9 @@ interface ChatMessage {
   suggestedSeverity?: string;
   quickActions?: string[];
   suggestedQueries?: string[];
+  detectedLanguage?: string;
+  originalComplaint?: string;
+  translatedComplaint?: string;
   physicalLocation?: {
     requiresPhysical: boolean;
     department: string;
@@ -65,6 +69,22 @@ interface ChatMessage {
     hours: string;
     instructions: string;
   };
+  structuredData?: {
+    type?: string;
+    kpis?: { label: string; value: string; trend?: string }[];
+    table?: {
+      columns: string[];
+      rows: Record<string, string | number>[];
+    };
+    chart?: {
+      type: string;
+      title: string;
+      labels: string[];
+      datasets: { label: string; data: number[] }[];
+    };
+    actions?: string[];
+  };
+
   file?: {
     name: string;
     type: string;
@@ -86,7 +106,9 @@ interface DcmsAiAssistantProps {
 }
 
 export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantProps) {
+    
   const { dbUser } = useAuth();
+  
   const navigate = useNavigate();
   const location = useLocation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -240,21 +262,18 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       case "admin":
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[9px] font-black uppercase border border-amber-500/20">
-            🛠 Admin Support Mode
-          </span>
+            {"🛠 Admin Support Mode"}</span>
         );
       case "user":
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 text-[9px] font-black uppercase border border-indigo-500/20">
-            👤 Personal Support Mode
-          </span>
+            {"👤 Personal Support Mode"}</span>
         );
       case "visitor":
       default:
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[9px] font-black uppercase border border-blue-500/20">
-            🌐 Visitor Mode
-          </span>
+            {"🌐 Visitor Mode"}</span>
         );
     }
   };
@@ -1217,7 +1236,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           messages: threadMessages,
-          systemContext,
+          systemContext: { ...systemContext, uiLanguage: 'English' },
           responsePreference: isBrief ? "brief" : "detailed",
           file: outgoingFile ? {
             name: outgoingFile.name,
@@ -1241,7 +1260,11 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         suggestedSeverity: rawResult.suggestedSeverity,
         quickActions: rawResult.quickActions || [],
         suggestedQueries: rawResult.suggestedQueries || [],
-        physicalLocation: rawResult.physicalLocation
+        physicalLocation: rawResult.physicalLocation,
+        structuredData: rawResult.structuredData,
+        detectedLanguage: rawResult.detectedLanguage,
+        originalComplaint: rawResult.originalComplaint,
+        translatedComplaint: rawResult.translatedComplaint
       };
       
       const fullText = rawResult.text || "I was unable to analyze that request accurately.";
@@ -1256,7 +1279,11 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         suggestedSeverity: rawResult.suggestedSeverity,
         quickActions: rawResult.quickActions || [],
         suggestedQueries: rawResult.suggestedQueries || [],
-        physicalLocation: rawResult.physicalLocation
+        physicalLocation: rawResult.physicalLocation,
+        structuredData: rawResult.structuredData,
+        detectedLanguage: rawResult.detectedLanguage,
+        originalComplaint: rawResult.originalComplaint,
+        translatedComplaint: rawResult.translatedComplaint
       };
 
       // Append empty AI Assistant response to active state
@@ -1394,12 +1421,13 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     }
   };
 
-  const handleAutofillRegister = (category: string, severity: string, textQuery: string) => {
+  const handleAutofillRegister = (category: string, severity: string, textQuery: string, translatedText?: string, detectedLanguage?: string) => {
+    const finalDescription = translatedText ? `[AI Translation]\nOriginal (${detectedLanguage || 'Detected'}): ${textQuery}\nEnglish Translation: ${translatedText}` : textQuery;
     const draftPayload = {
-      title: `${category} Outage - ${new Date().toLocaleDateString()}`,
+      title: `${category} Issue - ${new Date().toLocaleDateString()}`,
       issue_type: category,
       severity: severity,
-      description: textQuery
+      description: finalDescription
     };
     try {
       sessionStorage.setItem("dcms_ai_draft", JSON.stringify(draftPayload));
@@ -1554,12 +1582,12 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
 
 
   
-  const renderThreadLink = (t: ChatThread) => {
-    const isActive = t.id === activeThreadId;
+  const renderThreadLink = (thread: ChatThread) => {
+    const isActive = thread.id === activeThreadId;
     return (
       <div
-        key={t.id}
-        onClick={() => setActiveThreadId(t.id)}
+        key={thread.id}
+        onClick={() => setActiveThreadId(thread.id)}
         className={`w-full group text-left px-3.5 py-2.5 rounded-xl cursor-pointer transition-all flex flex-col justify-center gap-1.5 ${
           isActive 
             ? "bg-blue-500/10 dark:bg-blue-500/10 border-l-4 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 font-extrabold" 
@@ -1568,18 +1596,18 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       >
         <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2 min-w-0">
-              {t.is_pinned ? <Pin className="w-3.5 h-3.5 shrink-0" /> : <MessageSquare className="w-3.5 h-3.5 shrink-0 text-slate-400 dark:text-slate-500" />}
-              <span className="text-xs font-bold truncate block">{t.title}</span>
+              {thread.is_pinned ? <Pin className="w-3.5 h-3.5 shrink-0" /> : <MessageSquare className="w-3.5 h-3.5 shrink-0 text-slate-400 dark:text-slate-500" />}
+              <span className="text-xs font-bold truncate block">{thread.title}</span>
             </div>
             {isActive && (
               <div className="flex items-center gap-1 shrink-0 opacity-100">
-                <button onClick={(e) => handlePinThread(t.id, e)} className="p-0.5 text-slate-400 hover:text-blue-500 rounded" title={t.is_pinned ? "Unpin" : "Pin"}>
+                <button onClick={(e) => handlePinThread(thread.id, e)} className="p-0.5 text-slate-400 hover:text-blue-500 rounded" title={thread.is_pinned ? "Unpin" : "Pin"}>
                   <Pin className="w-3 h-3" />
                 </button>
-                <button onClick={(e) => handleRenameThread(t.id, e)} className="p-0.5 text-slate-400 hover:text-blue-500 rounded" title="Rename">
+                <button onClick={(e) => handleRenameThread(thread.id, e)} className="p-0.5 text-slate-400 hover:text-blue-500 rounded" title={"Rename"}>
                   <Edit3 className="w-3 h-3" />
                 </button>
-                <button onClick={(e) => handleDeleteThread(t.id, e)} className="p-0.5 text-slate-400 hover:text-red-500 rounded transition-opacity" title="Delete">
+                <button onClick={(e) => handleDeleteThread(thread.id, e)} className="p-0.5 text-slate-400 hover:text-red-500 rounded transition-opacity" title={"Delete"}>
                   <X className="w-3 h-3" />
                 </button>
               </div>
@@ -1608,20 +1636,19 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
   <div className="flex w-full md:w-64 lg:w-72 md:max-h-full max-h-48 md:border-r border-b md:border-b-0 border-slate-200 dark:border-slate-800 bg-[#FAFAFB] dark:bg-[#090D17] flex-col shrink-0">
     <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3 bg-[#F1F3F6] dark:bg-[#0E1325]/50">
       <div className="flex justify-between items-center">
-        <h3 className="text-[10.5px] font-black uppercase text-slate-500 tracking-wider">Chat History</h3>
+        <h3 className="text-[10.5px] font-black uppercase text-slate-500 tracking-wider">{"Chat History"}</h3>
         <button
           onClick={handleCreateNewThread}
           className="px-2.5 py-1 text-[10.5px] bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-lg flex items-center gap-1 transition-all hover:scale-103 cursor-pointer shadow-sm"
         >
           <Plus className="w-3.5 h-3.5" />
-          New Chat
-        </button>
+          {"New Chat"}</button>
       </div>
       <div className="relative">
         <Search className="w-3 h-3 absolute left-2 top-2 text-slate-400" />
         <input 
           type="text" 
-          placeholder="Search chats..." 
+          placeholder={"Search chats..."} 
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg pl-7 py-1.5 text-xs text-slate-700 dark:text-slate-300 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -1632,37 +1659,37 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     <div className="flex-1 overflow-y-auto p-2.5 space-y-4 pb-10">
       {grouped.pinned.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 flex items-center gap-1"><Pin className="w-2.5 h-2.5" /> Pinned</p>
+          <p className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 flex items-center gap-1"><Pin className="w-2.5 h-2.5" /> {"Pinned"}</p>
           {grouped.pinned.map(renderThreadLink)}
         </div>
       )}
 
       {grouped.today.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2">Today</p>
+          <p className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2">{"Today"}</p>
           {grouped.today.map(renderThreadLink)}
         </div>
       )}
       
       {grouped.yesterday.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2">Yesterday</p>
+          <p className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2">{"Yesterday"}</p>
           {grouped.yesterday.map(renderThreadLink)}
         </div>
       )}
       
       {grouped.older.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2">Older</p>
+          <p className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2">{"Older"}</p>
           {grouped.older.map(renderThreadLink)}
         </div>
       )}
 
       {threads.length === 0 && (
-        <div className="text-center p-6 text-2xs text-slate-400 dark:text-slate-600">No previous chats. Click "New" to begin.</div>
+        <div className="text-center p-6 text-2xs text-slate-400 dark:text-slate-600">{"No previous chats. Click \"New\" to begin."}</div>
       )}
     </div>
-  </div>\n\n        {/* AI Chat workspace */}
+  </div>{"\n\n"}{/* AI Chat workspace */}
         <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#070A13] lg:h-full min-h-0 overflow-hidden relative">
           
           {/* Header */}
@@ -1673,11 +1700,11 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
               </div>
               <div className="flex flex-col gap-0.5">
                 <h4 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <span className="md:hidden">🤖</span> Workplace Hub AI Assistant {getRoleBadge()}
+                  <span className="md:hidden">🤖</span> {"Workplace Hub AI Assistant"}{getRoleBadge()}
                 </h4>
                 <div className="flex flex-col gap-0.5 mt-0.5">
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-tight">Your Smart Support Assistant</p>
-                  <span className="hidden lg:block text-[8px] text-slate-400 font-black dark:text-slate-500 tracking-wider">SANDBOX DIRECT GROUNDING</span>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-tight">{"Your Smart Support Assistant"}</p>
+                  <span className="hidden lg:block text-[8px] text-slate-400 font-black dark:text-slate-500 tracking-wider">{"SANDBOX DIRECT GROUNDING"}</span>
                 </div>
               </div>
             </div>
@@ -1693,8 +1720,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                       : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                   }`}
                 >
-                  ⚡ Brief
-                </button>
+                  {"⚡ Brief"}</button>
                 <button
                   onClick={() => setIsBrief(false)}
                   className={`px-3 py-1 flex-1 flex justify-center items-center gap-1.5 rounded-lg text-[10px] font-black tracking-tight transition-all uppercase cursor-pointer ${
@@ -1703,8 +1729,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                       : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                   }`}
                 >
-                  📖 Detailed
-                </button>
+                  {"📖 Detailed"}</button>
               </div>
             </div>
           </div>
@@ -1736,6 +1761,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                       renderMarkdown(m.text)
                     )}
                   </div>
+                  {m.structuredData && <StructuredDataRenderer data={m.structuredData} />}
                   
                   {/* File Upload Attachment Indicator */}
                   {m.file && (
@@ -1751,25 +1777,38 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                       )}
                       <div className="min-w-0">
                         <p className="truncate max-w-[170px] text-slate-900 dark:text-white">{m.file.name}</p>
-                        <p className="text-[9px] text-slate-500 font-medium">{(m.file.size / 1024).toFixed(0)} KB</p>
+                        <p className="text-[9px] text-slate-500 font-medium">{(m.file.size / 1024).toFixed(0)} {"KB"}</p>
                       </div>
                     </div>
                   )}
 
                   {/* Classification suggestions */}
+                  {m.translatedComplaint && (
+                    <div className="mt-4 p-3.5 bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/20 rounded-2xl space-y-2.5">
+                      <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-1.5 font-mono">
+                        <Globe className="w-4 h-4 text-indigo-500 shrink-0" />
+                        {"Auto-Translation:"}{m.detectedLanguage || "Detected"}
+                      </span>
+                      <div className="text-[11px] font-medium text-slate-700 dark:text-slate-300 italic">
+                        {"Original:"}{m.originalComplaint}
+                      </div>
+                      <div className="text-[11px] font-medium text-slate-900 dark:text-slate-100">
+                        {"Translation:"}{m.translatedComplaint}
+                      </div>
+                    </div>
+                  )}
                   {!loading && m.sender === "assistant" && m.suggestedCategory && (
                     <div className="mt-4 p-3.5 bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 rounded-2xl space-y-2.5">
                       <span className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-1.5 font-mono">
                         <Sparkles className="w-4 h-4 text-blue-500 animate-spin-slow shrink-0" />
-                        Smart Ticket Diagnosed Outage Suggestions
-                      </span>
+                        {"Smart Ticket Diagnosed Outage Suggestions"}</span>
                       <div className="grid grid-cols-2 gap-2 text-[10.5px] font-black">
                         <div className="p-2.5 bg-white dark:bg-[#121A2E] rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                          <span className="text-slate-400 font-extrabold">Category:</span>
+                          <span className="text-slate-400 font-extrabold">{"Category:"}</span>
                           <span className="text-blue-600 dark:text-blue-400">{m.suggestedCategory}</span>
                         </div>
                         <div className="p-2.5 bg-white dark:bg-[#121A2E] rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                          <span className="text-slate-400 font-extrabold">Severity:</span>
+                          <span className="text-slate-400 font-extrabold">{"Severity:"}</span>
                           <span className={`${
                             m.suggestedSeverity === "Critical" || m.suggestedSeverity === "Urgent" 
                               ? "text-red-500 font-black animate-pulse" 
@@ -1782,11 +1821,10 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                       
                       {dbUser?.role !== "admin" && (
                         <button
-                          onClick={() => handleAutofillRegister(m.suggestedCategory || "Other", m.suggestedSeverity || "Medium", messages.find(userM => userM.sender === "user")?.text || "")}
+                          onClick={() => handleAutofillRegister(m.suggestedCategory || "Other", m.suggestedSeverity || "Medium", messages.find(userM => userM.sender === "user")?.text || "", m.translatedComplaint, m.detectedLanguage)}
                           className="w-full text-center py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-[11px] rounded-xl shadow-lg shadow-blue-500/15 flex items-center justify-center gap-1 mt-1 cursor-pointer scale-100 active:scale-98 transition-all"
                         >
-                          <Plus className="w-3.5 h-3.5" /> Auto-Fill & Create Ticket Ticket Now
-                        </button>
+                          <Plus className="w-3.5 h-3.5" /> {"Auto-Fill & Create Ticket Ticket Now"}</button>
                       )}
                     </div>
                   )}
@@ -1823,15 +1861,14 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                     <div className="mt-4 p-4 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-3">
                       <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1.5 font-mono">
                         <MapPin className="w-4 h-4 text-amber-500 shrink-0" />
-                        In-Person Department Visit Required
-                      </span>
+                        {"In-Person Department Visit Required"}</span>
                       
                       <div className="space-y-2.5">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                           <div className="p-3 bg-white dark:bg-[#121A2E] rounded-xl border border-slate-100 dark:border-slate-800/80 flex items-start gap-2.5">
                             <Building className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                             <div>
-                              <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider font-mono">Department</p>
+                              <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider font-mono">{"Department"}</p>
                               <p className="font-semibold text-slate-800 dark:text-slate-200">{m.physicalLocation.department}</p>
                             </div>
                           </div>
@@ -1839,7 +1876,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                           <div className="p-3 bg-white dark:bg-[#121A2E] rounded-xl border border-slate-100 dark:border-slate-800/80 flex items-start gap-2.5">
                             <Pin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                             <div>
-                              <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider font-mono">Office / Floor</p>
+                              <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider font-mono">{"Office / Floor"}</p>
                               <p className="font-semibold text-slate-800 dark:text-slate-200">
                                 {m.physicalLocation.room}, {m.physicalLocation.floor}
                               </p>
@@ -1850,14 +1887,14 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                         <div className="p-3 bg-white dark:bg-[#121A2E] rounded-xl border border-slate-100 dark:border-slate-800/80 flex items-start gap-2.5 text-xs">
                           <Clock className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                           <div>
-                            <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider font-mono">Office Hours</p>
+                            <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider font-mono">{"Office Hours"}</p>
                             <p className="font-semibold text-slate-800 dark:text-slate-200">{m.physicalLocation.hours}</p>
                           </div>
                         </div>
 
                         {m.physicalLocation.instructions && (
                           <div className="p-3 bg-amber-50/50 dark:bg-amber-950/5 border border-amber-100 dark:border-amber-900/10 rounded-xl text-xs text-amber-850 dark:text-amber-300">
-                            <p className="font-extrabold text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-400 font-mono mb-1">Required Documents / Action</p>
+                            <p className="font-extrabold text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-400 font-mono mb-1">{"Required Documents / Action"}</p>
                             <p className="leading-relaxed font-medium">{m.physicalLocation.instructions}</p>
                           </div>
                         )}
@@ -1870,8 +1907,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                     <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
                       <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1 font-mono">
                         <Lightbulb className="w-3.5 h-3.5 text-amber-500 animate-pulse animate-duration-1000" />
-                        Suggested Next Steps
-                      </span>
+                        {"Suggested Next Steps"}</span>
                       <div className="flex flex-col gap-1.5">
                         {m.suggestedQueries.map((q, idx) => (
                           <button
@@ -1914,7 +1950,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
             {attachedFile && (
               <div className="flex items-center gap-2.5 px-3 py-2 bg-blue-50 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl text-slate-850 dark:text-slate-200 text-xs font-bold leading-normal select-none shadow-2xs w-max max-w-full animate-bounce-short">
                 <span>{attachedFile.type?.startsWith("image/") ? "🖼️" : "📄"}</span>
-                <span className="truncate max-w-[200px] text-blue-700 dark:text-blue-300">{attachedFile.name} ({(attachedFile.size / 1024).toFixed(0)} KB)</span>
+                <span className="truncate max-w-[200px] text-blue-700 dark:text-blue-300">{attachedFile.name} ({(attachedFile.size / 1024).toFixed(0)} {"KB)"}</span>
                 <button
                   onClick={() => setAttachedFile(null)}
                   className="p-1 hover:bg-blue-100 dark:hover:bg-slate-700 rounded-lg text-slate-450 hover:text-red-500 transition-colors"
@@ -1941,7 +1977,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
               <button
                 onClick={() => setTopicsDropdownOpen(!topicsDropdownOpen)}
                 disabled={loading}
-                title="Common Helpdesk Topics"
+                title={"Common Helpdesk Topics"}
                 className="w-9 h-9 shrink-0 bg-white dark:bg-[#12192A] hover:bg-yellow-50 dark:hover:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 text-yellow-600 dark:text-yellow-400 rounded-xl flex items-center justify-center cursor-pointer active:scale-95 transition-all shadow-2xs relative"
               >
                 <Lightbulb className="w-4 h-4" />
@@ -1961,7 +1997,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                     className="absolute bottom-full left-0 mb-3 w-72 bg-white dark:bg-[#12192A] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden"
                   >
                     <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-[#0B0F19] flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400">Common Helpdesk Topics</span>
+                      <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400">{"Common Helpdesk Topics"}</span>
                       <button onClick={() => setTopicsDropdownOpen(false)} className="text-slate-400 hover:text-slate-600">
                         <X className="w-3 h-3" />
                       </button>
@@ -1989,7 +2025,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={loading}
-              title="Attach PNG, JPG, JPEG, WEBP, PDF, DOCX, TXT file"
+              title={"Attach PNG, JPG, JPEG, WEBP, PDF, DOCX, TXT file"}
               className="w-9 h-9 shrink-0 bg-white dark:bg-[#12192A] hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl flex items-center justify-center cursor-pointer active:scale-95 transition-all shadow-2xs"
             >
               <Paperclip className="w-4 h-4" />
@@ -1999,7 +2035,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
             <button
               onClick={() => setAiCameraActive(true)}
               disabled={loading}
-              title="Capture intelligent snapshot using AI Camera"
+              title={"Capture intelligent snapshot using AI Camera"}
               className="w-9 h-9 shrink-0 bg-white dark:bg-[#12192A] hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-blue-550 dark:text-blue-400 hover:text-blue-600 rounded-xl flex items-center justify-center cursor-pointer active:scale-95 transition-all shadow-2xs"
             >
               <Camera className="w-4 h-4" />
@@ -2023,7 +2059,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask Workplace Hub AI Assistant... (Use /register, /tickets, /help, /notices)"
+              placeholder={"Ask Workplace Hub AI Assistant... (Use /register, /tickets, /help, /notices)"}
               className="flex-1 bg-white dark:bg-[#070A13] border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-850 dark:text-slate-100 placeholder-slate-450 dark:placeholder-slate-600 text-xs focus:outline-none focus:border-blue-500 font-medium min-h-[44px] max-h-[120px] resize-y leading-relaxed"
             />
             
@@ -2072,10 +2108,9 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                   </div>
                   <div>
                     <h4 className="text-xs font-black tracking-tight flex items-center gap-1.5">
-                      <span>Workplace Hub AI</span>
+                      <span>{"Workplace Hub AI"}</span>
                       <span className="px-1.5 py-0.5 text-[8px] font-black bg-emerald-950/80 text-emerald-400 border border-emerald-900/40 rounded-full uppercase flex items-center gap-0.5 animate-pulse shrink-0">
-                        <span className="w-1 h-1 rounded-full bg-emerald-400" /> Online
-                      </span>
+                        <span className="w-1 h-1 rounded-full bg-emerald-400" /> {"Online"}</span>
                     </h4>
                     <div className="mt-0.5">
                       {getRoleBadge()}
@@ -2096,11 +2131,10 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                     onClick={handleCreateNewThread}
                     id="refresh-assistant-btn"
                     className="p-1 px-2.5 rounded bg-slate-850 hover:bg-slate-800 hover:text-cyan-400 text-slate-300 font-black tracking-tight transition-all flex items-center gap-1.5 cursor-pointer text-[8.5px] uppercase border border-slate-700/60"
-                    title="Refresh Chat Thread"
+                    title={"Refresh Chat Thread"}
                   >
                     <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
-                    Reset Assistant
-                  </button>
+                    {"Reset Assistant"}</button>
                 ) : (
                   <div className="flex bg-slate-900 border border-slate-800 p-0.5 rounded-lg">
                     <button
@@ -2108,8 +2142,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                       className="px-2.5 py-0.5 rounded text-[8.5px] font-black tracking-tight transition-all uppercase cursor-pointer text-emerald-400 hover:text-emerald-300 mr-2 flex items-center gap-1"
                     >
                       <Plus className="w-2.5 h-2.5" />
-                      New
-                    </button>
+                      {"New"}</button>
                     <button
                       onClick={() => setIsBrief(true)}
                       className={`px-2.5 py-0.5 rounded text-[8.5px] font-black tracking-tight transition-all uppercase cursor-pointer ${
@@ -2118,8 +2151,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                           : "text-slate-400 hover:text-white"
                       }`}
                     >
-                      ⚡ Brief
-                    </button>
+                      {"⚡ Brief"}</button>
                     <button
                       onClick={() => setIsBrief(false)}
                       className={`px-2.5 py-0.5 rounded text-[8.5px] font-black tracking-tight transition-all uppercase cursor-pointer ${
@@ -2128,8 +2160,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                           : "text-slate-400 hover:text-white"
                       }`}
                     >
-                      📖 Detailed
-                    </button>
+                      {"📖 Detailed"}</button>
                   </div>
                 )}
               </div>
@@ -2163,6 +2194,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                           ) : (
                             renderMarkdown(m.text)
                           )}
+                        {m.structuredData && <StructuredDataRenderer data={m.structuredData} />}
                         </div>
 
                         {/* File Upload Indicator within bubble */}
@@ -2178,7 +2210,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                               <FileText className="w-3.5 h-3.5 opacity-80" />
                             )}
                             <span className="truncate max-w-[130px]">{m.file.name}</span>
-                            <span className="text-[8px] opacity-60">({(m.file.size / 1024).toFixed(0)}K)</span>
+                            <span className="text-[8px] opacity-60">({(m.file.size / 1024).toFixed(0)}{"K)"}</span>
                           </div>
                         )}
                         
@@ -2186,25 +2218,23 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                         {!loading && m.sender === "assistant" && m.suggestedCategory && (
                           <div className="mt-3.5 p-2.5 bg-blue-950/20 border border-blue-500/20 rounded-xl space-y-1.5">
                             <span className="text-[9px] font-black uppercase text-blue-400 tracking-wider flex items-center gap-1 font-mono">
-                              <Sparkles className="w-3 h-3 text-blue-400" /> Smart Diagnostic
-                            </span>
+                              <Sparkles className="w-3 h-3 text-blue-400" /> {"Smart Diagnostic"}</span>
                             <div className="grid grid-cols-2 gap-1.5 text-[9px] font-extrabold leading-normal">
                               <div className="p-1 px-1.5 bg-[#121A2E] rounded border border-slate-800 truncate">
-                                <span className="text-slate-500">Category: </span>
+                                <span className="text-slate-500">{"Category:"}</span>
                                 <span className="text-blue-400">{m.suggestedCategory}</span>
                               </div>
                               <div className="p-1 px-1.5 bg-[#121A2E] rounded border border-slate-800 truncate">
-                                <span className="text-slate-500">Urgency: </span>
+                                <span className="text-slate-500">{"Urgency:"}</span>
                                 <span className={`${m.suggestedSeverity === "Critical" || m.suggestedSeverity === "Urgent" ? "text-red-400" : "text-amber-400"}`}>{m.suggestedSeverity || "Low"}</span>
                               </div>
                             </div>
                             {dbUser?.role !== "admin" && (
                               <button
-                                onClick={() => handleAutofillRegister(m.suggestedCategory || "Other", m.suggestedSeverity || "Medium", threads.find(t=>t.id===activeThreadId)?.messages.find(um=>um.sender==="user")?.text || "")}
+                                onClick={() => handleAutofillRegister(m.suggestedCategory || "Other", m.suggestedSeverity || "Medium", threads.find(t=>t.id===activeThreadId)?.messages.find(um=>um.sender==="user")?.text || "", m.translatedComplaint, m.detectedLanguage)}
                                 className="w-full text-center py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-[10px] rounded cursor-pointer transition-all active:scale-97"
                               >
-                                📝 Pre-fill & File Ticket Now
-                              </button>
+                                {"📝 Pre-fill & File Ticket Now"}</button>
                             )}
                           </div>
                         )}
@@ -2259,7 +2289,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                         </span>
                       </div>
                       <div className="text-[10px] text-slate-500 pl-1 flex items-center gap-1 font-mono italic">
-                        <span>🤖 Assistant is typing</span>
+                        <span>{"🤖 Assistant is typing"}</span>
                         <span className="inline-flex gap-0.5">
                           <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                           <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -2304,7 +2334,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading}
-                  title="Attach file upload"
+                  title={"Attach file upload"}
                   className="w-11 h-11 sm:w-8 sm:h-8 shrink-0 bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:text-white text-slate-400 rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm"
                 >
                   <Paperclip className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
@@ -2314,7 +2344,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                 <button
                   onClick={() => setAiCameraActive(true)}
                   disabled={loading}
-                  title="Capture live with AI Camera"
+                  title={"Capture live with AI Camera"}
                   className="w-11 h-11 sm:w-8 sm:h-8 shrink-0 bg-slate-850 hover:bg-slate-800 border border-slate-800 text-blue-400 hover:text-white rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm"
                 >
                   <Camera className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
@@ -2339,7 +2369,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask AI or type support command..."
+                  placeholder={"Ask AI"}
                   className="flex-1 bg-[#121A2E] border border-slate-750 rounded-xl px-4 py-3 sm:py-2 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-blue-500 font-semibold leading-normal shadow-inner transition-all h-11 sm:h-8"
                 />
                 
@@ -2361,8 +2391,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
             {/* Notice */}
             <div className="group relative">
               <span className="absolute right-12 top-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow whitespace-nowrap pointer-events-none">
-                Latest Notices
-              </span>
+                {"Latest Notices"}</span>
               <button
                 onClick={() => handleTriggerQuickAction("view_notices")}
                 className="w-10 h-10 rounded-full bg-white dark:bg-[#0E1726] border border-slate-200 dark:border-slate-800 text-slate-705 dark:text-slate-200 flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-md cursor-pointer"
@@ -2374,8 +2403,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
             {/* Track Complaint */}
             <div className="group relative">
               <span className="absolute right-12 top-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow whitespace-nowrap pointer-events-none">
-                Track Complaints
-              </span>
+                {"Track Complaints"}</span>
               <button
                 onClick={() => handleTriggerQuickAction("view_tickets")}
                 className="w-10 h-10 rounded-full bg-white dark:bg-[#0E1726] border border-slate-200 dark:border-slate-800 text-slate-705 dark:text-slate-200 flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-md cursor-pointer"
@@ -2387,8 +2415,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
             {/* Register Issue */}
             <div className="group relative">
               <span className="absolute right-12 top-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow whitespace-nowrap pointer-events-none">
-                Register New Support Ticket
-              </span>
+                {"Register New Support Ticket"}</span>
               <button
                 onClick={() => handleTriggerQuickAction("register_ticket")}
                 className="w-10 h-10 rounded-full bg-white dark:bg-[#0E1726] border border-slate-200 dark:border-slate-800 text-slate-705 dark:text-slate-200 flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-md cursor-pointer"

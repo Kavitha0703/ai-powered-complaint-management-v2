@@ -107,6 +107,7 @@ const SELFIE_TEMPLATES = [
 ];
 
 export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "standard" }: DcmsCameraProps) {
+    
   // Navigation Screens: "capture" | "preview" | "annotate" | "permission_denied"
   const [screen, setScreen] = useState<"capture" | "preview" | "annotate">("capture");
   
@@ -122,6 +123,19 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
   const [focusLocked, setFocusLocked] = useState(false);
   const [focusStatus, setFocusStatus] = useState("Adjusting auto-focus...");
   const [zoomFactor, setZoomFactor] = useState(1);
+  const [showZoom, setShowZoom] = useState(true);
+  const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (showZoom) {
+      if (zoomTimeoutRef.current) clearTimeout(zoomTimeoutRef.current);
+      zoomTimeoutRef.current = setTimeout(() => setShowZoom(false), 2500);
+    }
+    return () => {
+      if (zoomTimeoutRef.current) clearTimeout(zoomTimeoutRef.current);
+    };
+  }, [showZoom, zoomFactor]);
+
   const [resolution, setResolution] = useState("1080p");
   
   // High-End camera firmware additions
@@ -433,7 +447,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
     const y = e.clientY - rect.top;
 
     setFocusRingPos({ x, y });
-    setShowFocusRing(true);
+    setShowFocusRing(true); setShowZoom(true);
     setFocusLocked(false);
     setFocusStatus("Locking Auto Focus...");
 
@@ -1175,11 +1189,9 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
 
               <div className="space-y-2">
                 <h3 className="text-sm font-black text-white uppercase tracking-widest font-mono">
-                  Preparing High-Quality Asset
-                </h3>
+                  {"Preparing High-Quality Asset"}</h3>
                 <p className="text-xs text-slate-400 font-medium">
-                  Optimizing image parameters for complaints administration desk reviews.
-                </p>
+                  {"Optimizing image parameters for complaints administration desk reviews."}</p>
               </div>
 
               {/* Progress Steps Indicator */}
@@ -1223,61 +1235,58 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
               </div>
 
               <p className="text-[9px] font-mono font-extrabold text-slate-500 animate-pulse uppercase tracking-wider">
-                Do not close or leave the viewfinder...
-              </p>
+                {"Do not close or leave the viewfinder..."}</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* ================= HEADER CONTROLS BAR ================= */}
-      <div className="bg-[#0b0f19] border-b border-slate-850 px-4 py-3 shrink-0 flex items-center justify-between z-50">
-        <div className="flex items-center gap-3">
+      <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/80 to-transparent pt-4 pb-12 px-4 flex items-center justify-between z-50 pointer-events-none">
+        <div className="flex items-center gap-3 pointer-events-auto">
           <button 
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-xl transition-all cursor-pointer text-slate-400 hover:text-white"
+            className="w-10 h-10 flex items-center justify-center bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full transition-all cursor-pointer text-white border border-white/10"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h2 className="text-sm font-black flex items-center gap-1.5 text-white uppercase tracking-wider font-mono">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
-              Ultra-Pro AI Camera
-            </h2>
-            <p className="text-[10px] text-slate-400 font-medium">Enterprise Complaint Evidence Collector</p>
-          </div>
         </div>
 
-        {screen === "capture" && (
-          <button
-            onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
-            className="p-2.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-700 transition-all cursor-pointer shadow"
-            title="Camera Settings"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
-        )}
-
-        {screen === "preview" && (
-          <div className="flex gap-2">
-            <button 
-              onClick={applyAutoEnhance}
-              disabled={autoEnhanced}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase font-mono flex items-center gap-1.5 border transition-all cursor-pointer ${
-                autoEnhanced 
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                  : "bg-gradient-to-r from-violet-600 to-indigo-600 border-transparent text-white hover:scale-103"
-              }`}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {screen === "capture" && capturedPhotos.length > 0 && (
+            <button
+              onClick={handleFinalizeAllCaptures}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 font-extrabold text-[12px] uppercase tracking-wider text-white rounded-full shadow-lg transition-all cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              {autoEnhanced ? "Auto Enhanced ✓" : "AI One-Tap Enhance"}
+              {"Done ("}{capturedPhotos.length})
             </button>
-          </div>
-        )}
+          )}
+
+          {screen === "capture" && (
+            <button
+              onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
+              className="w-10 h-10 flex items-center justify-center bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full transition-all cursor-pointer text-white border border-white/10 shadow"
+              title={"Camera Settings"}
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          )}
+          {screen === "preview" && (
+            <div className="flex gap-2">
+              <button 
+                onClick={applyAutoEnhance}
+                disabled={autoEnhanced}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${autoEnhanced ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" : "bg-gradient-to-r from-violet-600 to-indigo-600 border-transparent text-white shadow-lg hover:scale-105"}`}
+              >
+                <Sparkles className="w-4 h-4" />
+                {autoEnhanced ? "Enhanced ✓" : "AI Enhance"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ================= MAIN CONTENT VIEWFINDER / PREVIEW SCREEN ================= */}
-      <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
+      <div className="flex-1 absolute inset-0 bg-black flex items-center justify-center overflow-hidden z-0">
         
         {/* SCREEN 1: CAPTURE VIEW (WEBCAM OR SIMULATION CHOOSE) */}
         {screen === "capture" && (
@@ -1290,7 +1299,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
               onTouchEnd={handleTouchEnd}
               onClick={handleTapToFocus}
               className="absolute inset-0 w-full h-full flex items-center justify-center bg-black z-0 cursor-pointer"
-              title="Double tap to flip, pinch to zoom, tap to focus"
+              title={"Double tap to flip, pinch to zoom, tap to focus"}
             >
               {isStreamActive ? (
                 <>
@@ -1314,7 +1323,14 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                   )}
 
                   {/* Google Camera Style Zoom Presets overlay */}
-                  <div className="absolute bottom-18 left-1/2 -translate-x-1/2 bg-black/60 border border-slate-800/80 px-3.5 py-1.5 rounded-full flex items-center gap-2 z-30 backdrop-blur-md">
+                  <AnimatePresence>
+                  {showZoom && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute bottom-18 left-1/2 -translate-x-1/2 bg-black/60 border border-slate-800/80 px-3.5 py-1.5 rounded-full flex items-center gap-2 z-30 backdrop-blur-md"
+                    >
                     {[0.5, 1, 2, 3, 5].map((z) => (
                       <button
                         key={z}
@@ -1326,23 +1342,11 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                           zoomFactor === z ? "bg-amber-500 text-black font-black scale-110" : "text-slate-300 hover:text-white"
                         }`}
                       >
-                        {z}x
-                      </button>
+                        {z}{"x"}</button>
                     ))}
-                  </div>
-
-                  {/* Floating Reverse Camera Button overlay inside active stream */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleFacingMode();
-                    }}
-                    className="absolute top-4 right-4 bg-slate-950/85 hover:bg-slate-900 border border-slate-800 px-3 py-2 rounded-xl text-[10px] font-extrabold uppercase tracking-wider font-mono text-amber-400 flex items-center gap-1.5 shadow-xl transition-all active:scale-95 cursor-pointer z-30"
-                    title="Reverse Camera (Switch Front / Rear)"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />
-                    <span>Reverse Camera</span>
-                  </button>
+                    </motion.div>
+                  )}
+                  </AnimatePresence>
 
                   {/* Real-time Status Overlay Indicator */}
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/85 border border-slate-800/80 px-4 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2 z-20">
@@ -1351,11 +1355,11 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                       {cameraStatusMessage || `${facingMode === "environment" ? "Rear" : "Front"} Camera Active ✓`}
                     </span>
                   </div>
+
                   
                   {/* Micro-Help Overlay */}
                   <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-black/40 px-3 py-1 rounded-full backdrop-blur text-[8px] font-mono text-slate-400 tracking-wider pointer-events-none z-20 uppercase">
-                    💡 Tip: Pinch to Zoom • Tap to Focus • Double Tap to Flip
-                  </div>
+                    {"💡 Tip: Pinch to Zoom • Tap to Focus • Double Tap to Flip"}</div>
                 </>
               ) : cameraPermissionError ? (
                 /* Permission Blocked / Denied State with a stylish Card */
@@ -1365,10 +1369,9 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                       <AlertTriangle className="w-8 h-8 animate-pulse" />
                     </div>
                     <div className="space-y-1.5">
-                      <h3 className="font-extrabold text-base text-white">Camera Access Permission Required</h3>
+                      <h3 className="font-extrabold text-base text-white">{"Camera Access Permission Required"}</h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
-                        Secure browser permissions are required to capture live evidence. Please grant camera permissions or use our high-end simulated office templates below.
-                      </p>
+                        {"Secure browser permissions are required to capture live evidence. Please grant camera permissions or use our high-end simulated office templates below."}</p>
                     </div>
 
                     <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
@@ -1376,8 +1379,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                         onClick={() => initCameraFeed()}
                         className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl shadow-lg transition-all cursor-pointer border-none"
                       >
-                        🔓 Grant Camera Permission
-                      </button>
+                        {"🔓 Grant Camera Permission"}</button>
                       <button
                         onClick={() => {
                           setCameraPermissionError(false);
@@ -1385,8 +1387,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                         }}
                         className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-750 text-slate-300 font-black text-xs rounded-xl border border-slate-700 transition-all cursor-pointer"
                       >
-                        💡 Use Simulated Office
-                      </button>
+                        {"💡 Use Simulated Office"}</button>
                     </div>
                   </div>
                 </div>
@@ -1396,7 +1397,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                   <div className="text-center space-y-3">
                     <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
                     <p className="text-xs font-mono font-bold text-slate-400">{cameraStatusMessage || "📷 Opening Camera..."}</p>
-                    <p className="text-[10px] text-slate-500">Configuring hardware WebRTC drivers...</p>
+                    <p className="text-[10px] text-slate-500">{"Configuring hardware WebRTC drivers..."}</p>
                   </div>
                 </div>
               )}
@@ -1433,7 +1434,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                       <Camera className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-extrabold text-sm text-white">Simulated {facingMode === "environment" ? "Rear" : "Front selfie"} Camera</h3>
+                      <h3 className="font-extrabold text-sm text-white">{"Simulated"}{facingMode === "environment" ? "Rear" : "Front selfie"} {"Camera"}</h3>
                       <p className="text-[11px] text-slate-400 leading-relaxed">
                         {facingMode === "environment" 
                           ? "Simulating high-resolution Back Camera. Select an incident scene label below to capture evidence or upload a custom snapshot."
@@ -1482,19 +1483,17 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                         onClick={initCameraFeed}
                         className="text-[10px] font-bold text-slate-400 hover:text-white underline transition-all"
                       >
-                        🔄 Retry Camera Init
-                      </button>
+                        {"🔄 Retry Camera Init"}</button>
                       
                       <button
                         onClick={handleToggleFacingMode}
                         className="text-[10px] font-bold text-amber-500 hover:text-amber-400 flex items-center gap-1 transition-all"
                       >
-                        🔄 Reverse Camera: Switch to {facingMode === "environment" ? "Front" : "Rear"}
+                        {"🔄 Reverse Camera: Switch to"}{facingMode === "environment" ? "Front" : "Rear"}
                       </button>
 
                       <label className="text-[10px] font-bold text-blue-400 hover:text-blue-300 underline cursor-pointer">
-                        📁 Custom File
-                        <input 
+                        {"📁 Custom File"}<input 
                           type="file" 
                           accept="image/*" 
                           className="hidden" 
@@ -1530,15 +1529,13 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
               {activeMode === "document" && (
                 <div className="w-full max-w-sm aspect-[3/4] mx-auto my-auto border-2 border-dashed border-cyan-400/50 rounded-2xl relative flex flex-col justify-between p-4">
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-black text-[9px] font-black tracking-widest uppercase font-mono px-2.5 py-0.5 rounded-full">
-                    📄 Document Frame Guides
-                  </div>
+                    {"📄 Document Frame Guides"}</div>
                   <div className="flex justify-between">
                     <div className="w-6 h-6 border-t-2 border-l-2 border-cyan-400 rounded-tl-xl"></div>
                     <div className="w-6 h-6 border-t-2 border-r-2 border-cyan-400 rounded-tr-xl"></div>
                   </div>
                   <p className="text-[9px] text-center text-cyan-300 bg-black/60 font-mono py-1 rounded backdrop-blur">
-                    Align edges of ID, slip, or printer label
-                  </p>
+                    {"Align edges of ID, slip, or printer label"}</p>
                   <div className="flex justify-between">
                     <div className="w-6 h-6 border-b-2 border-l-2 border-cyan-400 rounded-bl-xl"></div>
                     <div className="w-6 h-6 border-b-2 border-r-2 border-cyan-400 rounded-br-xl"></div>
@@ -1549,13 +1546,13 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
               {activeMode === "hd" && (
                 <div className="w-32 h-32 border border-dashed border-red-500/40 rounded-full mx-auto my-auto relative flex items-center justify-center">
                   <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="absolute -bottom-6 text-[8px] font-mono font-black text-red-400 uppercase tracking-widest">CENTER METERING</span>
+                  <span className="absolute -bottom-6 text-[8px] font-mono font-black text-red-400 uppercase tracking-widest">{"CENTER METERING"}</span>
                 </div>
               )}
 
               {activeMode === "lowlight" && (
                 <div className="absolute inset-0 bg-yellow-500/5 pointer-events-none border border-yellow-500/20 flex items-center justify-center">
-                  <span className="bg-yellow-500 text-black font-mono text-[9px] font-black px-2 py-0.5 rounded-full tracking-wider uppercase">🌙 Night Sight Gain Adjusted</span>
+                  <span className="bg-yellow-500 text-black font-mono text-[9px] font-black px-2 py-0.5 rounded-full tracking-wider uppercase">{"🌙 Night Sight Gain Adjusted"}</span>
                 </div>
               )}
 
@@ -1563,16 +1560,9 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                 <div className="w-full max-w-md aspect-video border border-emerald-500/30 rounded-3xl mx-auto my-auto relative p-3">
                   <div className="absolute top-2 left-2 flex items-center gap-1.5 text-emerald-400">
                     <Activity className="w-4 h-4 animate-pulse" />
-                    <span className="text-[8px] font-mono tracking-widest font-bold">STABILIZATION ACTIVE</span>
                   </div>
                 </div>
               )}
-
-              {/* Bottom Mode Indicators */}
-              <div className="self-center bg-slate-950/80 p-2.5 rounded-2xl border border-slate-800 backdrop-blur-md flex items-center gap-1">
-                <span className="text-[9px] font-black font-mono text-slate-500 uppercase mr-1">Capture Preset:</span>
-                <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-lg uppercase tracking-wider">{activeMode}</span>
-              </div>
             </div>
 
             {/* ================= CAMERA SETTINGS SLIDE-UP BOTTOM SHEET ================= */}
@@ -1602,8 +1592,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                     <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                       <span className="text-xs font-black uppercase font-mono tracking-wider text-slate-300 flex items-center gap-1.5">
                         <Settings className="w-4 h-4 text-blue-400" />
-                        Camera Control Panel
-                      </span>
+                        {"Camera Control Panel"}</span>
                       <button 
                         onClick={() => setSettingsMenuOpen(false)}
                         className="p-1.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-all"
@@ -1615,7 +1604,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                     <div className="space-y-4">
                       {/* Camera Device Source Selection */}
                       <div className="space-y-1.5">
-                        <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">Default Lens</label>
+                        <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">{"Default Lens"}</label>
                         <div className="grid grid-cols-2 gap-2">
                           <button
                             onClick={() => {
@@ -1628,8 +1617,8 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                                 : "bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-850"
                             }`}
                           >
-                            <span className="flex items-center gap-1.5">📷 Rear Camera</span>
-                            <span className="text-[8px] font-mono opacity-60">Environment</span>
+                            <span className="flex items-center gap-1.5">{"📷 Rear Camera"}</span>
+                            <span className="text-[8px] font-mono opacity-60">{"Environment"}</span>
                           </button>
                           <button
                             onClick={() => {
@@ -1642,15 +1631,49 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                                 : "bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-850"
                             }`}
                           >
-                            <span className="flex items-center gap-1.5">🤳 Front Camera</span>
-                            <span className="text-[8px] font-mono opacity-60">User Selfie</span>
+                            <span className="flex items-center gap-1.5">{"🤳 Front Camera"}</span>
+                            <span className="text-[8px] font-mono opacity-60">{"User Selfie"}</span>
                           </button>
                         </div>
                       </div>
 
+                      <div className="space-y-1.5 border-t border-slate-850 pt-3">
+                        <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">{"Capture Mode"}</label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {[
+                            { id: "standard", label: "Standard" },
+                            { id: "hd", label: "HD Detail" },
+                            { id: "document", label: "Doc Scan" },
+                            { id: "night", label: "Night Mode" },
+                            { id: "ultraclear", label: "Ultra Clear" },
+                            { id: "portrait", label: "Portrait" },
+                            { id: "macro", label: "Macro" },
+                            { id: "whiteboard", label: "Whiteboard" },
+                            { id: "lowlight", label: "Low Light" },
+                            { id: "textenhance", label: "Text Enhance" },
+                            { id: "ocr", label: "AI OCR" }
+                          ].map((mode) => (
+                            <button
+                              key={mode.id}
+                              onClick={() => {
+                                setActiveMode(mode.id as any);
+                                setSettingsMenuOpen(false);
+                              }}
+                              className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all text-center flex items-center justify-center ${
+                                activeMode === mode.id 
+                                  ? "bg-amber-500/20 border-amber-500 text-amber-400" 
+                                  : "bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-850"
+                              }`}
+                            >
+                              {mode.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* Resolution presets */}
-                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">Resolution</label>
+                      <div className="space-y-1.5 border-t border-slate-850 pt-3">
+                        <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">{"Resolution"}</label>
                         <div className="grid grid-cols-3 gap-2">
                           {[
                             { id: "720p", label: "720P" },
@@ -1674,13 +1697,13 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
 
                       {/* Advanced Feature Toggles */}
                       <div className="space-y-2.5 border-t border-slate-850 pt-3">
-                        <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">Advanced Settings</label>
+                        <label className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-wider">{"Advanced Settings"}</label>
                         
                         {/* HDR Toggle */}
                         <div className="flex items-center justify-between py-1">
                           <div className="text-left">
-                            <p className="text-[11px] font-bold text-slate-200">HDR Enhancement</p>
-                            <p className="text-[8px] text-slate-500">Auto shadow fill lighting</p>
+                            <p className="text-[11px] font-bold text-slate-200">{"HDR Enhancement"}</p>
+                            <p className="text-[8px] text-slate-500">{"Auto shadow fill lighting"}</p>
                           </div>
                           <input 
                             type="checkbox" 
@@ -1693,8 +1716,8 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                         {/* Flash Simulation */}
                         <div className="flex items-center justify-between py-1">
                           <div className="text-left">
-                            <p className="text-[11px] font-bold text-slate-200">⚡ Flash / Torch</p>
-                            <p className="text-[8px] text-slate-500">Enable flashlight simulation</p>
+                            <p className="text-[11px] font-bold text-slate-200">{"⚡ Flash / Torch"}</p>
+                            <p className="text-[8px] text-slate-500">{"Enable flashlight simulation"}</p>
                           </div>
                           <input 
                             type="checkbox" 
@@ -1707,8 +1730,8 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                         {/* 3x3 Grid Guidelines */}
                         <div className="flex items-center justify-between py-1">
                           <div className="text-left">
-                            <p className="text-[11px] font-bold text-slate-200">3x3 Rule of Thirds Grid</p>
-                            <p className="text-[8px] text-slate-500">Guides for straight alignment</p>
+                            <p className="text-[11px] font-bold text-slate-200">{"3x3 Rule of Thirds Grid"}</p>
+                            <p className="text-[8px] text-slate-500">{"Guides for straight alignment"}</p>
                           </div>
                           <input 
                             type="checkbox" 
@@ -1721,8 +1744,8 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                         {/* Auto Focus Tracking */}
                         <div className="flex items-center justify-between py-1">
                           <div className="text-left">
-                            <p className="text-[11px] font-bold text-slate-200">Auto Focus tracking</p>
-                            <p className="text-[8px] text-slate-500">Dynamic lens calibration</p>
+                            <p className="text-[11px] font-bold text-slate-200">{"Auto Focus tracking"}</p>
+                            <p className="text-[8px] text-slate-500">{"Dynamic lens calibration"}</p>
                           </div>
                           <input 
                             type="checkbox" 
@@ -1735,8 +1758,8 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                         {/* AI Enhance Pipeline */}
                         <div className="flex items-center justify-between py-1">
                           <div className="text-left">
-                            <p className="text-[11px] font-bold text-slate-200">🤖 AI Enhance Pipeline</p>
-                            <p className="text-[8px] text-slate-500">High contrast doc labels & OCR prep</p>
+                            <p className="text-[11px] font-bold text-slate-200">{"🤖 AI Enhance Pipeline"}</p>
+                            <p className="text-[8px] text-slate-500">{"High contrast doc labels & OCR prep"}</p>
                           </div>
                           <input 
                             type="checkbox" 
@@ -1749,7 +1772,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                     </div>
 
                     <div className="border-t border-slate-800 pt-3 text-center">
-                      <p className="text-[8px] font-mono text-slate-500">Ultra-Pro AI Camera Firmware v2.6.3</p>
+                      <p className="text-[8px] font-mono text-slate-500">{"Ultra-Pro AI Camera Firmware v2.6.3"}</p>
                     </div>
                   </motion.div>
                 </>
@@ -1770,8 +1793,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                   <div className="w-full max-w-lg bg-[#090e18]/90 border border-slate-800 backdrop-blur px-3 py-2 rounded-2xl flex flex-wrap items-center justify-between gap-2 z-30">
                     <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
                       <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-                      Aspect Ratio
-                    </span>
+                      {"Aspect Ratio"}</span>
                     <div className="flex items-center gap-1 overflow-x-auto scrollbar-none max-w-full">
                       {[
                         { id: "free", label: "Free" },
@@ -1804,8 +1826,8 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-amber-400" />
                       <div>
-                        <p className="text-[10px] font-black text-slate-200">AI Document Boundary Detected</p>
-                        <p className="text-[8px] text-slate-400">Suggest auto-aligning to standard crop bounds</p>
+                        <p className="text-[10px] font-black text-slate-200">{"AI Document Boundary Detected"}</p>
+                        <p className="text-[8px] text-slate-400">{"Suggest auto-aligning to standard crop bounds"}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -1813,8 +1835,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                         onClick={applyAutoCrop}
                         className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-black text-[9px] font-mono font-black uppercase rounded-lg transition-all cursor-pointer"
                       >
-                        Auto Crop
-                      </button>
+                        {"Auto Crop"}</button>
                       <button
                         onClick={() => setShowAutoCropPrompt(false)}
                         className="p-1 text-slate-400 hover:text-white cursor-pointer"
@@ -1836,7 +1857,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                   onTouchStart={handlePanStart}
                   onTouchMove={handlePanMove}
                   onTouchEnd={handlePanEnd}
-                  className={`relative max-w-full max-h-[50vh] md:max-h-[65vh] aspect-auto rounded-3xl overflow-hidden border border-slate-800 shadow-2xl transition-all ${
+                  className={`relative max-w-full max-h-[70vh] md:max-h-[75vh] aspect-auto rounded-3xl overflow-hidden border border-slate-800 shadow-2xl transition-all ${
                     previewZoom > 1 ? "cursor-grab active:cursor-grabbing" : ""
                   }`}
                   style={{ 
@@ -1847,8 +1868,8 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                   <img 
                     referrerPolicy="no-referrer" 
                     src={editingImage} 
-                    alt="Review captured evidence" 
-                    className="max-h-[50vh] md:max-h-[65vh] object-contain rounded-2xl pointer-events-none transition-all select-none"
+                    alt={"Review captured evidence"} 
+                    className="max-h-[70vh] md:max-h-[75vh] object-contain rounded-2xl pointer-events-none transition-all select-none"
                     style={{
                       transform: `scale(${previewZoom}) translate(${previewPan.x}px, ${previewPan.y}px)`,
                       filter: showOriginalToggle
@@ -1865,18 +1886,17 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                     onTouchStart={() => setShowOriginalToggle(true)}
                     onTouchEnd={() => setShowOriginalToggle(false)}
                     className="absolute top-3 right-3 bg-slate-950/90 hover:bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-slate-300 px-3 py-1.5 rounded-xl transition-all cursor-pointer z-35 flex items-center gap-1.5 shadow-lg select-none active:scale-95"
-                    title="Hold to view original unenhanced photo"
+                    title={"Hold to view original unenhanced photo"}
                   >
                     <Activity className="w-3.5 h-3.5 text-yellow-400" />
-                    Hold to Compare
-                  </button>
+                    {"Hold to Compare"}</button>
 
                   {/* ACTIVE OCR READING INDICATOR */}
                   {isOcrLoading && (
                     <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-2 z-40">
                       <span className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin"></span>
-                      <p className="text-[10px] font-black uppercase tracking-wider font-mono text-cyan-400 animate-pulse">Running AI Document Scan & OCR...</p>
-                      <p className="text-[8px] text-slate-500 font-mono">Enhancing contrast & parsing glyph segments</p>
+                      <p className="text-[10px] font-black uppercase tracking-wider font-mono text-cyan-400 animate-pulse">{"Running AI Document Scan & OCR..."}</p>
+                      <p className="text-[8px] text-slate-500 font-mono">{"Enhancing contrast & parsing glyph segments"}</p>
                     </div>
                   )}
 
@@ -1906,7 +1926,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                         onMouseDown={(e) => handleDragStart(e, "move")}
                         onTouchStart={(e) => handleDragStart(e, "move")}
                         className="absolute inset-4 cursor-move"
-                        title="Drag to reposition crop selection"
+                        title={"Drag to reposition crop selection"}
                       />
 
                       {/* Four Corners (28-32px touch-friendly targets) */}
@@ -1996,7 +2016,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                       <button
                         onClick={() => setPreviewZoom(prev => Math.max(1, prev - 0.2))}
                         className="w-7 h-7 rounded-lg bg-slate-800 text-slate-200 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer"
-                        title="Zoom Out"
+                        title={"Zoom Out"}
                       >
                         -
                       </button>
@@ -2006,7 +2026,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                       <button
                         onClick={() => setPreviewZoom(prev => Math.min(4, prev + 0.2))}
                         className="w-7 h-7 rounded-lg bg-slate-800 text-slate-200 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer"
-                        title="Zoom In"
+                        title={"Zoom In"}
                       >
                         +
                       </button>
@@ -2017,8 +2037,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                         onClick={handleResetCrop}
                         className="px-2.5 py-1 text-[9px] font-mono font-black uppercase rounded-lg border border-slate-850 hover:bg-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer"
                       >
-                        Reset Crop
-                      </button>
+                        {"Reset Crop"}</button>
                     </div>
                   </div>
                 )}
@@ -2029,14 +2048,14 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
             <div className="hidden md:flex w-80 shrink-0 bg-[#090e18] border-l border-slate-850 p-4 flex-col gap-4 overflow-y-auto">
                <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
                   <Bot className="w-5 h-5 text-blue-400" />
-                  <span className="text-xs font-bold font-mono uppercase tracking-widest text-slate-200">AI Assistant</span>
+                  <span className="text-xs font-bold font-mono uppercase tracking-widest text-slate-200">{"AI Assistant"}</span>
                </div>
                
                {/* Chat bubble */}
                <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-2 relative">
                   <div className="absolute -left-2 top-4 w-4 h-4 bg-slate-900 border-l border-b border-slate-800 transform rotate-45"></div>
                   <p className="text-[11px] leading-relaxed text-slate-300">
-                     I detected a <strong className="text-violet-400 font-bold">{detectedObject || "document"}</strong>. 
+                     {"I detected a"}<strong className="text-violet-400 font-bold">{detectedObject || "document"}</strong>. 
                      {qualityScore >= 80 ? " The image quality is excellent ⭐⭐⭐⭐⭐." : " The image quality is low and might be hard to read."}
                   </p>
                   <p className="text-[11px] leading-relaxed text-slate-300">
@@ -2044,8 +2063,8 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                   </p>
                   {suggestedTicketMeta?.category && (
                     <div className="mt-2 p-2 bg-blue-950/30 border border-blue-900/40 rounded-lg">
-                      <p className="text-[10px] text-blue-400 font-bold mb-1">Suggested Action:</p>
-                      <p className="text-[10px] text-slate-300">Would you like to create a <strong className="text-white">{suggestedTicketMeta.category}</strong> complaint using this document?</p>
+                      <p className="text-[10px] text-blue-400 font-bold mb-1">{"Suggested Action:"}</p>
+                      <p className="text-[10px] text-slate-300">{"Would you like to create a"}<strong className="text-white">{suggestedTicketMeta.category}</strong> {"complaint using this document?"}</p>
                     </div>
                   )}
                </div>
@@ -2053,18 +2072,17 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                {/* Quality stats summary */}
                <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-3 flex justify-between items-center mt-2">
                   <div className="space-y-0.5">
-                     <p className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">Image Quality</p>
+                     <p className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">{"Image Quality"}</p>
                      <p className="text-xs font-bold text-emerald-400">{qualityScore}% - {qualityScore >= 80 ? "Excellent" : "Fair"}</p>
                   </div>
                   <div className="space-y-0.5 text-right">
-                     <p className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">Detected Evidence</p>
-                     <p className="text-xs font-bold text-violet-400">{(detectionConfidence * 100).toFixed(0)}% Match</p>
+                     <p className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">{"Detected Evidence"}</p>
+                     <p className="text-xs font-bold text-violet-400">{(detectionConfidence * 100).toFixed(0)}{"% Match"}</p>
                   </div>
                </div>
 
                <p className="text-[9px] text-slate-500 mt-auto text-center font-mono px-4">
-                  Tools like Smart Crop and Fix Document are available under the "More..." menu.
-               </p>
+                  {"Tools like Smart Crop and Fix Document are available under the \"More...\" menu."}</p>
             </div>
 
             {/* Mobile AI Assistant FAB */}
@@ -2099,8 +2117,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                      <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                         <span className="text-xs font-black uppercase font-mono tracking-wider text-slate-300 flex items-center gap-1.5">
                           <Bot className="w-4 h-4 text-blue-400" />
-                          AI Assistant
-                        </span>
+                          {"AI Assistant"}</span>
                         <button 
                           onClick={() => setShowMobilePanel(false)}
                           className="p-1.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer"
@@ -2111,7 +2128,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
 
                       <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-2">
                         <p className="text-[11px] leading-relaxed text-slate-300">
-                           I detected a <strong className="text-violet-400 font-bold">{detectedObject || "document"}</strong>. 
+                           {"I detected a"}<strong className="text-violet-400 font-bold">{detectedObject || "document"}</strong>. 
                            {qualityScore >= 80 ? " The image quality is excellent ⭐⭐⭐⭐⭐." : " The image quality is low and might be hard to read."}
                         </p>
                         <p className="text-[11px] leading-relaxed text-slate-300">
@@ -2119,8 +2136,8 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                         </p>
                         {suggestedTicketMeta?.category && (
                           <div className="mt-2 p-2 bg-blue-950/30 border border-blue-900/40 rounded-lg">
-                            <p className="text-[10px] text-blue-400 font-bold mb-1">Suggested Action:</p>
-                            <p className="text-[10px] text-slate-300">Would you like to create a <strong className="text-white">{suggestedTicketMeta.category}</strong> complaint using this document?</p>
+                            <p className="text-[10px] text-blue-400 font-bold mb-1">{"Suggested Action:"}</p>
+                            <p className="text-[10px] text-slate-300">{"Would you like to create a"}<strong className="text-white">{suggestedTicketMeta.category}</strong> {"complaint using this document?"}</p>
                           </div>
                         )}
                      </div>
@@ -2138,16 +2155,14 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
               <div className="flex items-center justify-between border-b border-slate-850 pb-2">
                 <span className="text-xs font-black uppercase tracking-wider font-mono text-amber-500 flex items-center gap-1">
                   <Edit3 className="w-4 h-4" />
-                  Annotation Overlays
-                </span>
+                  {"Annotation Overlays"}</span>
                 
                 <div className="flex gap-2">
                   <button 
                     onClick={handleUndoAnnotation}
                     className="p-1 px-2.5 bg-slate-850 hover:bg-slate-800 rounded-lg text-[10px] font-mono font-bold text-slate-300 cursor-pointer"
                   >
-                    Undo
-                  </button>
+                    {"Undo"}</button>
                   <button 
                     onClick={() => {
                       setAnnotationMode("draw");
@@ -2156,8 +2171,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                     }}
                     className="p-1 px-2.5 bg-red-900/20 hover:bg-red-900/40 rounded-lg text-[10px] font-mono font-bold text-red-400 border border-red-900/30 cursor-pointer"
                   >
-                    Clear All
-                  </button>
+                    {"Clear All"}</button>
                 </div>
               </div>
 
@@ -2172,7 +2186,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                   onTouchStart={handleCanvasStartDraw}
                   onTouchMove={handleCanvasDrawing}
                   onTouchEnd={handleCanvasEndDraw}
-                  className="max-h-[60vh] object-contain mx-auto"
+                  className="max-h-[70vh] md:max-h-[75vh] object-contain mx-auto"
                 />
               </div>
 
@@ -2184,37 +2198,33 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                     className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
                       annotationMode === "draw" ? "bg-amber-500 text-black" : "text-slate-400 hover:text-white"
                     }`}
-                    title="Pen tool"
+                    title={"Pen tool"}
                   >
-                    ✏️ Pen
-                  </button>
+                    {"✏️ Pen"}</button>
                   <button
                     onClick={() => setAnnotationMode("circle")}
                     className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
                       annotationMode === "circle" ? "bg-amber-500 text-black" : "text-slate-400 hover:text-white"
                     }`}
-                    title="Circle Highlight"
+                    title={"Circle Highlight"}
                   >
-                    ⭕ Circle
-                  </button>
+                    {"⭕ Circle"}</button>
                   <button
                     onClick={() => setAnnotationMode("arrow")}
                     className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
                       annotationMode === "arrow" ? "bg-amber-500 text-black" : "text-slate-400 hover:text-white"
                     }`}
-                    title="Arrow pointer"
+                    title={"Arrow pointer"}
                   >
-                    ➡️ Arrow
-                  </button>
+                    {"➡️ Arrow"}</button>
                   <button
                     onClick={() => setAnnotationMode("text")}
                     className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
                       annotationMode === "text" ? "bg-amber-500 text-black" : "text-slate-400 hover:text-white"
                     }`}
-                    title="Text stamp"
+                    title={"Text stamp"}
                   >
-                    💬 Badge
-                  </button>
+                    {"💬 Badge"}</button>
                 </div>
 
                 {/* Brush Colors */}
@@ -2235,21 +2245,20 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
               {/* Text tool input block */}
               {annotationMode === "text" && (
                 <div className="p-3 bg-slate-900/80 border border-slate-850 rounded-xl space-y-2">
-                  <p className="text-[10px] font-mono font-bold text-slate-400">INPUT DIAGNOSIS NOTE STAMP:</p>
+                  <p className="text-[10px] font-mono font-bold text-slate-400">{"INPUT DIAGNOSIS NOTE STAMP:"}</p>
                   <div className="flex gap-2">
                     <input 
                       type="text"
                       value={textLabelInput}
                       onChange={(e) => setTextLabelInput(e.target.value)}
-                      placeholder="e.g. BROKEN FUSER ROLLER"
+                      placeholder={"e.g. BROKEN FUSER ROLLER"}
                       className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
                     />
                     <button
                       onClick={applyTextAnnotation}
                       className="bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs px-3.5 py-1.5 rounded-lg transition-all"
                     >
-                      Stamp ✓
-                    </button>
+                      {"Stamp ✓"}</button>
                   </div>
                 </div>
               )}
@@ -2257,86 +2266,53 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
           </div>
         )}
       </div>
-
       {/* ================= BOTTOM CAPTURE BAR & PHOTOS STRIP ================= */}
-      <div className="bg-[#0b0f19] border-t border-slate-850 px-4 py-4 shrink-0 space-y-4">
-        
-        {/* Gallery Strip of Multi-Photos currently captured */}
-        <div className="flex items-center gap-3 overflow-x-auto py-1">
-          <div className="flex items-center gap-2 shrink-0 pr-3 border-r border-slate-850">
-            <span className="text-[10px] uppercase font-mono font-black text-slate-500 tracking-wider">
-              Captures ({capturedPhotos.length})
-            </span>
-          </div>
 
-          <div className="flex items-center gap-2.5">
-            {capturedPhotos.map((photo, i) => (
-              <div 
-                key={photo.id}
-                className="w-16 h-16 rounded-xl border border-slate-800 overflow-hidden relative shrink-0 group"
-              >
-                <img referrerPolicy="no-referrer" src={photo.dataUrl} alt="Captured preview" className="w-full h-full object-cover" />
-                <button
-                  onClick={() => removeCapturedPhoto(photo.id)}
-                  className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-700 transition-all opacity-0 group-hover:opacity-100 shadow"
+      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-4 pb-8 pt-16 shrink-0 z-10 pointer-events-none">
+        <div className="pointer-events-auto">
+        {/* Gallery Strip of Multi-Photos currently captured (Only show if > 0) */}
+        {capturedPhotos.length > 0 && (
+          <div className="flex items-center gap-3 overflow-x-auto py-1 mb-4">
+            <div className="flex items-center gap-2 shrink-0 pr-3 border-r border-slate-850">
+              <span className="text-[10px] uppercase font-mono font-black text-slate-500 tracking-wider">
+                {"Captures ("}{capturedPhotos.length})
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              {capturedPhotos.map((photo, i) => (
+                <div 
+                  key={photo.id}
+                  className="w-16 h-16 rounded-xl border border-slate-800 overflow-hidden relative shrink-0 group"
                 >
-                  <Trash2 className="w-3 h-3 text-white" />
-                </button>
-                <div className="absolute bottom-0 inset-x-0 bg-black/60 text-center text-[8px] font-mono font-bold text-slate-300 py-0.5">
-                  #{i+1}
+                  <img referrerPolicy="no-referrer" src={photo.dataUrl} alt={"Captured preview"} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => removeCapturedPhoto(photo.id)}
+                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-700 transition-all opacity-0 group-hover:opacity-100 shadow"
+                  >
+                    <Trash2 className="w-3 h-3 text-white" />
+                  </button>
+                  <div className="absolute bottom-0 inset-x-0 bg-black/60 text-center text-[8px] font-mono font-bold text-slate-300 py-0.5">
+                    #{i+1}
+                  </div>
                 </div>
-              </div>
-            ))}
-
-            {capturedPhotos.length === 0 && (
-              <span className="text-xs text-slate-500 font-medium">No snapshots taken yet. Trigger capture below.</span>
-            )}
-          </div>
-        </div>
-
-        {/* Symmetrical scrollable row of all 11 enterprise-grade camera presets */}
-        {screen === "capture" && (
-          <div className="border-b border-slate-850 pb-2.5">
-            <div id="tour-camera-modes" className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none snap-x px-1 justify-start">
-              {[
-                { id: "standard", label: "Standard" },
-                { id: "hd", label: "HD Detail" },
-                { id: "document", label: "Doc Scan" },
-                { id: "night", label: "Night Mode" },
-                { id: "ultraclear", label: "Ultra Clear" },
-                { id: "portrait", label: "Portrait" },
-                { id: "macro", label: "Macro" },
-                { id: "whiteboard", label: "Whiteboard" },
-                { id: "lowlight", label: "Low Light" },
-                { id: "textenhance", label: "Text Enhance" },
-                { id: "ocr", label: "AI OCR" }
-              ].map((mode) => (
-                <button
-                  key={mode.id}
-                  onClick={() => setActiveMode(mode.id as any)}
-                  className={`px-3.5 py-1.5 rounded-full text-[11px] font-extrabold uppercase font-mono border tracking-wider transition-all cursor-pointer shrink-0 snap-center ${
-                    activeMode === mode.id 
-                      ? "bg-amber-500 border-amber-400 text-black font-black" 
-                      : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
-                  }`}
-                >
-                  {mode.label}
-                </button>
               ))}
             </div>
           </div>
         )}
 
+
         {/* Action Controls based on current active screen state */}
-        <div className="flex items-center justify-between gap-4">
-          
+        <div className="flex items-center justify-between gap-4 w-full">
+
           {screen === "capture" && (
-            <div className="grid grid-cols-4 items-center gap-2 w-full pt-2">
-              {/* 1. Gallery / Upload on the left */}
-              <div className="flex justify-start">
-                <label className="px-3 py-2.5 rounded-xl border border-slate-850 bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-850 hover:border-slate-750 transition-all flex items-center justify-center gap-1.5 text-[11px] font-black uppercase font-mono cursor-pointer shadow-md">
-                  <Upload className="w-4 h-4 text-blue-400" />
-                  <span>Gallery</span>
+            <div className="flex flex-col gap-4 w-full pt-2">
+              <div className="flex justify-between items-center w-full px-4 md:px-12">
+                {/* 1. Gallery */}
+                <label className="flex flex-col items-center gap-1.5 cursor-pointer">
+                  <div className="w-10 h-10 rounded-full border border-slate-850 bg-slate-900/80 text-slate-300 hover:text-white hover:bg-slate-850 hover:border-slate-750 transition-all flex items-center justify-center shadow-md">
+                    <Upload className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{"Gallery"}</span>
                   <input 
                     type="file" 
                     accept="image/*" 
@@ -2365,51 +2341,31 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                     }}
                   />
                 </label>
-              </div>
 
-              {/* 2. Reverse Camera Switch center-left */}
-              <div className="flex justify-center">
-                <button
-                  onClick={handleToggleFacingMode}
-                  className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:text-amber-400 hover:border-slate-700 transition-all flex items-center justify-center shadow-lg active:scale-95 cursor-pointer"
-                  title="Reverse Camera (Switch Front / Rear)"
-                >
-                  <RefreshCw className="w-5 h-5 text-slate-300" />
-                </button>
-              </div>
-
-              {/* 3. Heavy active Capture Button in center */}
-              <div className="flex justify-center">
+                {/* 3. Heavy active Capture Button in center */}
                 <button
                   id="tour-camera-shutter"
                   onClick={triggerCapture}
-                  className="w-18 h-18 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 transition-all flex items-center justify-center cursor-pointer border-4 border-slate-900 ring-4 ring-red-600/30 shadow-2xl relative"
-                  title="Take photo of issue"
+                  className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 transition-all flex items-center justify-center cursor-pointer border-[3px] border-black ring-2 ring-red-600/30 shadow-2xl relative"
+                  title={"Take photo of issue"}
                 >
-                  <span className="w-13 h-13 rounded-full border border-white/25 absolute"></span>
+                  <span className="w-12 h-12 rounded-full border border-white/25 absolute"></span>
                   <Camera className="w-7 h-7 text-white stroke-[2.5]" />
                 </button>
-              </div>
 
-              {/* 4. Cancel or Finish on the right */}
-              <div className="flex justify-end">
-                {capturedPhotos.length > 0 ? (
-                  <button
-                    onClick={handleFinalizeAllCaptures}
-                    className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-extrabold text-[11px] uppercase tracking-wider font-mono text-white rounded-xl shadow-lg transition-all flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Use {capturedPhotos.length} Pic{capturedPhotos.length > 1 ? "s" : ""} ✓</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={onClose}
-                    className="px-4 py-2.5 bg-slate-900 hover:bg-slate-850 text-slate-300 font-extrabold text-[11px] uppercase font-mono rounded-xl border border-slate-800 transition-all cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                )}
+                {/* 2. Reverse Camera Switch */}
+                <button
+                  onClick={handleToggleFacingMode}
+                  className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                  title={"Reverse Camera (Switch Front / Rear)"}
+                >
+                  <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 text-slate-300 group-hover:text-amber-400 group-hover:border-slate-700 transition-all flex items-center justify-center shadow-lg active:scale-95">
+                    <RefreshCw className="w-5 h-5 text-slate-300 group-hover:text-amber-400 transition-colors" />
+                  </div>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{"Flip"}</span>
+                </button>
               </div>
-            </div>
+              </div>
           )}
 
           {screen === "preview" && (
@@ -2419,11 +2375,10 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                 <button
                   onClick={handleRotate}
                   className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 transition-all cursor-pointer flex items-center gap-1.5"
-                  title="Rotate Clockwise"
+                  title={"Rotate Clockwise"}
                 >
                   <RefreshCw className="w-4 h-4 text-violet-400" />
-                  Rotate
-                </button>
+                  {"Rotate"}</button>
 
                 <button
                   onClick={() => {
@@ -2437,8 +2392,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                   }`}
                 >
                   <Sparkles className="w-4 h-4 text-amber-400" />
-                  AI Enhance
-                </button>
+                  {"AI Enhance"}</button>
 
                 <div className="relative">
                   <button
@@ -2446,8 +2400,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                     className="p-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <Grid className="w-4 h-4 text-slate-400" />
-                    More...
-                  </button>
+                    {"More..."}</button>
                   
                   <AnimatePresence>
                     {showMoreMenu && (
@@ -2468,20 +2421,45 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                           <Crop className="w-4 h-4 text-cyan-400" />
                           {cropActive ? "Confirm Crop Area" : "Smart Crop"}
                         </button>
+                        
                         <button
                           onClick={() => {
                             setIsOcrLoading(true);
                             setTimeout(() => {
                               setIsOcrLoading(false);
-                              setEnhanceSettings(prev => ({ ...prev, contrast: 80, sharpness: 85 }));
+                              setEnhanceSettings(prev => ({ ...prev, contrast: 85, sharpness: 90 }));
+                            }, 800);
+                            setShowMoreMenu(false);
+                          }}
+                          className="flex items-center gap-2 px-4 py-3 text-xs font-bold text-slate-300 hover:bg-slate-850 border-t border-slate-850 transition-all text-left"
+                        >
+                          <Type className="w-4 h-4 text-amber-400" />
+                          {"Sharpen Text"}</button>
+
+                        <button
+                          onClick={() => {
+                            setIsOcrLoading(true);
+                            setTimeout(() => {
+                              setIsOcrLoading(false);
+                              setEnhanceSettings(prev => ({ ...prev, contrast: 80, brightness: 60 }));
                             }, 800);
                             setShowMoreMenu(false);
                           }}
                           className="flex items-center gap-2 px-4 py-3 text-xs font-bold text-slate-300 hover:bg-slate-850 border-t border-slate-850 transition-all text-left"
                         >
                           <Scan className="w-4 h-4 text-blue-400" />
-                          📄 Fix Document
-                        </button>
+                          {"Improve Document"}</button>
+
+                        <button
+                          onClick={() => {
+                            setEnhanceSettings(prev => ({ ...prev, brightness: 75 }));
+                            setShowMoreMenu(false);
+                          }}
+                          className="flex items-center gap-2 px-4 py-3 text-xs font-bold text-slate-300 hover:bg-slate-850 border-t border-slate-850 transition-all text-left"
+                        >
+                          <Sparkles className="w-4 h-4 text-yellow-400" />
+                          {"Brighten Image"}</button>
+
                         <button
                           onClick={() => {
                             handleOpenAnnotation();
@@ -2490,8 +2468,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                           className="flex items-center gap-2 px-4 py-3 text-xs font-bold text-slate-300 hover:bg-slate-850 border-t border-slate-850 transition-all text-left"
                         >
                           <Edit3 className="w-4 h-4 text-amber-500" />
-                          Draw & Annotate
-                        </button>
+                          {"Draw & Annotate"}</button>
                         <button
                           onClick={() => {
                             handleRestoreOriginal();
@@ -2500,8 +2477,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                           className="flex items-center gap-2 px-4 py-3 text-xs font-bold text-red-400 hover:bg-slate-850 border-t border-slate-850 transition-all text-left"
                         >
                           <RefreshCw className="w-4 h-4 text-red-500" />
-                          ↺ Reset Image
-                        </button>
+                          {"Restore Original"}</button>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -2520,16 +2496,14 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                   }}
                   className="px-4 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-850 text-red-400 font-extrabold text-xs rounded-2xl transition-all cursor-pointer"
                 >
-                  Retake Photo
-                </button>
+                  {"Retake Photo"}</button>
                 
                 <button
                   onClick={handleAcceptPhoto}
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs text-white rounded-2xl shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
-                  Keep Photo & Attach
-                </button>
+                  {"Keep Photo & Attach"}</button>
               </div>
             </>
           )}
@@ -2537,22 +2511,19 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
           {screen === "annotate" && (
             <>
               <p className="text-xs text-slate-400 font-medium">
-                Tip: Draw circles or arrows to label broken components / discrepancies on the canvas.
-              </p>
+                {"Tip: Draw circles or arrows to label broken components / discrepancies on the canvas."}</p>
 
               <div className="flex gap-2">
                 <button
                   onClick={() => setScreen("preview")}
                   className="px-4 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-850 text-slate-300 font-extrabold text-xs rounded-2xl transition-all cursor-pointer"
                 >
-                  Cancel Overlay
-                </button>
+                  {"Cancel Overlay"}</button>
                 <button
                   onClick={handleSaveAnnotation}
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs text-white rounded-2xl shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
                 >
-                  Flatten Annotation ✓
-                </button>
+                  {"Flatten Annotation ✓"}</button>
               </div>
             </>
           )}
@@ -2573,10 +2544,9 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
             </div>
             
             <div className="space-y-1.5">
-              <h4 className="text-base font-black text-white uppercase tracking-wider">Low Image Quality Alert</h4>
+              <h4 className="text-base font-black text-white uppercase tracking-wider">{"Low Image Quality Alert"}</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Our real-time AI scanner detected potential focus blur or poor exposure (Quality score: <span className="text-amber-400 font-black">{qualityScore}%</span>). Legible text in documents or clear hardware identification is recommended.
-              </p>
+                {"Our real-time AI scanner detected potential focus blur or poor exposure (Quality score:"}<span className="text-amber-400 font-black">{qualityScore}%</span>{"). Legible text in documents or clear hardware identification is recommended."}</p>
             </div>
 
             <div className="bg-slate-900 p-3 rounded-2xl text-left border border-slate-850 text-[10px] space-y-1 text-slate-300 font-medium">
@@ -2584,7 +2554,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                 <div key={idx}>• {w}</div>
               ))}
               {qualityWarnings.length === 0 && (
-                <div>• General motion blur or camera shake detected. Please steady device.</div>
+                <div>{"• General motion blur or camera shake detected. Please steady device."}</div>
               )}
             </div>
 
@@ -2597,8 +2567,7 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                 }}
                 className="w-full py-2.5 bg-[#1a2333] hover:bg-slate-800 text-slate-300 font-extrabold text-xs rounded-xl border border-slate-800 transition-all cursor-pointer"
               >
-                Retake Snapshot
-              </button>
+                {"Retake Snapshot"}</button>
               <button
                 onClick={() => {
                   setShowQualityWarningModal(false);
@@ -2610,13 +2579,13 @@ export default function DcmsCamera({ onClose, onCapturePhotos, initialMode = "st
                 }}
                 className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs rounded-xl transition-all cursor-pointer"
               >
-                Use Photo Anyway
-              </button>
+                {"Use Photo Anyway"}</button>
             </div>
           </motion.div>
         </div>
       )}
 
     </div>
+      </div>
   );
 }

@@ -108,7 +108,7 @@ const TOURS: Record<string, TourStep[]> = {
     {
       selector: "#tour-sidebar-aiassistant",
       title: "🤖 Cognitive Assistant",
-      description: "Activate the server-side AI model to search HR handbooks, draft requests, or analyze internal directory links.",
+      description: "The AI Assistant understands multiple languages, corrects spelling mistakes, and automatically classifies complaints into the appropriate department.",
       position: "right",
       interactive: true
     },
@@ -281,7 +281,7 @@ const TOURS: Record<string, TourStep[]> = {
     {
       selector: "#tour-sidebar-aiassistant",
       title: "🤖 Cognitive Assistant Workspace",
-      description: "Open your custom AI companion. Ask Gemini to search employee manuals, draft reports, or auto-classify tasks.",
+      description: "Open your custom AI companion. The AI Assistant understands multiple languages, corrects spelling mistakes, and automatically classifies complaints into the appropriate department.",
       position: "right",
       interactive: true
     }
@@ -305,6 +305,12 @@ const TOURS: Record<string, TourStep[]> = {
     }
   ],
   "employee-profile": [
+    {
+      selector: "#tour-language-selector",
+      title: "🌐 Language Settings",
+      description: "Use the Language option to translate the entire Workplace Hub into your preferred language. The AI Assistant also understands and replies in multiple languages.",
+      position: "bottom"
+    },
     {
       selector: "#tour-profile-dropdown",
       title: "👤 Account Control",
@@ -364,6 +370,7 @@ const TOURS: Record<string, TourStep[]> = {
 };
 
 const ArrowPointer = ({ position }: { position: "top" | "bottom" | "left" | "right" | "center" }) => {
+    
   if (position === "center") return null;
   
   const bounceClass = "animate-[bounce_1.4s_infinite]";
@@ -408,6 +415,7 @@ const ArrowPointer = ({ position }: { position: "top" | "bottom" | "left" | "rig
 };
 
 export default function ProductTour() {
+  
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -645,14 +653,13 @@ export default function ProductTour() {
                 className="bg-blue-600 hover:bg-blue-500 text-white rounded-full px-4 py-2.5 shadow-lg flex items-center gap-2 cursor-pointer transition-colors border border-blue-400/30"
               >
                 <Sparkles className="w-4 h-4" />
-                <span className="text-xs font-bold">AI Suggestions (1)</span>
+                <span className="text-xs font-bold">{"AI Suggestions (1)"}</span>
               </button>
             ) : (
               <div className="max-w-sm bg-slate-900 border border-slate-800 text-white rounded-2xl p-4.5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col gap-2.5">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] uppercase tracking-wider font-extrabold text-blue-400 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" /> SMART ADVICE
-                  </span>
+                    <Sparkles className="w-3.5 h-3.5" /> {"SMART ADVICE"}</span>
                   <button 
                     onClick={() => setActiveTip(null)}
                     className="w-5 h-5 rounded-full hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white cursor-pointer"
@@ -666,8 +673,7 @@ export default function ProductTour() {
                     onClick={() => setActiveTip(null)}
                     className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px] rounded-lg transition-colors cursor-pointer"
                   >
-                    Dismiss
-                  </button>
+                    {"Dismiss"}</button>
                 </div>
               </div>
             )}
@@ -839,24 +845,22 @@ export default function ProductTour() {
           <div className="space-y-2.5">
             <div className="flex justify-between items-center">
               <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 font-mono flex items-center gap-2">
-                <span>🌟 STEP {stepIndex + 1} OF {steps.length}</span>
+                <span>{"🌟 STEP"}{stepIndex + 1} {"OF"}{steps.length}</span>
                 <span className="text-slate-700 font-normal">|</span>
                 {renderProgressBlocks()}
               </span>
               <button 
                 onClick={handleSkip}
                 className="text-[9px] uppercase font-black tracking-wider text-slate-500 hover:text-white transition-colors cursor-pointer select-none"
-                title="Skip onboarding guide"
+                title={"Skip onboarding guide"}
               >
-                Skip
-              </button>
+                {"Skip"}</button>
             </div>
             
             <h3 className="font-extrabold text-white text-sm tracking-tight leading-tight flex items-center gap-2">
               {currentStep.interactive && (
                 <span className="px-1.5 py-0.5 bg-cyan-950/80 border border-cyan-800 rounded text-[9px] font-extrabold text-cyan-400 font-mono animate-pulse shrink-0">
-                  ⚡ TRY IT
-                </span>
+                  {"⚡ TRY IT"}</span>
               )}
               {currentStep.title}
             </h3>
@@ -869,8 +873,7 @@ export default function ProductTour() {
           <div className="flex justify-between items-center pt-4 border-t border-slate-800/50 mt-4">
             {/* SLA indicator */}
             <div className="text-[9px] font-black uppercase tracking-wider text-slate-500 font-mono flex items-center gap-1">
-              <Award className="w-3.5 h-3.5 text-cyan-500" /> SLA SUPPORT
-            </div>
+              <Award className="w-3.5 h-3.5 text-cyan-500" /> {"SLA SUPPORT"}</div>
 
             {/* Nav controls */}
             <div className="flex items-center gap-1.5">

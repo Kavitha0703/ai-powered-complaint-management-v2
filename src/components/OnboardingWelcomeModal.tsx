@@ -4,6 +4,7 @@ import { Sparkles, X, Check, ArrowRight, HelpCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 export default function OnboardingWelcomeModal() {
+    
   const { dbUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [optOut, setOptOut] = useState(false);
@@ -67,16 +68,14 @@ export default function OnboardingWelcomeModal() {
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-cyan-500">Workspace Hub</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-cyan-500">{"Workspace Hub"}</span>
                 <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5 leading-tight">
-                  Welcome to Workplace Hub 👋
-                </h3>
+                  {"Welcome to Workplace Hub 👋"}</h3>
               </div>
             </div>
 
             <p className="text-xs font-medium text-slate-600 dark:text-slate-350 leading-relaxed mb-5">
-              Would you like a quick <strong className="text-slate-800 dark:text-slate-200">3-minute interactive tour</strong>? We can highlight the real-time SLA monitors, automated complaint registration flow, digital camera evidence logs, and our cognitive AI helper workspace.
-            </p>
+              {"Would you like a quick"}<strong className="text-slate-800 dark:text-slate-200">{"3-minute interactive tour"}</strong>{"? We can highlight the real-time SLA monitors, automated complaint registration flow, digital camera evidence logs, and our cognitive AI helper workspace."}</p>
 
             {/* Quick Tour Highlights */}
             <div className="space-y-2 mb-6">
@@ -102,8 +101,7 @@ export default function OnboardingWelcomeModal() {
                 className="rounded border-slate-300 dark:border-slate-700 text-cyan-500 focus:ring-cyan-500 h-4 w-4 bg-transparent cursor-pointer"
               />
               <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                Don't show this message automatically again
-              </span>
+                {"Don't show this message automatically again"}</span>
             </label>
 
             {/* Actions */}
@@ -113,14 +111,13 @@ export default function OnboardingWelcomeModal() {
                 onClick={handleSkip}
                 className="px-4 py-2 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-900 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 rounded-xl text-xs font-black text-slate-500 dark:text-slate-400 transition-all cursor-pointer"
               >
-                Skip for Now
-              </button>
+                {"Skip for Now"}</button>
               <button
                 type="button"
                 onClick={handleStartTour}
                 className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl shadow-md shadow-blue-500/10 flex items-center gap-1.5 transition-all hover:translate-x-0.5 cursor-pointer"
               >
-                Start Tour <ArrowRight className="w-3.5 h-3.5" />
+                {"Start Tour"}<ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

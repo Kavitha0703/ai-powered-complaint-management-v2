@@ -4,6 +4,8 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import mammoth from "mammoth";
+import fs from "fs/promises";
+import { existsSync } from "fs";
 
 dotenv.config();
 
@@ -1540,13 +1542,13 @@ No dynamic system context was passed in the request. Give polite general website
       "  * Generate reports, metrics summaries, tables, lists, and workflow diagrams based on the live database records.\n" +
       "  * If asked for 'Show me pending complaints' or 'Which complaints are pending/overdue?':\n" +
       "    * Filter the live ticket records for 'Pending' or 'In Progress' statuses.\n" +
-      "    * Construct a beautiful, clean Markdown Table with the columns: | Complaint ID | User | Department | Priority | Age (Days) | Description |.\n" +
+      "    * Use the `structuredData` JSON property to render an interactive HTML DataTable. DO NOT output raw Markdown tables. Set structuredData.type = \"table\" and provide columns and rows.\n" +
       "    * Give a brief professional assessment of the SLA threat for these pending complaints.\n" +
       "  * If asked for 'Generate today's report' or 'Daily report':\n" +
       "    * Analyze the tickets filed today (June 17, 2026). If there are none, report that systems are completely stable and secure.\n" +
       "    * Provide a structured daily report with summary metrics: total complaints, resolved count, pending count, average satisfaction score (CSAT), top department queue, and any critical escalations.\n" +
       "  * If asked for 'Show complaints department wise' or similar category distributions:\n" +
-      "    * Count and categorize active tickets. Construct a beautiful Markdown Table showing: | Department | Total Tickets | Pending | In Progress | Resolved |.\n" +
+      "    * Count and categorize active tickets. Use the `structuredData` JSON property to render an interactive HTML DataTable instead of a Markdown table.\n" +
       "  * If asked for 'Show complaint workflow' or workflow lifecycle:\n" +
       "    * Render a gorgeous ASCII text/unicode flowchart or a clean Mermaid diagram representing the complete workplace ticket lifecycle:\n" +
       "      `[Complaint Logged] ➔ [AI Auto-Categorization] ➔ [Department Assignment] ➔ [Admin Diagnosis/Investigation] ➔ [Resolution Operations] ➔ [User Acknowledgment/CSAT Verification] ➔ [Closed]`\n" +
@@ -1568,6 +1570,12 @@ No dynamic system context was passed in the request. Give polite general website
       "- NEVER invent or dream up ticket details, ticket numbers, or statistics that are not present in your ground-truth data snapshot. If you can't find a record, say so clearly and list the possible normal causes.\n" +
       "- If asked 'How do I know you are telling the truth?', answer in accordance with our Transparency pledge: 'I access the real-time database records linked to your active session. My reports reflect the true, unmanipulated status of our active production database.'\n" +
       "- If asked to view another user's ticket: 'I cannot expose details of tickets belonging to another user due to strict data privacy controls restricting tickets exclusively to their authenticated owner or authorized administrative supervisors.'\n\n" +
+      "MULTILINGUAL RULES & AUTO-TRANSLATION:\n" +
+      `- You must AUTOMATICALLY DETECT the language the user is speaking in. If no language is explicitly detected in their prompt, you should default to the currently selected User Interface language, which is: ${systemContext?.uiLanguage || 'English'}.\n` +
+      "- Even if the application UI is in English, if the user types in Spanish, Telugu, Japanese, etc., you MUST reply in that EXACT same detected language.\n" +
+      "- NEVER require the user to change language manually. Be seamlessly multilingual.\n" +
+      "- CRITICAL: While you converse and reply in the user's native language, you must extract and register the underlying complaint internally in ENGLISH so administrators can understand it.\n" +
+      "- Populate the `detectedLanguage`, `originalComplaint`, and `translatedComplaint` fields in your JSON response whenever the user describes a problem.\n\n" +
       "Keep the conversation extremely friendly, helpful, elegant, and perfectly formatted in strict markdown paragraphs based on the formattingMode selected.";
 
     // Format the messages for Gemini
@@ -1748,6 +1756,7 @@ No dynamic system context was passed in the request. Give polite general website
           "AI MEMORY & CONTEXT ADHERENCE:\n" +
           "- Maintain session memory by analyzing preceding messages in the chat history.\n" +
           "- Recognize follow-up questions from the user referencing earlier concepts (e.g. if the user says 'My salary is delayed' and then asks 'What documents should I take?', remember they are referring to salary delay documents).\n\n" +
+          "CRITICAL UI INSTRUCTION: If the user requests tabular formats, reports, stats, metrics, lists of tickets, \"Show in table\", \"Tabular format\", \"List all complaints\", \"Generate report\", \"Pending complaints\", \"Completed complaints\", \"Employees with highest complaints\", or \"Monthly statistics\", you MUST return a \"table\", \"chart\", or \"kpi_cards\" inside the \"structuredData\" JSON object. YOU MUST NOT return a Markdown table (e.g. | column | column |) inside your text response under any circumstances. Always use the structuredData object to render enterprise DataTables.\n\n" +
           "FOLLOW-UP CLARIFICATION & DYNAMIC SUGGESTIONS:\n" +
           "- If a user's prompt is too vague or ambiguous, do not assume or invent facts. Formulate friendly, clarifying follow-up questions.\n" +
           "- ALWAYS generate 3 to 5 tailored 'suggestedQueries' in your JSON response representing the natural next questions or direct operations they can trigger next (e.g., if printer issue, suggest: ['🖨️ Restart Printer', '📄 Check Driver', '🎫 Register Complaint', '📞 Contact IT', '📍 Locate IT Office']).\n\n" +
@@ -1805,6 +1814,63 @@ No dynamic system context was passed in the request. Give polite general website
               items: { type: Type.STRING },
               description: "Contextual follow-up suggestions for the user to ask next, dynamically tailored to the current conversation. Return exactly 3-5 high-relevance suggestions."
             },
+            structuredData: {
+              type: Type.OBJECT,
+              description: "Structured UI components to render (e.g. data tables, KPI cards, charts). Always use this INSTEAD of Markdown tables when the user requests tabular formats, reports, stats, etc.",
+              properties: {
+                type: {
+                  type: Type.STRING,
+                  description: "The type of visualization: \"table\", \"kpi_cards\", \"chart\", \"timeline\""
+                },
+                kpis: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      label: { type: Type.STRING },
+                      value: { type: Type.STRING },
+                      trend: { type: Type.STRING, description: "e.g. \"up\", \"down\", or neutral" }
+                    }
+                  }
+                },
+                table: {
+                  type: Type.OBJECT,
+                  properties: {
+                    columns: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    rows: { 
+                      type: Type.ARRAY, 
+                      items: { 
+                        type: Type.OBJECT, 
+                        description: "Key-value pairs matching columns"
+                      } 
+                    }
+                  }
+                },
+                chart: {
+                  type: Type.OBJECT,
+                  properties: {
+                    type: { type: Type.STRING, description: "bar, line, pie" },
+                    title: { type: Type.STRING },
+                    labels: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    datasets: {
+                      type: Type.ARRAY,
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          label: { type: Type.STRING },
+                          data: { type: Type.ARRAY, items: { type: Type.NUMBER } }
+                        }
+                      }
+                    }
+                  }
+                },
+                actions: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
+                  description: "AI actions to show below the component, e.g. \"Export Excel\", \"Summarize\""
+                }
+              }
+            },
             physicalLocation: {
               type: Type.OBJECT,
               properties: {
@@ -1834,6 +1900,18 @@ No dynamic system context was passed in the request. Give polite general website
                 }
               },
               required: ["requiresPhysical", "department", "room", "floor", "hours", "instructions"]
+            },
+            detectedLanguage: {
+              type: Type.STRING,
+              description: "The name of the language the user is speaking in, natively or in English (e.g. 'Telugu', 'Spanish', 'Japanese')."
+            },
+            originalComplaint: {
+              type: Type.STRING,
+              description: "The user's original issue or complaint text."
+            },
+            translatedComplaint: {
+              type: Type.STRING,
+              description: "The English translation of the user's issue/complaint. This is registered internally in English for administrators."
             }
           },
           required: ["text"],
@@ -1846,6 +1924,142 @@ No dynamic system context was passed in the request. Give polite general website
   } catch (error: any) {
     console.error("Gemini AI Chat Assist Error:", error);
     res.status(500).json({ error: error.message || "Failed to process chat assistance request." });
+  }
+});
+
+// Dynamic i18n Translation Endpoint
+app.get("/locales/:lng/translation.json", async (req, res) => {
+  const { lng } = req.params;
+  const localeDir = path.join(process.cwd(), "public", "locales", lng);
+  const translationPath = path.join(localeDir, "translation.json");
+  const englishPath = path.join(process.cwd(), "public", "locales", "en", "translation.json");
+
+  try {
+    // Read English translation as base
+    if (!existsSync(englishPath)) {
+      return res.status(404).json({ error: "English translation file not found." });
+    }
+    const englishContent = await fs.readFile(englishPath, "utf-8");
+    const englishData = JSON.parse(englishContent);
+
+    // If request is for 'en', just return it
+    if (lng === "en") {
+      res.setHeader("Content-Type", "application/json");
+      return res.send(englishContent);
+    }
+
+    let existingData: Record<string, string> = {};
+    if (existsSync(translationPath)) {
+      const stats = await fs.stat(translationPath);
+      if (stats.size > 10) {
+        existingData = JSON.parse(await fs.readFile(translationPath, "utf-8"));
+      }
+    }
+
+    // Find missing keys
+    const missingKeys = Object.keys(englishData).filter(key => !existingData[key]);
+    
+    if (missingKeys.length === 0) {
+      res.setHeader("Content-Type", "application/json");
+      return res.send(JSON.stringify(existingData, null, 2));
+    }
+
+    // 3. Translate missing keys using Gemini
+    console.log(`Translating ${missingKeys.length} missing keys for language: ${lng}...`);
+    
+    // Split missing keys into chunks of 150
+    const chunkSize = 150;
+    const chunks: string[][] = [];
+    for (let i = 0; i < missingKeys.length; i += chunkSize) {
+      chunks.push(missingKeys.slice(i, i + chunkSize));
+    }
+
+    const translatedData: Record<string, string> = { ...existingData };
+
+    // Map of full language names
+    const langNames: Record<string, string> = {
+      es: "Spanish",
+      fr: "French",
+      de: "German",
+      it: "Italian",
+      pt: "Portuguese",
+      ru: "Russian",
+      zh: "Chinese (Simplified)",
+      ja: "Japanese",
+      ko: "Korean",
+      ar: "Arabic",
+      hi: "Hindi",
+      te: "Telugu",
+      ta: "Tamil",
+      kn: "Kannada",
+      ml: "Malayalam",
+      bn: "Bengali",
+      tr: "Turkish",
+      id: "Indonesian",
+      nl: "Dutch"
+    };
+
+    const targetLangName = langNames[lng] || lng;
+
+    for (let c = 0; c < chunks.length; c++) {
+      const chunkKeys = chunks[c];
+      const chunkToTranslate: Record<string, string> = {};
+      chunkKeys.forEach(k => {
+        chunkToTranslate[k] = englishData[k];
+      });
+
+      const prompt = `You are an elite expert localization and translation engine.
+Translate the following key-value pairs of a JSON locale file from English into ${targetLangName}.
+
+Rules:
+1. Translate the VALUES only, do not translate or change the keys.
+2. Maintain all emojis, punctuation, special symbols, and formatting exactly.
+3. For things like "© 2026", "99.2%", "SLA", "4.2 Hrs", "24x7", "MFA", "SSO", keep those technical abbreviations/numbers.
+4. Translate every single phrase professionally to sound natural to a native speaker. Do not use English fallback for the values.
+5. If a key-value is empty, keep it empty.
+
+JSON to translate:
+${JSON.stringify(chunkToTranslate, null, 2)}
+
+Return ONLY a valid JSON object matching the input keys with translated values. Do not wrap in markdown codeblocks like \`\`\`json.`;
+
+      const response = await callGeminiWithFallback({
+        contents: prompt,
+        config: {
+          systemInstruction: `You are an expert translator specializing in translating workplace SaaS platforms into ${targetLangName}. Return ONLY the translated JSON without any explanation or markdown formatting.`,
+          responseMimeType: "application/json",
+          temperature: 0.1,
+        }
+      }, JSON.stringify(chunkToTranslate));
+
+      try {
+        let chunkResultText = response.text || "{}";
+        // Extract JSON object if there is text around it
+        const match = chunkResultText.match(/\{[\s\S]*\}/);
+        if (match) {
+          chunkResultText = match[0];
+        }
+        
+        const chunkResult = JSON.parse(chunkResultText);
+        Object.assign(translatedData, chunkResult);
+        console.log(`Translated chunk ${c + 1}/${chunks.length} for ${lng}`);
+      } catch (parseErr) {
+        console.error(`Error parsing chunk ${c + 1} for ${lng}:`, parseErr);
+        // Fallback to original values for this chunk
+        Object.assign(translatedData, chunkToTranslate);
+      }
+    }
+
+    // 4. Save to disk so we cache it forever!
+    await fs.mkdir(localeDir, { recursive: true });
+    await fs.writeFile(translationPath, JSON.stringify(translatedData, null, 2), "utf-8");
+    console.log(`Successfully completed and saved dynamic translation for: ${lng}`);
+
+    res.json(translatedData);
+  } catch (err: any) {
+    console.error(`Dynamic Translation Error for ${lng}:`, err);
+    // If anything fails, return English as fallback or partial if we got some
+    res.sendFile(englishPath);
   }
 });
 

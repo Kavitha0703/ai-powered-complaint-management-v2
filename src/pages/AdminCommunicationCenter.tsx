@@ -28,6 +28,7 @@ interface DBUserRaw {
 }
 
 export default function AdminCommunicationCenter() {
+    
   const { dbUser } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "notices" | "personal" | "receipts" | "analytics">("overview");
   
@@ -388,11 +389,11 @@ export default function AdminCommunicationCenter() {
               <AlertTriangle className="w-5 h-5 text-white" />
             </span>
             <div>
-              <span className="text-[10px] font-mono tracking-widest bg-red-700 px-2 py-0.5 rounded-md font-bold text-white uppercase">Critical Active Inbound Threat</span>
-              <p className="font-extrabold text-sm mt-0.5">Urgent Network Alert active on user portal login streams.</p>
+              <span className="text-[10px] font-mono tracking-widest bg-red-700 px-2 py-0.5 rounded-md font-bold text-white uppercase">{"Critical Active Inbound Threat"}</span>
+              <p className="font-extrabold text-sm mt-0.5">{"Urgent Network Alert active on user portal login streams."}</p>
             </div>
           </div>
-          <Badge className="bg-red-900 border text-white font-mono text-[9px] font-bold">Priority level: RED</Badge>
+          <Badge className="bg-red-900 border text-white font-mono text-[9px] font-bold">{"Priority level: RED"}</Badge>
         </div>
       )}
 
@@ -401,11 +402,9 @@ export default function AdminCommunicationCenter() {
         <div>
           <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <Network className="w-6 h-6 text-indigo-500" />
-            Admin Communication Center
-          </h2>
+            {"Admin Communication Center"}</h2>
           <p className="text-xs text-slate-500 dark:text-slate-404 mt-1">
-            Publish targeted announcements, deliver private security notifications, and query real-time read receipts.
-          </p>
+            {"Publish targeted announcements, deliver private security notifications, and query real-time read receipts."}</p>
         </div>
         
         {/* Sub-tabs selection */}
@@ -416,40 +415,35 @@ export default function AdminCommunicationCenter() {
             className={`text-xs font-bold px-4 py-1.5 h-8 rounded-xl cursor-pointer ${activeTab === 'overview' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
             onClick={() => setActiveTab('overview')}
           >
-            Overview
-          </Button>
+            {"Overview"}</Button>
           <Button 
             variant="ghost" 
             size="sm" 
             className={`text-xs font-bold px-4 py-1.5 h-8 rounded-xl cursor-pointer ${activeTab === 'notices' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
             onClick={() => setActiveTab('notices')}
           >
-            Notices Board
-          </Button>
+            {"Notices Board"}</Button>
           <Button 
             variant="ghost" 
             size="sm" 
             className={`text-xs font-bold px-4 py-1.5 h-8 rounded-xl cursor-pointer ${activeTab === 'personal' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
             onClick={() => setActiveTab('personal')}
           >
-            Personal Alerts
-          </Button>
+            {"Personal Alerts"}</Button>
           <Button 
             variant="ghost" 
             size="sm" 
             className={`text-xs font-bold px-4 py-1.5 h-8 rounded-xl cursor-pointer ${activeTab === 'receipts' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
             onClick={() => setActiveTab('receipts')}
           >
-            Read Receipts
-          </Button>
+            {"Read Receipts"}</Button>
           <Button 
             variant="ghost" 
             size="sm" 
             className={`text-xs font-bold px-4 py-1.5 h-8 rounded-xl cursor-pointer ${activeTab === 'analytics' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
             onClick={() => setActiveTab('analytics')}
           >
-            Analytics
-          </Button>
+            {"Analytics"}</Button>
         </div>
       </div>
 
@@ -460,7 +454,7 @@ export default function AdminCommunicationCenter() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="border border-slate-100 bg-white dark:bg-[#0B1222] relative overflow-hidden">
               <CardContent className="p-6">
-                <p className="text-xs font-mono uppercase tracking-widest text-slate-400">Total Public Broadcasts</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-slate-400">{"Total Public Broadcasts"}</p>
                 <div className="flex justify-between items-end mt-2">
                   <p className="text-3xl font-black text-slate-800 dark:text-white">{notices.length}</p>
                   <Megaphone className="w-8 h-8 text-indigo-100 dark:text-indigo-950/40 absolute right-4 bottom-4" />
@@ -469,7 +463,7 @@ export default function AdminCommunicationCenter() {
             </Card>
             <Card className="border border-slate-100 bg-white dark:bg-[#0B1222] relative overflow-hidden">
               <CardContent className="p-6">
-                <p className="text-xs font-mono uppercase tracking-widest text-slate-400">Active Recipients</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-slate-400">{"Active Recipients"}</p>
                 <div className="flex justify-between items-end mt-2">
                   <p className="text-3xl font-black text-slate-800 dark:text-white">{users.length}</p>
                   <Users className="w-8 h-8 text-emerald-100 dark:text-emerald-950/40 absolute right-4 bottom-4" />
@@ -478,7 +472,7 @@ export default function AdminCommunicationCenter() {
             </Card>
             <Card className="border border-slate-100 bg-white dark:bg-[#0B1222] relative overflow-hidden">
               <CardContent className="p-6">
-                <p className="text-xs font-mono uppercase tracking-widest text-slate-400">Personal Security Alerts</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-slate-400">{"Personal Security Alerts"}</p>
                 <div className="flex justify-between items-end mt-2">
                   <p className="text-3xl font-black text-slate-800 dark:text-white">
                     {getAdminPersonalNotifications().length}
@@ -489,7 +483,7 @@ export default function AdminCommunicationCenter() {
             </Card>
             <Card className="border border-slate-100 bg-white dark:bg-[#0B1222] relative overflow-hidden">
               <CardContent className="p-6">
-                <p className="text-xs font-mono uppercase tracking-widest text-slate-400">Average Read Efficiency</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-slate-400">{"Average Read Efficiency"}</p>
                 <div className="flex justify-between items-end mt-2">
                   <p className="text-3xl font-black text-slate-800 dark:text-white">88%</p>
                   <Award className="w-8 h-8 text-blue-100 dark:text-blue-950/40 absolute right-4 bottom-4" />
@@ -504,16 +498,15 @@ export default function AdminCommunicationCenter() {
               <CardHeader>
                 <CardTitle className="text-sm font-bold flex items-center gap-1.5 text-slate-900 dark:text-white">
                   <Megaphone className="w-4 h-4 text-indigo-500" />
-                  Quick Broadcast Announcement
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-500 dark:text-slate-404">Send holiday alerts, system overhauls or organizational changes to departments of workspace groups.</CardDescription>
+                  {"Quick Broadcast Announcement"}</CardTitle>
+                <CardDescription className="text-xs text-slate-500 dark:text-slate-404">{"Send holiday alerts, system overhauls or organizational changes to departments of workspace groups."}</CardDescription>
               </CardHeader>
               <CardContent>
                 <button 
                   onClick={() => setActiveTab("notices")}
                   className="w-full flex items-center justify-between text-xs font-bold text-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/25 p-3.5 rounded-xl border border-indigo-100 dark:border-indigo-950/40 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors cursor-pointer"
                 >
-                  <span>Launch Broadcast Composer</span>
+                  <span>{"Launch Broadcast Composer"}</span>
                   <Plus className="w-4 h-4" />
                 </button>
               </CardContent>
@@ -523,16 +516,15 @@ export default function AdminCommunicationCenter() {
               <CardHeader>
                 <CardTitle className="text-sm font-bold flex items-center gap-1.5 text-slate-900 dark:text-white">
                   <Users className="w-4 h-4 text-emerald-500" />
-                  Compose Private Security Alert
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-500 dark:text-slate-404">Dispatch localized, high-importance messages to precise workspace employees (including feedback or audit notices).</CardDescription>
+                  {"Compose Private Security Alert"}</CardTitle>
+                <CardDescription className="text-xs text-slate-500 dark:text-slate-404">{"Dispatch localized, high-importance messages to precise workspace employees (including feedback or audit notices)."}</CardDescription>
               </CardHeader>
               <CardContent>
                 <button 
                   onClick={() => setActiveTab("personal")}
                   className="w-full flex items-center justify-between text-xs font-bold text-emerald-600 bg-emerald-50/40 dark:bg-emerald-950/25 p-3.5 rounded-xl border border-emerald-100 dark:border-emerald-950/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors cursor-pointer"
                 >
-                  <span>Launch Private Composer</span>
+                  <span>{"Launch Private Composer"}</span>
                   <Plus className="w-4 h-4" />
                 </button>
               </CardContent>
@@ -542,7 +534,7 @@ export default function AdminCommunicationCenter() {
           {/* Real-time Monitor Stream overview */}
           <Card className="border border-slate-205 dark:border-slate-800 bg-white dark:bg-[#0B1222]">
             <CardHeader className="border-b border-slate-100 dark:border-slate-800">
-              <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">Inbound Read Dispatch Stream</CardTitle>
+              <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"Inbound Read Dispatch Stream"}</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
               <div className="space-y-4">
@@ -555,7 +547,7 @@ export default function AdminCommunicationCenter() {
                         <div>
                           <p className="text-xs font-semibold text-slate-850 dark:text-slate-100">{parseNoticeTitle(notice.title)}</p>
                           <p className="text-[10px] text-slate-404 flex items-center gap-1.5 mt-0.5">
-                            <span>Broadcasted</span>
+                            <span>{"Broadcasted"}</span>
                             <span>•</span>
                             <span>{new Date(notice.created_at).toLocaleDateString()}</span>
                           </p>
@@ -566,8 +558,8 @@ export default function AdminCommunicationCenter() {
                           <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${stats.percentage}%` }}></div>
                         </div>
                         <span className="text-xs font-extrabold text-slate-705 dark:text-slate-200 shrink-0 font-mono flex items-center gap-2">
-                          <span>{stats.percentage}% Reads</span>
-                          <span className="flex items-center text-blue-500 gap-0.5" title="All Sent & Delivered">
+                          <span>{stats.percentage}{"% Reads"}</span>
+                          <span className="flex items-center text-blue-500 gap-0.5" title={"All Sent & Delivered"}>
                             <CheckCheck className="w-4 h-4 text-blue-500" />
                           </span>
                         </span>
@@ -590,15 +582,14 @@ export default function AdminCommunicationCenter() {
             <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
               <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
                 <Send className="w-4 h-4 text-blue-550" />
-                Compose targeted announcement
-              </CardTitle>
+                {"Compose targeted announcement"}</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
               <form onSubmit={handleCreateNotice} className="space-y-4">
                 <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 block">Notice Title</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 block">{"Notice Title"}</label>
                   <Input 
-                    placeholder="E.g., Sunday IT Maintenance" 
+                    placeholder={"E.g., Sunday IT Maintenance"} 
                     required 
                     value={noticeTitle}
                     onChange={(e) => setNoticeTitle(e.target.value)}
@@ -607,24 +598,24 @@ export default function AdminCommunicationCenter() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-404 mb-1.5 block">Notice category</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-404 mb-1.5 block">{"Notice category"}</label>
                   <Select value={noticeCategory} onValueChange={setNoticeCategory}>
                     <SelectTrigger className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-[#0B1222] border-slate-200 dark:border-slate-800 rounded-xl">
-                      <SelectItem value="General Bulletin">📢 General Bulletin</SelectItem>
-                      <SelectItem value="Maintenance">🔧 IT Maintenance</SelectItem>
-                      <SelectItem value="Policy Change">📜 Policy Update</SelectItem>
-                      <SelectItem value="Critical Alert">🚨 Critical Hazard</SelectItem>
-                      <SelectItem value="Company Event">🎉 Social Corporate Event</SelectItem>
+                      <SelectItem value="General Bulletin">{"📢 General Bulletin"}</SelectItem>
+                      <SelectItem value="Maintenance">{"🔧 IT Maintenance"}</SelectItem>
+                      <SelectItem value="Policy Change">{"📜 Policy Update"}</SelectItem>
+                      <SelectItem value="Critical Alert">{"🚨 Critical Hazard"}</SelectItem>
+                      <SelectItem value="Company Event">{"🎉 Social Corporate Event"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Targeted Circulation Selection */}
                 <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-404 mb-1.5 block">Target Recipient Level</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-404 mb-1.5 block">{"Target Recipient Level"}</label>
                   <Select 
                     value={noticeRecipientType} 
                     onValueChange={(val: any) => setNoticeRecipientType(val)}
@@ -633,9 +624,9 @@ export default function AdminCommunicationCenter() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-[#0B1222] border-slate-200 dark:border-slate-800 rounded-xl">
-                      <SelectItem value="everyone">🌎 World Broadcast (Everyone)</SelectItem>
-                      <SelectItem value="department">🏢 Select Corporate Department</SelectItem>
-                      <SelectItem value="team">👥 Specific Corporate Team</SelectItem>
+                      <SelectItem value="everyone">{"🌎 World Broadcast (Everyone)"}</SelectItem>
+                      <SelectItem value="department">{"🏢 Select Corporate Department"}</SelectItem>
+                      <SelectItem value="team">{"👥 Specific Corporate Team"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -643,16 +634,16 @@ export default function AdminCommunicationCenter() {
                 {/* Extra conditional dropdown details */}
                 {noticeRecipientType === "department" && (
                   <div>
-                    <label className="text-[10px] font-mono uppercase tracking-wider text-slate-404 mb-1.5 block">Select Department</label>
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-slate-404 mb-1.5 block">{"Select Department"}</label>
                     <Select value={noticeDept} onValueChange={setNoticeDept}>
                       <SelectTrigger className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800 rounded-xl">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-white dark:bg-[#0B1222] border-slate-200 dark:border-slate-800">
-                        <SelectItem value="IT">IT Infrastructure</SelectItem>
-                        <SelectItem value="HR">Human Resources</SelectItem>
-                        <SelectItem value="Finance">Corporate Finance</SelectItem>
-                        <SelectItem value="Operations">Operations Support</SelectItem>
+                        <SelectItem value="IT">{"IT Infrastructure"}</SelectItem>
+                        <SelectItem value="HR">{"Human Resources"}</SelectItem>
+                        <SelectItem value="Finance">{"Corporate Finance"}</SelectItem>
+                        <SelectItem value="Operations">{"Operations Support"}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -660,9 +651,9 @@ export default function AdminCommunicationCenter() {
 
                 {noticeRecipientType === "team" && (
                   <div>
-                    <label className="text-[10px] font-mono uppercase tracking-wider text-slate-404 mb-1.5 block">Specify Corporate Team Name</label>
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-slate-404 mb-1.5 block">{"Specify Corporate Team Name"}</label>
                     <Input 
-                      placeholder="E.g., Finance Team, HR Payroll Team" 
+                      placeholder={"E.g., Finance Team, HR Payroll Team"} 
                       required 
                       value={noticeTeam}
                       onChange={(e) => setNoticeTeam(e.target.value)}
@@ -672,24 +663,24 @@ export default function AdminCommunicationCenter() {
                 )}
 
                 <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-404 mb-1.5 block">Urgency / Priority Level</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-404 mb-1.5 block">{"Urgency / Priority Level"}</label>
                   <Select value={noticePriority} onValueChange={(val: any) => setNoticePriority(val)}>
                     <SelectTrigger className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-[#0B1222] border-slate-200 dark:border-slate-800">
-                      <SelectItem value="Low">🟢 Low Priority</SelectItem>
-                      <SelectItem value="Medium">🔵 Medium Priority</SelectItem>
-                      <SelectItem value="High">🟠 High Priority</SelectItem>
-                      <SelectItem value="Critical">🚨 CRITICAL ALERT (Sends Urgent Login banner)</SelectItem>
+                      <SelectItem value="Low">{"🟢 Low Priority"}</SelectItem>
+                      <SelectItem value="Medium">{"🔵 Medium Priority"}</SelectItem>
+                      <SelectItem value="High">{"🟠 High Priority"}</SelectItem>
+                      <SelectItem value="Critical">{"🚨 CRITICAL ALERT (Sends Urgent Login banner)"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 block">Notice message</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 block">{"Notice message"}</label>
                   <Textarea 
-                    placeholder="Enter precise bulletin information..." 
+                    placeholder={"Enter precise bulletin information..."} 
                     required 
                     value={noticeMessage}
                     onChange={(e) => setNoticeMessage(e.target.value)}
@@ -711,7 +702,7 @@ export default function AdminCommunicationCenter() {
 
           {/* Broadcasts List */}
           <div className="lg:col-span-2 space-y-4">
-            <h3 className="text-xs font-mono uppercase text-slate-450 tracking-wider">Active Stream Broadcasts</h3>
+            <h3 className="text-xs font-mono uppercase text-slate-450 tracking-wider">{"Active Stream Broadcasts"}</h3>
             
             {notices.map((notice) => {
               const cleanedTitle = parseNoticeTitle(notice.title);
@@ -731,10 +722,9 @@ export default function AdminCommunicationCenter() {
                           {noticeCategory}
                         </Badge>
                         <Badge className={`${getPriorityBadgeColor(notice.priority || "Medium")} text-[8.5px] font-bold uppercase rounded`}>
-                          {notice.priority || "Medium"} Urgency
-                        </Badge>
+                          {notice.priority || "Medium"} {"Urgency"}</Badge>
                         <Badge variant="ghost" className="text-[10px] text-slate-400 bg-slate-50 font-mono">
-                          Target: {targetStr}
+                          {"Target:"}{targetStr}
                         </Badge>
                       </div>
                       <h4 className="font-extrabold text-sm text-slate-900 dark:text-white leading-normal tracking-tight">
@@ -753,7 +743,7 @@ export default function AdminCommunicationCenter() {
                         onClick={() => handleOpenReceiptDetail(notice, true)}
                       >
                         <Eye className="w-3.5 h-3.5 mr-1" />
-                        Reads ({stats.percentage}%)
+                        {"Reads ("}{stats.percentage}%)
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -762,8 +752,7 @@ export default function AdminCommunicationCenter() {
                         onClick={() => deleteNotice(notice.id)}
                       >
                         <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        Delete
-                      </Button>
+                        {"Delete"}</Button>
                     </div>
                   </div>
                 </Card>
@@ -773,8 +762,8 @@ export default function AdminCommunicationCenter() {
             {notices.length === 0 && (
               <div className="text-center py-16 bg-white dark:bg-[#0B1222] rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
                 <span className="text-4xl">📭</span>
-                <p className="font-bold text-slate-700 dark:text-slate-305 mt-2">Notice stream empty!</p>
-                <p className="text-xs text-slate-450">Publish notices utilizing the composer panel to target users.</p>
+                <p className="font-bold text-slate-700 dark:text-slate-305 mt-2">{"Notice stream empty!"}</p>
+                <p className="text-xs text-slate-450">{"Publish notices utilizing the composer panel to target users."}</p>
               </div>
             )}
           </div>
@@ -790,19 +779,18 @@ export default function AdminCommunicationCenter() {
             <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
               <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
                 <Mail className="w-4 h-4 text-emerald-550" />
-                Compose private security alert
-              </CardTitle>
+                {"Compose private security alert"}</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
               <form onSubmit={handleCreatePersonalNotification} className="space-y-4">
                 
                 {/* Autocomplete Search User Input */}
                 <div className="relative">
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 block">Select targeted recipient user</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 block">{"Select targeted recipient user"}</label>
                   <div className="flex items-center border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#161F30] rounded-xl px-3 pr-2 focus-within:ring-2 focus-within:ring-indigo-500/25">
                     <Search className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
                     <Input 
-                      placeholder="Search name or workplace email..." 
+                      placeholder={"Search name or workplace email..."} 
                       value={personalUserSearch}
                       onChange={(e) => {
                         setPersonalUserSearch(e.target.value);
@@ -815,7 +803,7 @@ export default function AdminCommunicationCenter() {
                     />
                     {selectedPersonalUser && (
                       <Badge className="bg-indigo-600 text-white font-bold shrink-0 ml-1.5 flex items-center gap-1 rounded font-sans text-[10px] leading-none py-1 px-1.5">
-                        Selected: {selectedPersonalUser.name.split(" ")[0]}
+                        {"Selected:"}{selectedPersonalUser.name.split(" ")[0]}
                       </Badge>
                     )}
                   </div>
@@ -843,31 +831,31 @@ export default function AdminCommunicationCenter() {
                         </div>
                       ))}
                       {filteredPersonalUsers.length === 0 && (
-                        <p className="p-3 text-center text-[10px] text-slate-404">No matching active database users</p>
+                        <p className="p-3 text-center text-[10px] text-slate-404">{"No matching active database users"}</p>
                       )}
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-404 mb-1.5 block">Notification Urgency</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-404 mb-1.5 block">{"Notification Urgency"}</label>
                   <Select value={personalPriority} onValueChange={(val: any) => setPersonalPriority(val)}>
                     <SelectTrigger className="h-10 text-xs bg-slate-50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-[#0B1222] border-slate-200 dark:border-slate-800">
-                      <SelectItem value="Low">🟢 Low Priority</SelectItem>
-                      <SelectItem value="Medium">🔵 Medium Priority</SelectItem>
-                      <SelectItem value="High">🟠 High Priority</SelectItem>
-                      <SelectItem value="Critical">🚨 Critical Event (Aggressive Red Warning)</SelectItem>
+                      <SelectItem value="Low">{"🟢 Low Priority"}</SelectItem>
+                      <SelectItem value="Medium">{"🔵 Medium Priority"}</SelectItem>
+                      <SelectItem value="High">{"🟠 High Priority"}</SelectItem>
+                      <SelectItem value="Critical">{"🚨 Critical Event (Aggressive Red Warning)"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 block">Alert Title</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 block">{"Alert Title"}</label>
                   <Input 
-                    placeholder="E.g., Your Payroll Account Approved" 
+                    placeholder={"E.g., Your Payroll Account Approved"} 
                     required 
                     value={personalTitle}
                     onChange={(e) => setPersonalTitle(e.target.value)}
@@ -876,9 +864,9 @@ export default function AdminCommunicationCenter() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 block">Alert message Details</label>
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1.5 block">{"Alert message Details"}</label>
                   <Textarea 
-                    placeholder="Provide specific message data..." 
+                    placeholder={"Provide specific message data..."} 
                     required 
                     value={personalMessage}
                     onChange={(e) => setPersonalMessage(e.target.value)}
@@ -900,7 +888,7 @@ export default function AdminCommunicationCenter() {
 
           {/* User Log stream */}
           <div className="lg:col-span-2 space-y-4">
-            <h3 className="text-xs font-mono uppercase text-slate-500 dark:text-slate-400 tracking-wider">Dispatched Private Alert Ledger</h3>
+            <h3 className="text-xs font-mono uppercase text-slate-500 dark:text-slate-400 tracking-wider">{"Dispatched Private Alert Ledger"}</h3>
             
             {getAdminPersonalNotifications().map((notif: any) => {
               const stats = computeReadStats(notif, false);
@@ -910,13 +898,11 @@ export default function AdminCommunicationCenter() {
                     <div className="space-y-1.5 min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[8.5px] font-bold">
-                          Private Alert
-                        </Badge>
+                          {"Private Alert"}</Badge>
                         <Badge className={`${getPriorityBadgeColor(notif.priority || "Medium")} text-[8.5px] font-bold uppercase rounded`}>
-                          {notif.priority || "Medium"} Urgency
-                        </Badge>
+                          {notif.priority || "Medium"} {"Urgency"}</Badge>
                         <span className="text-[10px] font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                          Recipient: {notif.target_name || "User Account"} ({notif.target_email})
+                          {"Recipient:"}{notif.target_name || "User Account"} ({notif.target_email})
                         </span>
                       </div>
                       <h4 className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight mt-1">
@@ -931,12 +917,12 @@ export default function AdminCommunicationCenter() {
                       {stats.read > 0 ? (
                         <div className="flex flex-col items-end gap-1 font-mono">
                           <CheckCheck className="w-5 h-5 text-blue-500" />
-                          <span className="text-[10px] text-blue-500 font-black">Read</span>
+                          <span className="text-[10px] text-blue-500 font-black">{"Read"}</span>
                         </div>
                       ) : (
                         <div className="flex flex-col items-end gap-1 font-mono">
                           <CheckCheck className="w-5 h-5 text-slate-400" />
-                          <span className="text-[10px] text-slate-400 font-black">Delivered</span>
+                          <span className="text-[10px] text-slate-400 font-black">{"Delivered"}</span>
                         </div>
                       )}
                     </div>
@@ -948,8 +934,8 @@ export default function AdminCommunicationCenter() {
             {getAdminPersonalNotifications().length === 0 && (
               <div className="text-center py-16 bg-white dark:bg-[#0B1222] rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
                 <span className="text-4xl">📨</span>
-                <p className="font-bold text-slate-700 dark:text-slate-300 mt-2">Private alerts ledger empty!</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Use the autocomplete form panel to draft targeted alerts.</p>
+                <p className="font-bold text-slate-700 dark:text-slate-300 mt-2">{"Private alerts ledger empty!"}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{"Use the autocomplete form panel to draft targeted alerts."}</p>
               </div>
             )}
           </div>
@@ -961,31 +947,29 @@ export default function AdminCommunicationCenter() {
         <div className="space-y-4 font-sans">
           <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl">
             <div>
-              <p className="text-xs font-bold text-slate-800 dark:text-white">WhatsApp-style Dispatch Checkmarks</p>
+              <p className="text-xs font-bold text-slate-800 dark:text-white">{"WhatsApp-style Dispatch Checkmarks"}</p>
               <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                One grey check represents sent. Two grey checking stands for delivered. Two blue checkmarks indicates the notice has been read by the target audience.
-              </p>
+                {"One grey check represents sent. Two grey checking stands for delivered. Two blue checkmarks indicates the notice has been read by the target audience."}</p>
             </div>
-            <Badge className="bg-blue-600 text-white font-mono text-[9px]">ACTIVE DISPATCH ENGINE</Badge>
+            <Badge className="bg-blue-600 text-white font-mono text-[9px]">{"ACTIVE DISPATCH ENGINE"}</Badge>
           </div>
 
           <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1222]">
             <CardHeader>
               <CardTitle className="text-sm font-bold flex items-center gap-1.5 text-slate-800 dark:text-white">
                 <CheckCheck className="w-5 h-5 text-blue-500" />
-                Receipt Audit Dashboard
-              </CardTitle>
+                {"Receipt Audit Dashboard"}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-slate-800 dark:text-slate-200">
                   <thead className="bg-slate-50 dark:bg-[#0F172A] border-b border-slate-200 dark:border-slate-800 text-[10px] font-mono tracking-wider uppercase text-slate-500 dark:text-slate-400">
                     <tr>
-                      <th className="p-4 font-semibold">Message Title</th>
-                      <th className="p-4 font-semibold">Recipient Group</th>
-                      <th className="p-4 font-semibold">Priority</th>
-                      <th className="p-4 font-semibold">WhatsApp Check</th>
-                      <th className="p-4 font-semibold text-right">Circulation / Reads</th>
+                      <th className="p-4 font-semibold">{"Message Title"}</th>
+                      <th className="p-4 font-semibold">{"Recipient Group"}</th>
+                      <th className="p-4 font-semibold">{"Priority"}</th>
+                      <th className="p-4 font-semibold">{"WhatsApp Check"}</th>
+                      <th className="p-4 font-semibold text-right">{"Circulation / Reads"}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
@@ -998,7 +982,7 @@ export default function AdminCommunicationCenter() {
                         <tr key={n.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors">
                           <td className="p-4 leading-normal">
                             <p className="font-extrabold text-slate-900 dark:text-white">{cleanedTitle}</p>
-                            <span className="text-[9.5px] text-slate-400 dark:text-slate-400 font-mono block mt-0.5">ID: {n.id}</span>
+                            <span className="text-[9.5px] text-slate-400 dark:text-slate-400 font-mono block mt-0.5">{"ID:"}{n.id}</span>
                           </td>
                           <td className="p-4">
                             <Badge variant="outline" className="text-[10px] font-sans border-slate-200 bg-transparent text-slate-600">
@@ -1014,12 +998,12 @@ export default function AdminCommunicationCenter() {
                             {stats.percentage === 100 ? (
                               <div className="flex items-center gap-1.5 text-blue-500 font-mono text-[10px] font-bold">
                                 <CheckCheck className="w-5 h-5 text-blue-500" />
-                                <span>Read by all</span>
+                                <span>{"Read by all"}</span>
                               </div>
                             ) : (
                               <div className="flex items-center gap-1.5 text-slate-400 font-mono text-[10px] font-bold">
                                 <CheckCheck className="w-5 h-5 text-slate-400" />
-                                <span>Delivered</span>
+                                <span>{"Delivered"}</span>
                               </div>
                             )}
                           </td>
@@ -1028,7 +1012,7 @@ export default function AdminCommunicationCenter() {
                               onClick={() => handleOpenReceiptDetail(n, true)}
                               className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline"
                             >
-                              <span>{stats.read} / {stats.total} Reads ({stats.percentage}%)</span>
+                              <span>{stats.read} / {stats.total} {"Reads ("}{stats.percentage}%)</span>
                               <ArrowUpRight className="w-3.5 h-3.5" />
                             </button>
                           </td>
@@ -1043,11 +1027,11 @@ export default function AdminCommunicationCenter() {
                         <tr key={n.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors">
                           <td className="p-4 leading-normal">
                             <p className="font-extrabold text-slate-900 dark:text-white">{n.title}</p>
-                            <span className="text-[9.5px] text-slate-400 dark:text-slate-400 font-mono block mt-0.5">ID: {n.id}</span>
+                            <span className="text-[9.5px] text-slate-400 dark:text-slate-400 font-mono block mt-0.5">{"ID:"}{n.id}</span>
                           </td>
                           <td className="p-4">
                             <Badge variant="outline" className="text-[10px] font-sans border-emerald-200 bg-transparent text-emerald-700">
-                              User: {n.target_name}
+                              {"User:"}{n.target_name}
                             </Badge>
                           </td>
                           <td className="p-4">
@@ -1059,12 +1043,12 @@ export default function AdminCommunicationCenter() {
                             {stats.read > 0 ? (
                               <div className="flex items-center gap-1.5 text-blue-500 font-mono text-[10px] font-bold">
                                 <CheckCheck className="w-5 h-5 text-blue-500" />
-                                <span>Read</span>
+                                <span>{"Read"}</span>
                               </div>
                             ) : (
                               <div className="flex items-center gap-1.5 text-slate-400 font-mono text-[10px] font-bold">
                                 <CheckCheck className="w-5 h-5 text-slate-400" />
-                                <span>Delivered</span>
+                                <span>{"Delivered"}</span>
                               </div>
                             )}
                           </td>
@@ -1073,7 +1057,7 @@ export default function AdminCommunicationCenter() {
                               onClick={() => handleOpenReceiptDetail(n, false)}
                               className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline"
                             >
-                              <span>{stats.read} / {stats.total} Reads</span>
+                              <span>{stats.read} / {stats.total} {"Reads"}</span>
                               <ArrowUpRight className="w-3.5 h-3.5" />
                             </button>
                           </td>
@@ -1098,9 +1082,9 @@ export default function AdminCommunicationCenter() {
             <Card className="border border-slate-100 bg-white dark:bg-[#0B1222]">
               <CardHeader>
                 <CardTitle className="text-sm font-black flex items-center justify-between">
-                  <span>Broadcast Density by Category</span>
+                  <span>{"Broadcast Density by Category"}</span>
                 </CardTitle>
-                <CardDescription className="text-xs">Aggregate count of system notices delivered this month across organizational lanes.</CardDescription>
+                <CardDescription className="text-xs">{"Aggregate count of system notices delivered this month across organizational lanes."}</CardDescription>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1128,8 +1112,8 @@ export default function AdminCommunicationCenter() {
             {/* Chart 2: Read statuses */}
             <Card className="border border-slate-100 bg-white dark:bg-[#0B1222]">
               <CardHeader>
-                <CardTitle className="text-sm font-black">Audit Read Rates by Department</CardTitle>
-                <CardDescription className="text-xs">Visualizing efficiency metrics tracking how fast personnel acknowledge inbound alerts.</CardDescription>
+                <CardTitle className="text-sm font-black">{"Audit Read Rates by Department"}</CardTitle>
+                <CardDescription className="text-xs">{"Visualizing efficiency metrics tracking how fast personnel acknowledge inbound alerts."}</CardDescription>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1149,26 +1133,24 @@ export default function AdminCommunicationCenter() {
 
           <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1222]">
             <CardHeader className="border-b border-slate-100 dark:border-slate-800">
-              <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">Organizational Insights & Recommendations</CardTitle>
+              <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">{"Organizational Insights & Recommendations"}</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
               <div className="flex items-start gap-3 p-4 bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-200 dark:border-emerald-900/30 rounded-xl">
                 <span className="text-xl">🏆</span>
                 <div>
-                  <p className="font-extrabold text-xs text-emerald-700 dark:text-emerald-400">Excellent Response in HR Lane</p>
+                  <p className="font-extrabold text-xs text-emerald-700 dark:text-emerald-400">{"Excellent Response in HR Lane"}</p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                    Personnel from the Human Resources team achieved a complete 100% notification read rate this week! Compliance notices on workspace code guidelines were opened and logged within 4.5 hours of broadcast.
-                  </p>
+                    {"Personnel from the Human Resources team achieved a complete 100% notification read rate this week! Compliance notices on workspace code guidelines were opened and logged within 4.5 hours of broadcast."}</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3 p-4 bg-amber-50/20 dark:bg-amber-950/10 border border-amber-200 dark:border-amber-900/30 rounded-xl">
                 <span className="text-xl">⚠️</span>
                 <div>
-                  <p className="font-extrabold text-xs text-amber-700 dark:text-amber-400">Lagging Read Efficiency on Finance Stream</p>
+                  <p className="font-extrabold text-xs text-amber-700 dark:text-amber-400">{"Lagging Read Efficiency on Finance Stream"}</p>
                   <p className="text-[11px] mt-0.5 leading-relaxed text-amber-800 dark:text-amber-300">
-                    Average notification read rate for Corporate Finance stands at 78%. We suggest drafting private security reminders to users who have pending alerts in their inbox dashboard caches.
-                  </p>
+                    {"Average notification read rate for Corporate Finance stands at 78%. We suggest drafting private security reminders to users who have pending alerts in their inbox dashboard caches."}</p>
                 </div>
               </div>
             </CardContent>
@@ -1185,8 +1167,7 @@ export default function AdminCommunicationCenter() {
               <div>
                 <h4 className="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-1.5 leading-none">
                   <CheckCheck className="w-4 h-4 text-blue-500" />
-                  Read Receipts Audit
-                </h4>
+                  {"Read Receipts Audit"}</h4>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                   {parseNoticeTitle(receiptDetailItem.item.title || receiptDetailItem.item.title)}
                 </p>
@@ -1203,15 +1184,15 @@ export default function AdminCommunicationCenter() {
 
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-around text-center bg-slate-50/10">
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Total Circulation</p>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">{"Total Circulation"}</p>
                 <p className="text-xl font-black mt-0.5">{receiptDetailItem.stats.total}</p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Read Receipts</p>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">{"Read Receipts"}</p>
                 <p className="text-xl font-black text-blue-500 mt-0.5">{receiptDetailItem.stats.read}</p>
               </div>
               <div>
-                <p className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Unread</p>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">{"Unread"}</p>
                 <p className="text-xl font-black text-slate-500 mt-0.5">{receiptDetailItem.stats.unread}</p>
               </div>
             </div>
@@ -1221,7 +1202,7 @@ export default function AdminCommunicationCenter() {
               <div>
                 <div className="flex items-center gap-1.5 mb-2 border-b border-slate-100 dark:border-slate-800 pb-1.5">
                   <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                  <span className="text-[10.5px] font-mono uppercase tracking-wide font-bold text-slate-500 dark:text-slate-400">Read By ({receiptDetailItem.readers.length})</span>
+                  <span className="text-[10.5px] font-mono uppercase tracking-wide font-bold text-slate-500 dark:text-slate-400">{"Read By ("}{receiptDetailItem.readers.length})</span>
                 </div>
                 <div className="space-y-2.5">
                   {receiptDetailItem.readers.map((user: any) => (
@@ -1237,7 +1218,7 @@ export default function AdminCommunicationCenter() {
                     </div>
                   ))}
                   {receiptDetailItem.readers.length === 0 && (
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 italic text-center py-2">No recipients have logged read acknowledgements yet.</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 italic text-center py-2">{"No recipients have logged read acknowledgements yet."}</p>
                   )}
                 </div>
               </div>
@@ -1246,7 +1227,7 @@ export default function AdminCommunicationCenter() {
               <div>
                 <div className="flex items-center gap-1.5 mb-2 border-b border-slate-100 dark:border-slate-800 pb-1.5">
                   <span className="w-2 h-2 rounded-full bg-slate-300"></span>
-                  <span className="text-[10.5px] font-mono uppercase tracking-wide font-bold text-slate-500 dark:text-slate-400">Pending / Unread ({receiptDetailItem.unreaders.length})</span>
+                  <span className="text-[10.5px] font-mono uppercase tracking-wide font-bold text-slate-500 dark:text-slate-400">{"Pending / Unread ("}{receiptDetailItem.unreaders.length})</span>
                 </div>
                 <div className="space-y-2.5">
                   {receiptDetailItem.unreaders.map((user: any) => (
@@ -1256,12 +1237,11 @@ export default function AdminCommunicationCenter() {
                         <p className="text-[10px] text-slate-500 dark:text-slate-400">{user.email} • {user.department}</p>
                       </div>
                       <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[8.5px] uppercase font-bold pr-1 select-none">
-                        Unread
-                      </Badge>
+                        {"Unread"}</Badge>
                     </div>
                   ))}
                   {receiptDetailItem.unreaders.length === 0 && (
-                    <p className="text-[11px] text-slate-505 dark:text-slate-400 italic text-center py-2">All matched recipients have read this bulletin!</p>
+                    <p className="text-[11px] text-slate-505 dark:text-slate-400 italic text-center py-2">{"All matched recipients have read this bulletin!"}</p>
                   )}
                 </div>
               </div>
@@ -1272,8 +1252,7 @@ export default function AdminCommunicationCenter() {
                 onClick={() => setShowReceiptModal(false)}
                 className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold text-xs px-5 py-2 rounded-xl"
               >
-                Close Receipt Log
-              </Button>
+                {"Close Receipt Log"}</Button>
             </div>
           </div>
         </div>

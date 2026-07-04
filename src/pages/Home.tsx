@@ -9,11 +9,14 @@ import {
   User, PenSquare, Wrench, Search, Zap, Eye, MousePointerClick, Database, 
   Sparkles, ArrowRight, Star, HelpCircle, ChevronDown, ChevronUp, Cpu, Flame, Target,
   ChevronRight, Info, X, ExternalLink, Laptop, Smartphone, AlertTriangle, RotateCcw,
-  ListChecks, History
+  ListChecks, Menu, Bot, Camera, Activity, History
 } from "lucide-react";
 import DcmsAiAssistant from "../components/DcmsAiAssistant.tsx";
 
+import { motion, AnimatePresence } from "motion/react";
+
 export default function Home() {
+    
   const { user, dbUser } = useAuth();
   const navigate = useNavigate();
   const [showLaunchModal, setShowLaunchModal] = useState(false);
@@ -50,14 +53,17 @@ export default function Home() {
   const [sandboxLoading, setSandboxLoading] = useState(false);
   const [sandboxStage, setSandboxStage] = useState<string>("");
   const [sandboxSteps, setSandboxSteps] = useState<any[]>([
-    { id: 1, label: "🤖 Reading complaint...", status: "idle" },
-    { id: 2, label: "📂 Detecting department...", status: "idle" },
-    { id: 3, label: "⚠ Calculating priority...", status: "idle" },
-    { id: 4, label: "📋 Preparing recommendation...", status: "idle" },
-    { id: 5, label: "✔ Complete", status: "idle" }
+    { id: 1, label: "Message Analyzed", status: "idle" },
+    { id: 2, label: "Sentiment Detected", status: "idle" },
+    { id: 3, label: "Category Identified", status: "idle" },
+    { id: 4, label: "Department Assigned", status: "idle" },
+    { id: 5, label: "SLA Calculated", status: "idle" }
   ]);
   const [sandboxTimeout, setSandboxTimeout] = useState(false);
   const [sandboxIsCached, setSandboxIsCached] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+  const [showSimilarIncidents, setShowSimilarIncidents] = useState(false);
 
   // Use a ref to cache complaint analyses locally
   const sandboxCache = useRef<Record<string, any>>({
@@ -664,17 +670,19 @@ export default function Home() {
     setSandboxLoading(true);
     setSandboxTimeout(false);
     setSandboxIsCached(false);
+    setShowDetailedAnalysis(false);
+    setShowSimilarIncidents(false);
     setSandboxStage("Reading Simulated Incident...");
 
     const cacheKey = activeQuery.trim().toLowerCase();
 
     // Reset steps to initial state
     setSandboxSteps([
-      { id: 1, label: "🤖 Reading complaint...", status: "loading" },
-      { id: 2, label: "📂 Detecting department...", status: "idle" },
-      { id: 3, label: "⚠ Calculating priority...", status: "idle" },
-      { id: 4, label: "📋 Preparing recommendation...", status: "idle" },
-      { id: 5, label: "✔ Complete", status: "idle" }
+      { id: 1, label: "Message Analyzed", status: "loading" },
+      { id: 2, label: "Sentiment Detected", status: "idle" },
+      { id: 3, label: "Category Identified", status: "idle" },
+      { id: 4, label: "Department Assigned", status: "idle" },
+      { id: 5, label: "SLA Calculated", status: "idle" }
     ]);
 
     // 🚀 STEP 1: INSTANT LOCAL INTELLIGENCE CLASSIFIER POPULATION
@@ -696,11 +704,11 @@ export default function Home() {
         setSandboxIsCached(true);
         setSandboxResponse(sandboxCache.current[cacheKey]);
         setSandboxSteps([
-          { id: 1, label: "🤖 Reading complaint...", status: "done" },
-          { id: 2, label: "📂 Detecting department...", status: "done" },
-          { id: 3, label: "⚠ Calculating priority...", status: "done" },
-          { id: 4, label: "📋 Preparing recommendation...", status: "done" },
-          { id: 5, label: "✔ Complete", status: "done" }
+          { id: 1, label: "Message Analyzed", status: "done" },
+          { id: 2, label: "Sentiment Detected", status: "done" },
+          { id: 3, label: "Category Identified", status: "done" },
+          { id: 4, label: "Department Assigned", status: "done" },
+          { id: 5, label: "SLA Calculated", status: "done" }
         ]);
         setSandboxLoading(false);
       }, 400);
@@ -781,11 +789,11 @@ export default function Home() {
 
           // Set all steps to done!
           setSandboxSteps([
-            { id: 1, label: "🤖 Reading complaint...", status: "done" },
-            { id: 2, label: "📂 Detecting department...", status: "done" },
-            { id: 3, label: "⚠ Calculating priority...", status: "done" },
-            { id: 4, label: "📋 Preparing recommendation...", status: "done" },
-            { id: 5, label: "✔ Complete", status: "done" }
+            { id: 1, label: "Message Analyzed", status: "done" },
+            { id: 2, label: "Sentiment Detected", status: "done" },
+            { id: 3, label: "Category Identified", status: "done" },
+            { id: 4, label: "Department Assigned", status: "done" },
+            { id: 5, label: "SLA Calculated", status: "done" }
           ]);
 
           setSandboxResponse(finalResult);
@@ -809,11 +817,11 @@ export default function Home() {
 
     // Complete all steps
     setSandboxSteps([
-      { id: 1, label: "🤖 Reading complaint...", status: "done" },
-      { id: 2, label: "📂 Detecting department...", status: "done" },
-      { id: 3, label: "⚠ Calculating priority...", status: "done" },
-      { id: 4, label: "📋 Preparing recommendation...", status: "done" },
-      { id: 5, label: "✔ Complete", status: "done" }
+      { id: 1, label: "Message Analyzed", status: "done" },
+      { id: 2, label: "Sentiment Detected", status: "done" },
+      { id: 3, label: "Category Identified", status: "done" },
+      { id: 4, label: "Department Assigned", status: "done" },
+      { id: 5, label: "SLA Calculated", status: "done" }
     ]);
 
     // Populate with complete local fallback result immediately
@@ -821,6 +829,57 @@ export default function Home() {
     setSandboxResponse(localResult);
     setSandboxLoading(false);
     setSandboxTimeout(false);
+  };
+
+  const handleRegisterComplaint = () => {
+    const prefill = {
+      title: (sandboxResponse.category || "General") + " Issue",
+      issue_type: sandboxResponse.category || "IT Support",
+      severity: sandboxResponse.priority || "Medium",
+      description: sandboxDesc,
+    };
+    try {
+      localStorage.setItem("dcms_sandbox_prefill", JSON.stringify(prefill));
+    } catch (e) {}
+    navigate("/dashboard/register", { state: prefill });
+  };
+
+  const handleAskAIFollowup = () => {
+    navigate("/dashboard/ai-assistant");
+  };
+
+  const handleGenerateReport = () => {
+    const content = `
+AI INCIDENT REPORT
+==================
+Generated on: ${new Date().toLocaleString()}
+Incident Description: ${sandboxDesc}
+Category: ${sandboxResponse.category || "N/A"}
+Priority: ${sandboxResponse.priority || "N/A"}
+Department: ${sandboxResponse.department || "N/A"}
+SLA Target Resolution: ${sandboxResponse.sla || "N/A"}
+Sentiment: ${sandboxResponse.sentiment || "N/A"}
+Root Cause: ${sandboxResponse.rootCause || "N/A"}
+Suggested Action: ${sandboxResponse.recommendation || "N/A"}
+Confidence Rating: ${sandboxResponse.confidence || 0}%
+`;
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `AI-Incident-Report-${Date.now()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleAnalyzeAnother = () => {
+    setSandboxDesc("");
+    const element = document.getElementById("sandbox-textarea");
+    if (element) {
+      element.focus();
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   };
 
   const scrollToSection = (id: string) => {
@@ -855,27 +914,30 @@ export default function Home() {
       <nav className="sticky top-0 z-50 flex justify-between items-center px-6 py-4 bg-white/70 dark:bg-[#0B132B]/85 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center font-black text-white shadow-md shadow-blue-500/20">
-            D
-          </div>
+            {"D"}</div>
           <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
-            Workplace Hub <span className="text-xs text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full ml-1 border border-blue-105 dark:border-blue-900/60">SaaS v2026</span>
+            {"Workplace Hub"}<span className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded-full ml-2 border border-blue-100 dark:border-blue-900/60 uppercase tracking-wider hidden sm:inline-block">{"Enterprise AI Platform"}</span>
           </h1>
         </div>
-        <div className="space-x-6 text-xs font-black text-slate-705 hidden md:flex items-center">
-          <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-blue-600 active:scale-95 transition-all">Home</button>
-          <button onClick={() => scrollToSection('features')} className="hover:text-blue-600 active:scale-95 transition-all">Features</button>
-          <button onClick={() => scrollToSection('ai-triage')} className="hover:text-blue-600 active:scale-95 transition-all">AI Sandbox</button>
-          <button onClick={() => scrollToSection('faq')} className="hover:text-blue-600 active:scale-95 transition-all">SLA Guidelines</button>
+
+        {/* Desktop Menu */}
+        <div className="space-x-6 text-xs font-black text-slate-705 hidden lg:flex items-center">
+          <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-blue-600 active:scale-95 transition-all text-slate-700 dark:text-slate-300">{"Home"}</button>
+          <button onClick={() => scrollToSection('features')} className="hover:text-blue-600 active:scale-95 transition-all text-slate-700 dark:text-slate-300">{"Features"}</button>
+          <button onClick={() => scrollToSection('ai-triage')} className="hover:text-blue-600 active:scale-95 transition-all text-slate-700 dark:text-slate-300">{"AI Sandbox"}</button>
+          <button onClick={() => scrollToSection('faq')} className="hover:text-blue-600 active:scale-95 transition-all text-slate-700 dark:text-slate-300">{"Support"}</button>
         </div>
-        <div className="flex gap-2 items-center">
+
+        {/* Desktop Actions */}
+          
+        <div className="hidden lg:flex gap-2 items-center">
           <Button 
             onClick={triggerInstallApp} 
             size="sm" 
             variant="outline"
             className="border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-800 dark:text-slate-200 font-extrabold text-xs px-4 py-2 transition-all duration-200 h-9"
           >
-            📲 Install App
-          </Button>
+            {"📲 Install App"}</Button>
           <Link 
             to="/auth/user"
             onClick={(e) => {
@@ -886,13 +948,56 @@ export default function Home() {
               }
             }}
           >
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-md shadow-blue-500/10 h-9">Launch App</Button>
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-md shadow-blue-500/10 h-9 transition-all">{"Launch App"}</Button>
           </Link>
           <Link to="/auth/user">
-            <Button size="sm" variant="ghost" className="text-slate-700 dark:text-slate-300 font-extrabold text-xs h-9">Sign In</Button>
+            <Button size="sm" variant="ghost" className="text-slate-700 dark:text-slate-300 font-extrabold text-xs h-9 transition-all">{"Sign In"}</Button>
           </Link>
         </div>
+
+        {/* Mobile Hamburger */}
+        <div className="lg:hidden">
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="text-slate-700 dark:text-slate-200 p-2"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </nav>
+
+      {/* Mobile Menu Dropdown */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="lg:hidden bg-white dark:bg-[#0B132B] border-b border-slate-100 dark:border-slate-800 px-6 py-4 flex flex-col gap-4 absolute w-full z-40 shadow-xl"
+          >
+            <button onClick={() => { setIsMobileMenuOpen(false); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="text-left text-sm font-bold text-slate-800 dark:text-slate-200">{"Home"}</button>
+            <button onClick={() => { setIsMobileMenuOpen(false); scrollToSection('features'); }} className="text-left text-sm font-bold text-slate-800 dark:text-slate-200">{"Features"}</button>
+            <button onClick={() => { setIsMobileMenuOpen(false); scrollToSection('ai-triage'); }} className="text-left text-sm font-bold text-slate-800 dark:text-slate-200">{"AI Sandbox"}</button>
+            <button onClick={() => { setIsMobileMenuOpen(false); scrollToSection('faq'); }} className="text-left text-sm font-bold text-slate-800 dark:text-slate-200">{"Support"}</button>
+            <div className="h-px bg-slate-100 dark:bg-slate-800 my-2" />
+            
+            <Button onClick={() => { setIsMobileMenuOpen(false); triggerInstallApp(); }} variant="outline" className="justify-center font-bold text-sm h-10 border-slate-200 dark:border-slate-700">{"📲 Install App"}</Button>
+            <Link to="/auth/user" onClick={(e) => {
+              const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+              if (isIframe) {
+                e.preventDefault();
+                setIsMobileMenuOpen(false);
+                setShowLaunchModal(true);
+              }
+            }} className="w-full">
+              <Button className="w-full justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm h-10 shadow-md shadow-blue-500/20">{"Launch App"}</Button>
+            </Link>
+            <Link to="/auth/user" className="w-full text-center">
+              <span className="text-slate-600 dark:text-slate-400 font-bold text-sm">{"Sign In"}</span>
+            </Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="flex-1">
         {/* PREMIUM HERO SECTION WITH AURORA ANIMATIONS */}
@@ -908,36 +1013,36 @@ export default function Home() {
               {/* Tagline */}
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-950 border border-blue-900 shadow text-cyan-200 rounded-full text-[11px] font-black tracking-wider uppercase mx-auto lg:mx-0">
                 <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-spin-slow" />
-                Sentry Grade AI Ticket Management
-              </div>
+                {"Sentry Grade AI Ticket Management"}</div>
 
-              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.15] max-w-2xl mx-auto lg:mx-0">
-                Automated Support. <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-400">Guaranteed SLAs.</span>
-              </h2>
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.15] max-w-2xl mx-auto lg:mx-0">{"AI-Powered Workplace"}<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-400">{"Complaint Management"}</span></h2>
 
-              <p className="text-slate-200 text-sm md:text-base max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed">
-                Stop filing tickets that fall into black holes. Submit, track, and auto-route IT tickets with cognitive AI diagnostic suggestions, 2026 SLAs, and live support chat threads.
-              </p>
+              <p className="text-slate-200 text-sm md:text-base max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed">{"Resolve employee issues 70% faster with intelligent ticket routing, AI diagnostics, real-time tracking and automated SLA management."}</p>
 
               <div className="pt-2 flex flex-wrap justify-center lg:justify-start gap-4">
                 <Link to="/auth/user">
                   <Button id="tour-get-started-btn" size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-extrabold shadow-lg shadow-cyan-500/20 border-0 rounded-2xl h-12 md:h-14 px-8 text-xs transform hover:-translate-y-0.5 transition-all">
-                    Get Started as User <ArrowRight className="ml-2 h-4 w-4" />
+                    {"Employee Portal"}<ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Link to="/auth/admin">
                   <Button id="tour-admin-portal-btn" size="lg" variant="outline" className="bg-slate-900/40 backdrop-blur-xl border-slate-700/60 text-slate-200 hover:bg-slate-800/80 hover:text-white transition-all rounded-2xl h-12 md:h-14 px-8 text-xs">
-                    <ShieldCheck className="mr-2 h-4 w-4 text-cyan-400" /> Admin Portal
-                  </Button>
+                    <ShieldCheck className="mr-2 h-4 w-4 text-cyan-400" /> {"Administrator Portal"}</Button>
                 </Link>
               </div>
 
-              {/* Micro Dashboard Status ticks */}
-              <div className="pt-4 flex flex-wrap justify-center lg:justify-start gap-4 text-[10.5px] font-black text-slate-200">
-                <span className="flex items-center gap-1.5 px-3 py-1 bg-[#14223A] rounded-full border border-slate-800"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> SYSTEM ONLINE</span>
-                <span className="flex items-center gap-1.5 px-3 py-1 bg-[#14223A] rounded-full border border-slate-800"><span className="w-2 h-2 rounded-full bg-blue-400"></span> 99.98% SLA SUCCESS RATE</span>
-                <span className="flex items-center gap-1.5 px-3 py-1 bg-[#14223A] rounded-full border border-slate-800"><span className="w-2 h-2 rounded-full bg-purple-400"></span> COGNITIVE GEMINI API ACTIVATED</span>
+              {/* Trust Indicators */}
+              <div className="pt-8 flex flex-col gap-4">
+                <div className="flex items-center gap-2 justify-center lg:justify-start text-yellow-500 text-sm">
+                  <Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" />
+                  <span className="text-white font-bold ml-2 text-xs">{"Trusted by Enterprises"}</span>
+                </div>
+                <div className="flex flex-wrap justify-center lg:justify-start gap-3 text-[10px] sm:text-[11px] font-black text-slate-200 uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14223A]/80 rounded-full border border-slate-800 backdrop-blur-sm"><span className="w-2 h-2 rounded-full bg-blue-400"></span> {"99.8% SLA Accuracy"}</span>
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14223A]/80 rounded-full border border-slate-800 backdrop-blur-sm"><span className="w-2 h-2 rounded-full bg-purple-400"></span> {"AI Powered"}</span>
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14223A]/80 rounded-full border border-slate-800 backdrop-blur-sm"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> {"24×7 Monitoring"}</span>
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14223A]/80 rounded-full border border-slate-800 backdrop-blur-sm"><span className="w-2 h-2 rounded-full bg-cyan-400"></span> {"PWA Enabled"}</span>
+                </div>
               </div>
             </div>
 
@@ -952,13 +1057,13 @@ export default function Home() {
                     <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-white text-xs">
                       🤖
                     </div>
-                    <span className="text-xs font-black tracking-tight text-white">Ask AI Assistant</span>
+                    <span className="text-xs font-black tracking-tight text-white">{"Ask AI Assistant"}</span>
                   </div>
-                  <span className="text-[9px] font-black tracking-tight text-cyan-400 uppercase bg-cyan-950/50 border border-cyan-800/35 px-2 py-0.5 rounded-full">Workplace Hub AI Assistant</span>
+                  <span className="text-[9px] font-black tracking-tight text-cyan-400 uppercase bg-cyan-950/50 border border-cyan-800/35 px-2 py-0.5 rounded-full">{"Workplace Hub AI Assistant"}</span>
                 </div>
 
                 <div className="space-y-2.5">
-                  <p className="text-3xs font-black uppercase text-slate-500 tracking-wider">Suggested Questions (Click to Ask)</p>
+                  <p className="text-3xs font-black uppercase text-slate-500 tracking-wider">{"Suggested Questions (Click to Ask)"}</p>
                   
                   <div className="space-y-2">
                     {[
@@ -987,7 +1092,7 @@ export default function Home() {
 
                 <div className="p-3 bg-[#080D1A] rounded-xl border border-slate-800/60 text-[10.5px] text-slate-450 font-bold leading-relaxed flex gap-2 items-start">
                   <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                  <p>Click any quick launcher query to instantly activate the cognitive assistant network and view real-time SLA answers.</p>
+                  <p>{"Click any quick launcher query to instantly activate the cognitive assistant network and view real-time SLA answers."}</p>
                 </div>
               </div>
             </div>
@@ -999,19 +1104,19 @@ export default function Home() {
           <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
             <div className="space-y-1">
               <p className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">99.8%</p>
-              <p className="text-slate-400 font-bold text-xs uppercase tracking-wide">SLA Achievement Index</p>
+              <p className="text-slate-400 font-bold text-xs uppercase tracking-wide">{"SLA Achievement Index"}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">4.2 Hrs</p>
-              <p className="text-slate-400 font-bold text-xs uppercase tracking-wide">Avg Resolution Audit</p>
+              <p className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">{"4.2 Hrs"}</p>
+              <p className="text-slate-400 font-bold text-xs uppercase tracking-wide">{"Avg Resolution Audit"}</p>
             </div>
             <div className="space-y-1">
               <p className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">1,500+</p>
-              <p className="text-slate-400 font-bold text-xs uppercase tracking-wide">Operational Tickets Solved</p>
+              <p className="text-slate-400 font-bold text-xs uppercase tracking-wide">{"Operational Tickets Solved"}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">24/7/365</p>
-              <p className="text-slate-400 font-bold text-xs uppercase tracking-wide">Active Incident Scanning</p>
+              <p className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">{"24 x 7"}</p>
+              <p className="text-slate-400 font-bold text-xs uppercase tracking-wide">{"Active Incident Scanning"}</p>
             </div>
           </div>
         </section>
@@ -1020,9 +1125,9 @@ export default function Home() {
         <section className="py-24 px-6 bg-white dark:bg-[#0B132B]/80 border-y border-slate-100 dark:border-slate-800">
           <div className="max-w-6xl mx-auto">
             <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
-              <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 font-extrabold uppercase tracking-widest text-[10px] px-3 py-1">Operations Hub</Badge>
-              <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">What Can You Use Workplace Hub For?</h2>
-              <p className="text-black dark:text-slate-300 text-sm md:text-base font-medium">Not just IT issues. Submit requests for anything work-related.</p>
+              <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 font-extrabold uppercase tracking-widest text-[10px] px-3 py-1">{"Operations Hub"}</Badge>
+              <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">{"What Can You Use Workplace Hub For?"}</h2>
+              <p className="text-black dark:text-slate-300 text-sm md:text-base font-medium">{"Not just IT issues. Submit requests for anything work-related."}</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1050,65 +1155,57 @@ export default function Home() {
         <section id="features" className="py-24 px-6 bg-slate-50 dark:bg-[#080D1A]">
           <div className="max-w-6xl mx-auto space-y-16">
             <div className="text-center space-y-4">
-              <span className="text-blue-600 font-extrabold text-xs uppercase tracking-widest bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-900/60">PRODUCT MATRIX</span>
-              <h3 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white">Features Built For Performance</h3>
-              <p className="text-black dark:text-slate-300 max-w-xl mx-auto text-sm font-semibold">Every utility is carefully designed to make incident resolutions rapid and transparent.</p>
-            </div>
- 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Feature 1 */}
-              <div id="feat-1" className="bg-white dark:bg-[#111A2E]/80 p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group animate-fadeIn">
-                <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold mb-6 group-hover:scale-110 transition-transform">
-                  <Ticket className="w-6 h-6" />
+              <span className="text-blue-600 font-extrabold text-xs uppercase tracking-widest bg-blue-50 dark:bg-blue-950/40 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-900/60">{"PRODUCT MATRIX"}</span>
+              <h3 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white">{"Features Built For Performance"}</h3>
+              <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto text-sm font-semibold">{"Every utility is carefully designed to make incident resolutions rapid and transparent."}</p>
+            </div> 
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Big Card: AI Assistant */}
+              <div className="md:col-span-2 bg-white dark:bg-[#111A2E]/80 p-8 rounded-3xl border border-slate-200/60 dark:border-slate-800/80 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group flex flex-col justify-between overflow-hidden relative">
+                <div className="absolute -bottom-10 -right-10 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Bot className="w-64 h-64 text-blue-500" />
                 </div>
-                <h4 className="text-lg font-extrabold text-slate-800 dark:text-white mb-2">Smart Ticket Filing</h4>
-                <p className="text-black dark:text-slate-300 text-xs font-semibold leading-relaxed">File digital tickets with instant screenshots, category prediction classifiers, and customized SLA triggers.</p>
-              </div>
- 
-              {/* Feature 2 */}
-              <div id="feat-2" className="bg-white dark:bg-[#111A2E]/80 p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group">
+                <div>
+                  <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold mb-6 group-hover:scale-110 transition-transform">
+                    <Bot className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-2xl font-black text-slate-900 dark:text-white mb-3">{"AI Complaint Diagnosis"}</h4>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-md">{"Our AI predicts the precise department, calculates urgency, and suggests initial troubleshooting steps before the ticket is even submitted. Works flawlessly for employees and admins."}</p>
+                </div>
+              </div> 
+
+              {/* Medium Card: OCR Camera */}
+              <div className="md:col-span-1 bg-white dark:bg-[#111A2E]/80 p-8 rounded-3xl border border-slate-200/60 dark:border-slate-800/80 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group">
                 <div className="w-12 h-12 rounded-xl bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold mb-6 group-hover:scale-110 transition-transform">
+                  <Camera className="w-6 h-6" />
+                </div>
+                <h4 className="text-lg font-black text-slate-900 dark:text-white mb-2">{"AI Smart Camera"}</h4>
+                <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed">{"Capture error screens and documents using automatic OCR text extraction to attach instantly to tickets."}</p>
+              </div>
+
+              {/* Medium Card: Ticket Routing */}
+              <div className="md:col-span-1 bg-white dark:bg-[#111A2E]/80 p-8 rounded-3xl border border-slate-200/60 dark:border-slate-800/80 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group">
+                <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold mb-6 group-hover:scale-110 transition-transform">
                   <Cpu className="w-6 h-6" />
                 </div>
-                <h4 className="text-lg font-extrabold text-slate-800 dark:text-white mb-2">Cognitive Gemini Triage</h4>
-                <p className="text-black dark:text-slate-300 text-xs font-semibold leading-relaxed">Integrated Neural Models automatically label categories and diagnose priority levels using description semantics.</p>
+                <h4 className="text-lg font-black text-slate-900 dark:text-white mb-2">{"Smart Routing"}</h4>
+                <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed">{"Automatically assigns the correct department and escalates priority based on SLA."}</p>
               </div>
- 
-              {/* Feature 3 */}
-              <div id="feat-3" className="bg-white dark:bg-[#111A2E]/80 p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group">
-                <div className="w-12 h-12 rounded-xl bg-green-50 dark:bg-emerald-950/40 text-green-600 dark:text-emerald-400 flex items-center justify-center font-bold mb-6 group-hover:scale-110 transition-transform">
+
+              {/* Large Card: SLA Tracking & Analytics */}
+              <div className="md:col-span-2 bg-white dark:bg-[#111A2E]/80 p-8 rounded-3xl border border-slate-200/60 dark:border-slate-800/80 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group overflow-hidden relative">
+                <div className="absolute top-10 -right-10 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Activity className="w-64 h-64 text-emerald-500" />
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-green-50 dark:bg-emerald-950/40 text-green-600 dark:text-emerald-400 flex items-center justify-center font-bold mb-6 group-hover:scale-110 transition-transform relative z-10">
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
-                <h4 className="text-lg font-extrabold text-slate-800 dark:text-white mb-2">SLA Countdown Trackers</h4>
-                <p className="text-black dark:text-slate-300 text-xs font-semibold leading-relaxed">Real-time counts show exact minutes remaining before ticket targets escalate to senior engineering supervisors.</p>
-              </div>
- 
-              {/* Feature 4 */}
-              <div id="feat-4" className="bg-white dark:bg-[#111A2E]/80 p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group">
-                <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold mb-6 group-hover:scale-110 transition-transform">
-                  <MessageSquare className="w-6 h-6" />
-                </div>
-                <h4 className="text-lg font-extrabold text-slate-800 dark:text-white mb-2">Ticket Timeline Chats</h4>
-                <p className="text-black dark:text-slate-300 text-xs font-semibold leading-relaxed">Zendesk-inspired comment threads: chat with support staff, attach feedback, and audit timeline status changes easily.</p>
-              </div>
- 
-              {/* Feature 5 */}
-              <div id="feat-5" className="bg-white dark:bg-[#111A2E]/80 p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group">
-                <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold mb-6 group-hover:scale-110 transition-transform">
-                  <Database className="w-6 h-6" />
-                </div>
-                <h4 className="text-lg font-extrabold text-slate-800 dark:text-white mb-2">Audit Compliance Logs</h4>
-                <p className="text-black dark:text-slate-300 text-xs font-semibold leading-relaxed">Generate auto-structured system operations compliance summaries, PDF export protocols, and departmental breakdown charts.</p>
-              </div>
- 
-              {/* Feature 6 */}
-              <div id="feat-6" className="bg-white dark:bg-[#111A2E]/80 p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 group">
-                <div className="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold mb-6 group-hover:scale-110 transition-transform">
-                  <Target className="w-6 h-6" />
-                </div>
-                <h4 className="text-lg font-extrabold text-slate-800 dark:text-white mb-2">Department Heatmaps</h4>
-                <p className="text-black dark:text-slate-300 text-xs font-semibold leading-relaxed">Beautiful administrative graphs track department bottlenecks, average resolution times, and system vulnerability logs.</p>
-              </div>
+                <h4 className="text-2xl font-black text-slate-900 dark:text-white mb-3 relative z-10">{"SLA Monitoring & Analytics"}</h4>
+                <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-md relative z-10">{"Real-time counts show exact minutes remaining before ticket targets escalate. Administrators enjoy full access to export auto-formatted compliance reports and department resolution metrics."}</p>
+              </div> 
+
             </div>
           </div>
         </section>
@@ -1118,50 +1215,47 @@ export default function Home() {
           <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-5 space-y-6">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-950/80 border border-blue-900 text-blue-400 rounded-full text-[10px] font-extrabold uppercase">
-                <Flame className="w-3.5 h-3.5 text-orange-500" /> Interactive Playpen
-              </div>
-              <h3 className="text-2xl md:text-4xl font-black tracking-tight leading-tight">Test the Gemini AI Triage Engine</h3>
+                <Flame className="w-3.5 h-3.5 text-orange-500" /> {"Interactive Playpen"}</div>
+              <h3 className="text-2xl md:text-4xl font-black tracking-tight leading-tight">{"Test the Gemini AI Triage Engine"}</h3>
               <p className="text-slate-400 text-xs font-semibold leading-relaxed">
-                Experience how our 2026 AI models instantly extract meaning, prioritize issues, and map response timelines. Enter any IT, hardware or security failure and experience neural routing in action.
-              </p>
+                {"Experience how our 2026 AI models instantly extract meaning, prioritize issues, and map response timelines. Enter any IT, hardware or security failure and experience neural routing in action."}</p>
               <div className="space-y-3 pt-2">
                 <div className="flex gap-2.5 items-start">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <p className="text-xs text-slate-300 font-semibold">Checks words like 'printer', 'password', or 'malware'.</p>
+                  <p className="text-xs text-slate-300 font-semibold">{"Checks words like 'printer', 'password', or 'malware'."}</p>
                 </div>
                 <div className="flex gap-2.5 items-start">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <p className="text-xs text-slate-300 font-semibold">Generates precise SLA countdown limit models.</p>
+                  <p className="text-xs text-slate-300 font-semibold">{"Generates precise SLA countdown limit models."}</p>
                 </div>
               </div>
             </div>
                {/* Sandbox Console Container */}
             <div id="sandbox-mock" className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
               <div className="border-b border-slate-800 px-6 py-4 bg-slate-900/60 flex justify-between items-center text-xs font-bold text-slate-400">
-                <span className="flex items-center gap-1.5 font-mono"><Cpu className="w-4 h-4 text-blue-500 animate-pulse" /> neural_routing_sandbox_v3.sh</span>
-                <span className="text-[10px] bg-blue-950 px-2 py-0.5 rounded text-blue-400">GEMINI 2.5 FLASH</span>
+                <span className="flex items-center gap-1.5 font-mono"><Cpu className="w-4 h-4 text-blue-500 animate-pulse" /> {"neural_routing_sandbox_v3.sh"}</span>
+                <span className="text-[10px] bg-blue-950 px-2 py-0.5 rounded text-blue-400">{"GEMINI 2.5 FLASH"}</span>
               </div>
               <div className="p-6 space-y-5">
                 {sandboxIsCached && (
                   <div className="bg-emerald-950/60 border border-emerald-900/60 px-3 py-2 rounded-xl flex items-center justify-between text-2xs text-emerald-400 font-mono">
                     <span className="flex items-center gap-1.5">
                       <Zap className="w-3.5 h-3.5 text-emerald-400 animate-bounce" />
-                      ⚡ CACHED: INSTANT RESULTS FETCHED FROM SYSTEM MEMORY
-                    </span>
-                    <span className="text-[9px] bg-emerald-900 px-1.5 py-0.5 rounded text-emerald-300">0ms</span>
+                      {"⚡ CACHED: INSTANT RESULTS FETCHED FROM SYSTEM MEMORY"}</span>
+                    <span className="text-[9px] bg-emerald-900 px-1.5 py-0.5 rounded text-emerald-300">{"0ms"}</span>
                   </div>
                 )}
 
                 <div className="space-y-2">
                   <label className="text-xs font-extrabold uppercase tracking-widest text-[#64748B] block flex items-center gap-1.5 font-sans">
                     <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-                    How can we help you today?
-                  </label>
+                    {"How can we help you today?"}</label>
                   <textarea 
+                    id="sandbox-textarea"
                     className="w-full bg-[#050A15] border border-slate-800 p-4 rounded-xl text-xs font-mono text-slate-100 placeholder-slate-650 focus:outline-none focus:border-blue-500 transition-all h-24 resize-none leading-relaxed shadow-inner"
                     value={sandboxDesc}
                     onChange={(e) => setSandboxDesc(e.target.value)}
-                    placeholder="Describe an HR query, salary delay, main office printer failure, network connection drops, or a suspicious phishing email hazard..."
+                    placeholder={"Describe an HR query, salary delay, main office printer failure, network connection drops, or a suspicious phishing email hazard..."}
                     disabled={sandboxLoading}
                   />
                   
@@ -1191,8 +1285,7 @@ export default function Home() {
                     {sandboxLoading && (
                       <span className="flex items-center gap-2 text-blue-400">
                         <Cpu className="w-3.5 h-3.5 animate-spin" />
-                        AI Classifier Active...
-                      </span>
+                        {"AI Classifier Active..."}</span>
                     )}
                   </div>
                   <Button 
@@ -1211,10 +1304,9 @@ export default function Home() {
                 {sandboxLoading && (
                   <div className="p-4 bg-[#050A15]/80 border border-blue-900/30 rounded-xl space-y-2.5 animate-in fade-in duration-300">
                     <div className="flex justify-between items-center text-3xs font-black tracking-wider text-blue-400 uppercase font-mono">
-                      <span>🤖 REAL-TIME NEURAL CLASSIFIER LOGS</span>
+                      <span>{"🤖 REAL-TIME NEURAL CLASSIFIER LOGS"}</span>
                       <span className="flex items-center gap-1">
-                        <Cpu className="w-3 h-3 animate-spin text-blue-400" /> ACTIVE Triaging
-                      </span>
+                        <Cpu className="w-3 h-3 animate-spin text-blue-400" /> {"ACTIVE Triaging"}</span>
                     </div>
                     <div className="space-y-2 pt-1">
                       {sandboxSteps.map(step => (
@@ -1246,65 +1338,51 @@ export default function Home() {
                   <div className="p-3.5 bg-red-950/60 border border-red-900/60 rounded-xl text-xs space-y-2 text-red-200">
                     <div className="flex items-center gap-2 font-bold">
                       <AlertTriangle className="w-4 h-4 text-red-400 animate-pulse" />
-                      <span>Analysis is taking longer than expected.</span>
+                      <span>{"Analysis is taking longer than expected."}</span>
                     </div>
-                    <p className="text-3xs text-red-300 font-medium">The neural endpoint might be under high traffic load. You can retry with a forced fresh bypass or continue waiting.</p>
+                    <p className="text-3xs text-red-300 font-medium">{"The neural endpoint might be under high traffic load. You can retry with a forced fresh bypass or continue waiting."}</p>
                     <div className="flex gap-2 pt-1">
                       <button 
                         onClick={() => triggerSandboxTriage(true)} 
                         className="bg-red-800 hover:bg-red-700 text-white font-extrabold px-3 py-1.5 text-2xs rounded-lg flex items-center gap-1 transition-all"
                       >
-                        <RotateCcw className="w-3 h-3" /> Retry Analysis
-                      </button>
+                        <RotateCcw className="w-3 h-3" /> {"Retry Analysis"}</button>
                       <button 
                         onClick={() => setSandboxTimeout(false)} 
                         className="bg-slate-800 hover:bg-slate-700 text-white font-extrabold px-3 py-1.5 text-2xs rounded-lg transition-all"
                       >
-                        Continue Waiting
-                      </button>
+                        {"Continue Waiting"}</button>
                     </div>
                   </div>
                 )}
 
                 <div className="bg-[#050A15] border border-slate-800/80 p-5 rounded-xl space-y-4">
-                  <div className="flex justify-between items-center text-3xs font-black text-slate-500 uppercase tracking-widest">
-                    <span>COGNITIVE OUTPUT SUMMARY</span>
+                  
+                  {/* --- LEVEL 1: ALWAYS VISIBLE (Clean, easy to scan summary) --- */}
+                  <div className="flex flex-wrap justify-between items-center gap-2 text-2xs font-semibold text-slate-400 border-b border-slate-800/40 pb-3">
                     <div className="flex items-center gap-2">
-                      {sandboxResponse.sentiment && (
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-black tracking-tight ${
-                          sandboxResponse.sentiment === "Frustrated" ? "text-rose-400 bg-rose-950/60 border border-rose-900/45 animate-pulse" :
-                          sandboxResponse.sentiment === "Anxious" ? "text-amber-400 bg-amber-950/60 border border-amber-900/45" :
-                          sandboxResponse.sentiment === "Calm" ? "text-emerald-400 bg-emerald-950/60 border border-emerald-900/45" :
-                          "text-slate-400 bg-slate-900/80 border border-slate-800"
-                        }`}>
-                          🎭 Sentiment: {sandboxResponse.sentiment.toUpperCase()}
-                        </span>
-                      )}
-                      <span>T + {sandboxIsCached ? "0" : sandboxLoading ? "..." : "180"}ms</span>
+                      <span className="text-slate-500 font-extrabold uppercase font-mono text-[10px] tracking-wider">{"🎭 Sentiment"}:</span>
+                      <span className="px-2 py-0.5 bg-slate-900 border border-slate-800 text-slate-300 rounded font-bold">
+                        {sandboxResponse.sentiment === "Frustrated" ? "😠 " + "Frustrated" :
+                         sandboxResponse.sentiment === "Anxious" ? "😰 " + "Anxious" :
+                         sandboxResponse.sentiment === "Calm" ? "😌 " + "Calm" :
+                         "😊 " + "Neutral"}
+                      </span>
+                    </div>
+                    <div className="text-slate-500 font-mono text-[10px]">
+                      {"T +"}{sandboxIsCached ? "0" : sandboxLoading ? "..." : "180"}{"ms"}
                     </div>
                   </div>
 
-                  {sandboxResponse.correctedText && sandboxResponse.correctedText.toLowerCase() !== sandboxDesc.toLowerCase() && (
-                    <div className="p-3 bg-blue-950/40 border border-blue-900/40 rounded-lg text-xs flex items-start gap-2.5 animate-in fade-in duration-350">
-                      <Sparkles className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5 animate-pulse" />
-                      <div className="space-y-0.5">
-                        <span className="text-3xs text-blue-400 font-extrabold uppercase font-mono tracking-wider block">AI Typo Auto-Correction</span>
-                        <p className="text-slate-300 text-[11px] font-semibold leading-relaxed">
-                          Analyzed and corrected input from <span className="text-slate-405 italic">"{sandboxDesc}"</span> to <span className="text-blue-300 font-bold">"{sandboxResponse.correctedText}"</span> for optimal enterprise categorization.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
+                  {/* Clarification Box if low confidence */}
                   {sandboxResponse.clarificationNeeded && sandboxResponse.clarificationOptions && sandboxResponse.clarificationOptions.length > 0 && (
                     <div className="p-4 bg-amber-950/40 border border-amber-900/50 rounded-lg text-xs space-y-3 animate-in slide-in-from-top-3 duration-300">
                       <div className="flex items-start gap-2.5">
                         <HelpCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                         <div className="space-y-1">
-                          <span className="text-3xs text-amber-400 font-extrabold uppercase font-mono tracking-wider block">Low-Confidence Ambiguity Warning</span>
+                          <span className="text-3xs text-amber-400 font-extrabold uppercase font-mono tracking-wider block">{"Low-Confidence Ambiguity Warning"}</span>
                           <p className="text-slate-300 text-[11px] font-semibold leading-relaxed">
-                            The incident details are extremely brief or ambiguous. To refine the routing telemetry, choose one of these predicted topics to re-run prediction:
-                          </p>
+                            {"The incident details are extremely brief or ambiguous. To refine the routing telemetry, choose one of these predicted topics to re-run prediction:"}</p>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2 pt-1">
@@ -1321,155 +1399,282 @@ export default function Home() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg">
-                      <span className="text-3xs text-slate-500 font-extrabold block pb-1 tracking-wider">PREDICTED CATEGORY</span>
-                      <span className="font-extrabold text-blue-400 font-mono text-xs">{sandboxResponse.category || "Classifying..."}</span>
-                    </div>
-
-                    <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg">
-                      <span className="text-3xs text-slate-500 font-extrabold block pb-1 tracking-wider">RECOMMENDED PRIORITY</span>
-                      <span className={`font-extrabold text-xs font-mono px-2 py-0.5 rounded ${
-                        sandboxResponse.priority === "Critical" ? "text-rose-400 bg-rose-950/60 border border-rose-900/40" :
-                        sandboxResponse.priority === "Urgent" ? "text-amber-400 bg-amber-950/60 border border-amber-900/40" :
-                        sandboxResponse.priority === "Medium" ? "text-blue-400 bg-blue-950/60 border border-blue-900/40" :
-                        "text-slate-400 bg-slate-800/60"
-                      }`}>{sandboxResponse.priority || "Prioritizing..."}</span>
-                    </div>
-
-                    <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg">
-                      <span className="text-3xs text-slate-500 font-extrabold block pb-1 tracking-wider">RESOLVING DEPARTMENT</span>
-                      <span className="font-bold text-slate-300 font-mono text-xs">{sandboxResponse.department || "Mapping..."}</span>
-                    </div>
-
-                    <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg">
-                      <span className="text-3xs text-slate-500 font-extrabold block pb-1 tracking-wider">SLA INCIDENT RESOLUTION</span>
-                      <span className="font-extrabold text-emerald-400 font-mono text-xs">{sandboxResponse.sla || "Calculating..."}</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 bg-slate-900 border border-slate-800 rounded-lg text-xs space-y-2">
-                    <div>
-                      <span className="text-3xs text-slate-500 font-extrabold block pb-0.5 tracking-wider uppercase">AI Incident Root Cause</span>
-                      <p className="font-semibold text-slate-300 font-sans leading-relaxed text-xs">
-                        {sandboxResponse.rootCause || "Determining probable cause factor..."}
-                      </p>
-                    </div>
-                    <div className="pt-1.5 border-t border-slate-800/60">
-                      <span className="text-3xs text-slate-500 font-extrabold block pb-0.5 tracking-wider uppercase">Suggested Action Recommendation</span>
-                      <p className="font-medium text-blue-300/90 font-sans leading-relaxed text-xs">
-                        {sandboxResponse.recommendation || "Generating recommended execution track..."}
-                      </p>
-                    </div>
-                  </div>
-
-                  {sandboxResponse.detectedIssues && sandboxResponse.detectedIssues.length > 0 && (
-                    <div className="p-3.5 bg-slate-900 border border-slate-850 rounded-lg text-xs space-y-2">
-                      <div className="flex items-center gap-1.5 text-3xs font-extrabold text-slate-500 uppercase tracking-widest border-b border-slate-800/40 pb-1.5">
-                        <ListChecks className="w-3.5 h-3.5 text-blue-500" />
-                        <span>Extracted Incident Items ({sandboxResponse.detectedIssues.length})</span>
+                  {/* Four Color-Coded Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {/* Category Card - Green Theme */}
+                    <div className="p-3 bg-emerald-950/10 border border-emerald-900/30 rounded-xl space-y-1.5 hover:bg-emerald-950/20 transition-all">
+                      <div className="flex justify-between items-center text-[10px] text-emerald-500 font-extrabold tracking-wider uppercase font-mono">
+                        <span className="flex items-center gap-1">🟢 {"Category"}</span>
+                        {sandboxResponse.confidence && (
+                          <span className="text-[9px] bg-emerald-950/80 border border-emerald-900/40 px-1.5 py-0.5 rounded text-emerald-300 font-mono font-bold">
+                            {"Confidence"} {sandboxResponse.confidence}%
+                          </span>
+                        )}
                       </div>
-                      <div className="space-y-2">
-                        {sandboxResponse.detectedIssues.map((issue: any, index: number) => (
-                          <div key={index} className="p-2.5 bg-[#050A15] border border-slate-800/50 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-                            <div className="space-y-0.5">
-                              <span className="text-slate-300 font-extrabold text-2xs">{issue.title}</span>
-                              <div className="flex flex-wrap items-center gap-2 text-[9px] font-mono text-slate-500">
-                                <span>Category: <span className="text-blue-400">{issue.category}</span></span>
-                                <span>•</span>
-                                <span>Dept: <span className="text-slate-300">{issue.department}</span></span>
+                      <span className="font-extrabold text-emerald-400 font-mono text-xs block">
+                        {sandboxResponse.category ? sandboxResponse.category : "Classifying..."}
+                      </span>
+                    </div>
+
+                    {/* Priority Card - Orange Theme */}
+                    <div className="p-3 bg-amber-950/10 border border-amber-900/30 rounded-xl space-y-1.5 hover:bg-amber-950/20 transition-all">
+                      <div className="text-[10px] text-amber-500 font-extrabold tracking-wider uppercase font-mono flex items-center gap-1">
+                        🟠 {"Priority"}
+                      </div>
+                      <span className={`font-extrabold text-xs font-mono block ${
+                        sandboxResponse.priority === "Critical" ? "text-rose-400" :
+                        sandboxResponse.priority === "Urgent" ? "text-amber-400" :
+                        sandboxResponse.priority === "Medium" ? "text-blue-400" :
+                        "text-slate-400"
+                      }`}>
+                        {sandboxResponse.priority ? sandboxResponse.priority : "Prioritizing..."}
+                      </span>
+                    </div>
+
+                    {/* Department Card - Blue Theme */}
+                    <div className="p-3 bg-blue-950/10 border border-blue-900/30 rounded-xl space-y-1.5 hover:bg-blue-950/20 transition-all">
+                      <div className="text-[10px] text-blue-500 font-extrabold tracking-wider uppercase font-mono flex items-center gap-1">
+                        🔵 {"Department"}
+                      </div>
+                      <span className="font-bold text-blue-400 font-mono text-xs block truncate">
+                        {sandboxResponse.department ? sandboxResponse.department : "Mapping..."}
+                      </span>
+                    </div>
+
+                    {/* SLA Card - Cyan/Time Theme */}
+                    <div className="p-3 bg-cyan-950/10 border border-cyan-900/30 rounded-xl space-y-1.5 hover:bg-cyan-950/20 transition-all">
+                      <div className="text-[10px] text-cyan-500 font-extrabold tracking-wider uppercase font-mono flex items-center gap-1">
+                        ⏱ {"Expected Resolution"}
+                      </div>
+                      <span className="font-extrabold text-cyan-400 font-mono text-xs block">
+                        {sandboxResponse.sla ? sandboxResponse.sla : "Calculating..."}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Suggested Action (💡 What you can try first) */}
+                  <div className="p-3.5 bg-blue-950/15 border border-blue-900/25 rounded-xl space-y-1 hover:border-blue-900/40 transition-all">
+                    <span className="text-3xs text-blue-400 font-extrabold tracking-wider uppercase font-mono flex items-center gap-1">
+                      💡 {"What you can try first"}
+                    </span>
+                    <p className="font-medium text-slate-200 font-sans leading-relaxed text-xs">
+                      {sandboxResponse.recommendation ? sandboxResponse.recommendation : "Generating recommended execution track..."}
+                    </p>
+                  </div>
+
+                  {/* CTA Actions Section */}
+                  <div className="pt-2 flex flex-col gap-2.5">
+                    {/* Primary Row: Register & Ask Follow-up */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        onClick={handleRegisterComplaint}
+                        className="w-full h-10 px-4 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white text-xs font-bold transition-all transform active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        📝 {"Register Complaint"}
+                      </button>
+                      <button
+                        onClick={handleAskAIFollowup}
+                        className="w-full h-10 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-bold transition-all transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        💬 {"Ask AI Follow-up"}
+                      </button>
+                    </div>
+
+                    {/* Secondary Row: Generate Report & Analyze Another */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        onClick={handleGenerateReport}
+                        className="w-full h-10 px-4 rounded-lg bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-all transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        📄 {"Generate Report"}
+                      </button>
+                      <button
+                        onClick={handleAnalyzeAnother}
+                        className="w-full h-10 px-4 rounded-lg bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-all transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        🔄 {"Analyze Another Issue"}
+                      </button>
+                    </div>
+                  </div>
+
+
+                  {/* --- LEVEL 2: EXPANDABLE (View Detailed AI Analysis) --- */}
+                  <div className="pt-2 border-t border-slate-800/40">
+                    <button
+                      onClick={() => setShowDetailedAnalysis(!showDetailedAnalysis)}
+                      className="w-full py-2 px-3 bg-slate-900/60 hover:bg-slate-900 border border-slate-800/60 hover:border-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Search className={`w-4 h-4 text-blue-400 ${showDetailedAnalysis ? 'animate-pulse' : ''}`} />
+                        {showDetailedAnalysis ? "Hide Detailed AI Analysis" : "View Detailed AI Analysis"}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showDetailedAnalysis ? 'rotate-180 text-blue-400' : 'text-slate-500'}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {showDetailedAnalysis && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.25 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pt-4 pb-1 space-y-4 animate-in fade-in duration-300">
+                            {/* Typo correction */}
+                            {sandboxResponse.correctedText && sandboxResponse.correctedText.toLowerCase() !== sandboxDesc.toLowerCase() && (
+                              <div className="p-3 bg-blue-950/30 border border-blue-900/40 rounded-lg text-xs flex items-start gap-2.5">
+                                <Sparkles className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5 animate-pulse" />
+                                <div className="space-y-1">
+                                  <span className="text-3xs text-blue-400 font-extrabold uppercase font-mono tracking-wider block">
+                                    {"✨ Your message was automatically corrected for better analysis."}
+                                  </span>
+                                  <p className="text-slate-300 text-[11px] font-semibold leading-relaxed">
+                                    {"Analyzed and corrected input from"} <span className="text-slate-400 italic">"{sandboxDesc}"</span> {"to"} <span className="text-blue-300 font-bold">"{sandboxResponse.correctedText}"</span> {"for optimal enterprise categorization."}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Root Cause (Possible Cause) */}
+                            <div className="p-3 bg-slate-900/50 border border-slate-800/50 rounded-xl space-y-1">
+                              <span className="text-3xs text-slate-500 font-extrabold block pb-0.5 tracking-wider uppercase flex items-center gap-1 font-mono">
+                                🔍 {"Possible Cause"}
+                              </span>
+                              <p className="font-semibold text-slate-300 font-sans leading-relaxed text-xs">
+                                {sandboxResponse.rootCause ? sandboxResponse.rootCause : "Determining probable cause factor..."}
+                              </p>
+                            </div>
+
+                            {/* Extracted issue checklist items */}
+                            {sandboxResponse.detectedIssues && sandboxResponse.detectedIssues.length > 0 && (
+                              <div className="p-3 bg-slate-900/50 border border-slate-800/50 rounded-xl space-y-2">
+                                <div className="flex items-center gap-1.5 text-3xs font-extrabold text-slate-500 uppercase tracking-widest border-b border-slate-800/40 pb-1.5">
+                                  <ListChecks className="w-3.5 h-3.5 text-blue-500" />
+                                  <span>{"Extracted Incident Items ("}{sandboxResponse.detectedIssues.length})</span>
+                                </div>
+                                <div className="space-y-1.5">
+                                  {sandboxResponse.detectedIssues.map((issue: any, index: number) => (
+                                    <div key={index} className="p-2 bg-[#050A15] border border-slate-800/40 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-2 text-2xs">
+                                      <div className="space-y-0.5">
+                                        <span className="text-slate-300 font-extrabold text-3xs">{issue.title}</span>
+                                        <div className="flex flex-wrap items-center gap-2 text-[9px] font-mono text-slate-500">
+                                          <span>{"Category:"} <span className="text-blue-400">{issue.category}</span></span>
+                                          <span>•</span>
+                                          <span>{"Dept:"} <span className="text-slate-300">{issue.department}</span></span>
+                                        </div>
+                                      </div>
+                                      <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-bold font-mono uppercase self-start md:self-center ${
+                                        issue.priority === "Critical" ? "text-rose-400 bg-rose-950/40" :
+                                        issue.priority === "Urgent" ? "text-amber-400 bg-amber-950/40" :
+                                        issue.priority === "Medium" ? "text-blue-400 bg-blue-950/40" :
+                                        "text-slate-400 bg-slate-800/40"
+                                      }`}>{issue.priority}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Classification Confidence score & bar */}
+                            <div className="p-3 bg-slate-900/50 border border-slate-800/50 rounded-xl text-xs space-y-1.5">
+                              <div className="flex justify-between items-center">
+                                <span className="text-3xs text-slate-500 font-extrabold tracking-wider uppercase font-mono">{"Classification Confidence"}</span>
+                                <span className="font-mono text-xs text-blue-400 font-black">{sandboxResponse.confidence || 0}%</span>
+                              </div>
+                              <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800/30">
+                                <div 
+                                  className="bg-blue-500 h-1.5 rounded-full transition-all duration-1000 ease-out" 
+                                  style={{ width: `${sandboxResponse.confidence || 0}%` }}
+                                />
                               </div>
                             </div>
-                            <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-bold font-mono uppercase self-start md:self-center ${
-                              issue.priority === "Critical" ? "text-rose-400 bg-rose-950/40" :
-                              issue.priority === "Urgent" ? "text-amber-400 bg-amber-950/40" :
-                              issue.priority === "Medium" ? "text-blue-400 bg-blue-950/40" :
-                              "text-slate-400 bg-slate-800/40"
-                            }`}>{issue.priority}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
-                  {sandboxResponse.similarCases && sandboxResponse.similarCases.length > 0 && (
-                    <div className="p-3.5 bg-slate-900 border border-slate-850 rounded-lg text-xs space-y-2.5">
-                      <div className="flex items-center gap-1.5 text-3xs font-extrabold text-slate-500 uppercase tracking-widest border-b border-slate-800/40 pb-1.5">
-                        <History className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Similar Past Incident Audit Log</span>
-                      </div>
-                      <div className="space-y-2">
-                        {sandboxResponse.similarCases.map((sc: any, i: number) => (
-                          <div key={i} className="p-2.5 bg-[#050A15]/60 border border-slate-800/40 rounded-lg space-y-1.5 text-3xs">
-                            <div className="flex justify-between items-center">
-                              <span className="font-extrabold text-slate-300 leading-snug">{sc.title}</span>
-                              <span className={`px-1.5 py-0.5 rounded-md font-mono font-bold uppercase tracking-tight text-[8px] ${
-                                sc.status === "Resolved" ? "text-emerald-400 bg-emerald-950/50 border border-emerald-900/40" :
-                                "text-blue-400 bg-blue-950/50 border border-blue-900/40"
-                              }`}>{sc.status}</span>
-                            </div>
-                            <p className="text-slate-400 leading-relaxed font-semibold">
-                              <span className="text-emerald-500/80 font-bold uppercase font-mono tracking-wider">Resolution:</span> {sc.resolution}
-                            </p>
+                            {/* Advanced Neural telemetry */}
+                            {sandboxResponse.aiReasoning && (
+                              <div className="p-3.5 bg-[#030710] border border-slate-850 rounded-xl text-xs space-y-2.5">
+                                <div className="flex justify-between items-center text-3xs font-black text-slate-500 uppercase tracking-widest border-b border-slate-800/60 pb-1.5">
+                                  <span className="flex items-center gap-1.5"><Cpu className="w-3 h-3 text-blue-500" /> {"Neural Feature Extraction"}</span>
+                                  <span className="text-emerald-400 font-mono text-[9px]">{"Telemetry Active"}</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-2xs font-mono text-slate-400">
+                                  <div>
+                                    <span className="text-slate-500 block text-[9px] uppercase tracking-wider">{"Detected Intent:"}</span>
+                                    <span className="text-blue-300 font-bold">{sandboxResponse.aiReasoning.detectedIntent ? sandboxResponse.aiReasoning.detectedIntent : "N/A"}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-500 block text-[9px] uppercase tracking-wider">{"Matched Department:"}</span>
+                                    <span className="text-slate-300 font-bold">{sandboxResponse.aiReasoning.matchedDepartment ? sandboxResponse.aiReasoning.matchedDepartment : "N/A"}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-500 block text-[9px] uppercase tracking-wider">{"Similarity Rank:"}</span>
+                                    <span className="text-blue-400 font-extrabold">{sandboxResponse.aiReasoning.similarityScore || 0}%</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-500 block text-[9px] uppercase tracking-wider">{"Est. Resolution:"}</span>
+                                    <span className="text-emerald-400 font-extrabold">{sandboxResponse.aiReasoning.estimatedResolutionTime ? sandboxResponse.aiReasoning.estimatedResolutionTime : "N/A"}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="p-3 bg-slate-900/50 border border-slate-800/60 rounded-lg text-xs space-y-1.5">
-                    <div className="flex justify-between items-center">
-                      <span className="text-3xs text-slate-500 font-extrabold tracking-wider uppercase">Classification Confidence</span>
-                      <span className="font-mono text-xs text-blue-400 font-black">{sandboxResponse.confidence || 0}%</span>
-                    </div>
-                    <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
-                      <div 
-                        className="bg-blue-500 h-1.5 rounded-full transition-all duration-1000 ease-out" 
-                        style={{ width: `${sandboxResponse.confidence || 0}%` }}
-                      />
-                    </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
-                  {sandboxResponse.aiReasoning && (
-                    <div className="p-3.5 bg-slate-900 border border-slate-800 rounded-lg text-xs space-y-2.5 animate-in fade-in duration-300">
-                      <div className="flex justify-between items-center text-3xs font-black text-slate-500 uppercase tracking-widest border-b border-slate-800/60 pb-1.5">
-                        <span className="flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-blue-500 animate-pulse" /> Neural Feature Extraction</span>
-                        <span className="text-emerald-400 font-mono">Telemetry Active</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 text-2xs font-mono">
-                        <div>
-                          <span className="text-slate-500 block text-[9px] uppercase tracking-wider">Detected Intent:</span>
-                          <span className="text-blue-300 font-bold">{sandboxResponse.aiReasoning.detectedIntent || "N/A"}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block text-[9px] uppercase tracking-wider">Matched Department:</span>
-                          <span className="text-slate-300 font-bold">{sandboxResponse.aiReasoning.matchedDepartment || "N/A"}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block text-[9px] uppercase tracking-wider">Similarity Rank:</span>
-                          <span className="text-blue-400 font-extrabold">{sandboxResponse.aiReasoning.similarityScore || 0}%</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block text-[9px] uppercase tracking-wider">Est. Resolution:</span>
-                          <span className="text-emerald-400 font-extrabold">{sandboxResponse.aiReasoning.estimatedResolutionTime || "N/A"}</span>
-                        </div>
-                      </div>
-                      <div className="pt-1.5 border-t border-slate-800/60">
-                        <span className="text-slate-500 block text-[9px] uppercase tracking-wider font-mono">Extracted Key Tokens:</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {sandboxResponse.aiReasoning.detectedKeywords && sandboxResponse.aiReasoning.detectedKeywords.length > 0 ? (
-                            sandboxResponse.aiReasoning.detectedKeywords.map((kw: string, i: number) => (
-                              <span key={i} className="px-1.5 py-0.5 bg-blue-950/85 border border-blue-900/60 rounded text-[9px] text-blue-400 font-mono font-bold lowercase">
-                                #{kw}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-slate-600 italic text-[10px]">None extracted</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+
+                  {/* --- LEVEL 3: ADVANCED (Similar Past Incidents) --- */}
+                  <div className="pt-2 border-t border-slate-800/40">
+                    <button
+                      onClick={() => setShowSimilarIncidents(!showSimilarIncidents)}
+                      className="w-full py-2 px-3 bg-slate-900/60 hover:bg-slate-900 border border-slate-800/60 hover:border-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-bold transition-all flex items-center justify-between cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <History className={`w-4 h-4 text-emerald-400 ${showSimilarIncidents ? 'animate-pulse' : ''}`} />
+                        {showSimilarIncidents ? "Hide Similar Past Incidents" : "View Similar Past Incidents"}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showSimilarIncidents ? 'rotate-180 text-emerald-400' : 'text-slate-500'}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {showSimilarIncidents && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.25 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pt-3 pb-1 space-y-2.5 animate-in fade-in duration-300">
+                            {sandboxResponse.similarCases && sandboxResponse.similarCases.length > 0 ? (
+                              <div className="space-y-2">
+                                {sandboxResponse.similarCases.map((sc: any, i: number) => (
+                                  <div key={i} className="p-2.5 bg-[#050A15]/60 border border-slate-800/40 rounded-lg space-y-1.5 text-3xs">
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-extrabold text-slate-300 leading-snug">{sc.title}</span>
+                                      <span className={`px-1.5 py-0.5 rounded-md font-mono font-bold uppercase tracking-tight text-[8px] ${
+                                        sc.status === "Resolved" ? "text-emerald-400 bg-emerald-950/50 border border-emerald-900/40" :
+                                        "text-blue-400 bg-blue-950/50 border border-blue-900/40"
+                                      }`}>{sc.status}</span>
+                                    </div>
+                                    <p className="text-slate-400 leading-relaxed font-semibold">
+                                      <span className="text-emerald-500/80 font-bold uppercase font-mono tracking-wider">{"Resolution:"}</span> {sc.resolution}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="p-3 bg-slate-900/40 text-slate-500 text-3xs italic text-center rounded-lg">
+                                {"No similar past incidents flagged."}
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -1480,9 +1685,9 @@ export default function Home() {
         <section id="faq" className="py-24 px-6 bg-white dark:bg-[#050A18] border-b border-slate-100 dark:border-slate-900">
           <div className="max-w-4xl mx-auto space-y-16">
             <div className="text-center space-y-4">
-              <span className="text-blue-600 font-extrabold text-xs uppercase tracking-widest bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-900/60">FAQ CORNER</span>
-              <h3 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">SLA Policy & Incident Guidelines</h3>
-              <p className="text-black dark:text-slate-300 text-sm font-semibold">Everything you need to know about support response targets and ticketing parameters.</p>
+              <span className="text-blue-600 font-extrabold text-xs uppercase tracking-widest bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-900/60">{"FAQ CORNER"}</span>
+              <h3 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">{"SLA Policy & Incident Guidelines"}</h3>
+              <p className="text-black dark:text-slate-300 text-sm font-semibold">{"Everything you need to know about support response targets and ticketing parameters."}</p>
             </div>
  
             <div className="space-y-4 max-w-3xl mx-auto">
@@ -1516,8 +1721,8 @@ export default function Home() {
         <section className="py-24 px-6 bg-slate-50 dark:bg-[#080D1A]">
           <div className="max-w-5xl mx-auto space-y-14">
             <div className="text-center space-y-3">
-              <span className="text-blue-600 font-extrabold text-xs uppercase tracking-widest bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-900/60">TESTIMONIALS</span>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Loved by Support Teams</h3>
+              <span className="text-blue-600 font-extrabold text-xs uppercase tracking-widest bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-900/60">{"TESTIMONIALS"}</span>
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{"Loved by Support Teams"}</h3>
             </div>
  
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1530,15 +1735,13 @@ export default function Home() {
                   <Star className="w-4 h-4 fill-amber-400" />
                 </div>
                 <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300 font-semibold italic">
-                  &ldquo;Our response efficiency increased threefold after implementing the Workplace Hub Auto-Triage system. Incident classification has zero manual overhead, and our SLA target breaching is practically non-existent.&rdquo;
-                </p>
+                  {"&ldquo;Our response efficiency increased threefold after implementing the Workplace Hub Auto-Triage system. Incident classification has zero manual overhead, and our SLA target breaching is practically non-existent.&rdquo;"}</p>
                 <div className="flex items-center gap-3 pt-2">
                   <div className="w-9 h-9 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center font-bold text-xs text-slate-600 dark:text-slate-300">
-                    K
-                  </div>
+                    {"K"}</div>
                   <div>
-                    <h5 className="text-xs font-bold text-slate-800 dark:text-white">Kiki R.</h5>
-                    <p className="text-[10px] text-black dark:text-slate-400 font-bold">Network Ops Lead Coordinator</p>
+                    <h5 className="text-xs font-bold text-slate-800 dark:text-white">{"Kiki R."}</h5>
+                    <p className="text-[10px] text-black dark:text-slate-400 font-bold">{"Network Ops Lead Coordinator"}</p>
                   </div>
                 </div>
               </Card>
@@ -1552,15 +1755,13 @@ export default function Home() {
                   <Star className="w-4 h-4 fill-amber-400" />
                 </div>
                 <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300 font-semibold italic">
-                  &ldquo;The Zendesk-like comments feed and ticket timelines on active digital incidents completely cleared the ticketing fog. Our users are always updated and can easily trace support steps.&rdquo;
-                </p>
+                  {"&ldquo;The Zendesk-like comments feed and ticket timelines on active digital incidents completely cleared the ticketing fog. Our users are always updated and can easily trace support steps.&rdquo;"}</p>
                 <div className="flex items-center gap-3 pt-2">
                   <div className="w-9 h-9 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center font-bold text-xs text-slate-600 dark:text-slate-300">
-                    A
-                  </div>
+                    {"A"}</div>
                   <div>
-                    <h5 className="text-xs font-bold text-slate-800 dark:text-white">Ananya Sen</h5>
-                    <p className="text-[10px] text-black dark:text-slate-400 font-bold">Administrative Registrar Principal</p>
+                    <h5 className="text-xs font-bold text-slate-800 dark:text-white">{"Ananya Sen"}</h5>
+                    <p className="text-[10px] text-black dark:text-slate-400 font-bold">{"Administrative Registrar Principal"}</p>
                   </div>
                 </div>
               </Card>
@@ -1573,37 +1774,36 @@ export default function Home() {
           <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-sm">D</div>
-                <h4 className="text-white font-black text-base">Workplace Hub SaaS</h4>
+                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-sm">{"D"}</div>
+                <h4 className="text-white font-black text-base">{"Workplace Hub SaaS"}</h4>
               </div>
               <p className="text-2xs leading-relaxed text-slate-400 font-medium">
-                Premium 2026 digital ticket handling, support chat coordination, automated incident triage classification, and SLA compliance monitoring.
-              </p>
+                {"Premium 2026 digital ticket handling, support chat coordination, automated incident triage classification, and SLA compliance monitoring."}</p>
               <div className="mt-6 text-2xs space-y-2 font-semibold">
-                <p><span className="text-slate-350">Service Desk Support Email:</span> tech@dcms.com</p>
-                <p><span className="text-slate-350">Academic Certification Project:</span> Portfolio Demonstration Purpose</p>
+                <p><span className="text-slate-350">{"Service Desk Support Email:"}</span> {"tech@dcms.com"}</p>
+                <p><span className="text-slate-350">{"Academic Certification Project:"}</span> {"Portfolio Demonstration Purpose"}</p>
               </div>
             </div>
             <div className="md:ml-auto">
-              <h5 className="text-xs font-black text-white uppercase tracking-wider mb-6">Core Actions</h5>
+              <h5 className="text-xs font-black text-white uppercase tracking-wider mb-6">{"Core Actions"}</h5>
               <ul className="space-y-3 text-2xs font-extrabold">
-                <li><button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-white transition-colors">Go to Home Summary</button></li>
-                <li><button onClick={() => scrollToSection('features')} className="hover:text-white transition-colors">Explore Product Matrix</button></li>
-                <li><button onClick={() => scrollToSection('ai-triage')} className="hover:text-white transition-colors">Test Neural Sandbox</button></li>
-                <li><button onClick={() => scrollToSection('faq')} className="hover:text-white transition-colors">SLA Thresholds</button></li>
+                <li><button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-white transition-colors">{"Go to Home Summary"}</button></li>
+                <li><button onClick={() => scrollToSection('features')} className="hover:text-white transition-colors">{"Explore Product Matrix"}</button></li>
+                <li><button onClick={() => scrollToSection('ai-triage')} className="hover:text-white transition-colors">{"Test Neural Sandbox"}</button></li>
+                <li><button onClick={() => scrollToSection('faq')} className="hover:text-white transition-colors">{"SLA Thresholds"}</button></li>
               </ul>
             </div>
             <div className="md:ml-auto">
-              <h5 className="text-xs font-black text-white uppercase tracking-wider mb-6">Application Ports</h5>
+              <h5 className="text-xs font-black text-white uppercase tracking-wider mb-6">{"Application Ports"}</h5>
               <ul className="space-y-3 text-2xs font-extrabold">
-                <li><Link to="/auth/user" className="hover:text-white transition-colors text-blue-400">User Client gateway →</Link></li>
-                <li><Link to="/auth/admin" className="hover:text-white transition-colors text-cyan-400">Admin Lead supervisor portal →</Link></li>
+                <li><Link to="/auth/user" className="hover:text-white transition-colors text-blue-400">{"User Client gateway →"}</Link></li>
+                <li><Link to="/auth/admin" className="hover:text-white transition-colors text-cyan-400">{"Admin Lead supervisor portal →"}</Link></li>
               </ul>
             </div>
           </div>
           <div className="max-w-6xl mx-auto border-t border-slate-800/60 pt-8 flex flex-col md:flex-row justify-between items-center text-3xs font-extrabold text-[#64748B]">
-            <p>© 2026 Digital Workplace Operations Platform (Workplace Hub). All rights reserved.</p>
-            <p className="mt-2 md:mt-0">Built to exceed internship and SaaS design benchmarks.</p>
+            <p>{"© 2026 Digital Workplace Operations Platform (Workplace Hub). All rights reserved."}</p>
+            <p className="mt-2 md:mt-0">{"Built to exceed internship and SaaS design benchmarks."}</p>
           </div>
         </footer>
       </main>
@@ -1625,15 +1825,12 @@ export default function Home() {
             {/* Icon & Title Header */}
             <div className="flex items-start gap-4 pr-8">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center font-black text-white text-xl shadow-lg shadow-blue-500/20 shrink-0">
-                W
-              </div>
+                {"W"}</div>
               <div className="text-left">
                 <h3 className="text-lg font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                  Launch on Device / PWA
-                </h3>
+                  {"Launch on Device / PWA"}</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  Optimized standalone Progressive Web App (PWA) deployment
-                </p>
+                  {"Optimized standalone Progressive Web App (PWA) deployment"}</p>
               </div>
             </div>
 
@@ -1641,44 +1838,40 @@ export default function Home() {
             <div className="p-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/80 rounded-2xl flex flex-col gap-2.5 text-left">
               <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
                 <Info className="w-4 h-4 shrink-0" />
-                <span className="text-2xs font-extrabold uppercase font-mono tracking-wider">Preview Environment Sandbox</span>
+                <span className="text-2xs font-extrabold uppercase font-mono tracking-wider">{"Preview Environment Sandbox"}</span>
               </div>
               <p className="text-2xs leading-relaxed text-slate-600 dark:text-slate-300 font-medium">
-                Workplace Hub is currently running inside Google AI Studio's <strong>embedded iframe preview</strong>. Browser security policies block full standalone PWA installation, webcam streams, and screen sharing inside embedded frames.
-              </p>
+                {"Workplace Hub is currently running inside Google AI Studio's"}<strong>{"embedded iframe preview"}</strong>{". Browser security policies block full standalone PWA installation, webcam streams, and screen sharing inside embedded frames."}</p>
             </div>
 
             {/* Step-by-Step Installation Steps */}
             <div className="flex flex-col gap-3.5 text-left">
-              <span className="text-[10px] font-black uppercase font-mono tracking-wider text-slate-400">Device Launch Instructions</span>
+              <span className="text-[10px] font-black uppercase font-mono tracking-wider text-slate-400">{"Device Launch Instructions"}</span>
               
               <div className="flex gap-3">
                 <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-xs shrink-0">1</div>
                 <div className="flex flex-col gap-0.5">
-                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Open in a separate Tab</h4>
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">{"Open in a separate Tab"}</h4>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-normal">
-                    Click the primary button below to break out of the AI Studio frame and launch the secure origin.
-                  </p>
+                    {"Click the primary button below to break out of the AI Studio frame and launch the secure origin."}</p>
                 </div>
               </div>
 
               <div className="flex gap-3">
                 <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-xs shrink-0">2</div>
                 <div className="flex flex-col gap-0.5">
-                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Click Browser Install Icon</h4>
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">{"Click Browser Install Icon"}</h4>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-normal">
-                    On your desktop or mobile browser, look for the **Install App 📥** icon in the URL bar, or choose "Add to Home Screen" from the menu.
-                  </p>
+                    {"On your desktop or mobile browser, look for the **Install App 📥** icon in the URL bar, or choose \"Add to Home Screen\" from the menu."}</p>
                 </div>
               </div>
 
               <div className="flex gap-3">
                 <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-xs shrink-0">3</div>
                 <div className="flex flex-col gap-0.5">
-                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Instant Desktop & Mobile Access</h4>
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">{"Instant Desktop & Mobile Access"}</h4>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-normal">
-                    Launch Workplace Hub as a standalone application directly from your device home screen or taskbar!
-                  </p>
+                    {"Launch Workplace Hub as a standalone application directly from your device home screen or taskbar!"}</p>
                 </div>
               </div>
             </div>
@@ -1693,8 +1886,7 @@ export default function Home() {
                 variant="outline"
                 className="flex-1 h-11 text-xs font-extrabold border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 rounded-xl"
               >
-                Continue in Current Frame
-              </Button>
+                {"Continue in Current Frame"}</Button>
 
               <Button 
                 onClick={() => {
@@ -1703,8 +1895,7 @@ export default function Home() {
                 }}
                 className="flex-1 h-11 text-xs font-black bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white rounded-xl shadow-md flex items-center justify-center gap-2 border-none"
               >
-                🚀 Open in New Tab & Install
-              </Button>
+                {"🚀 Open in New Tab & Install"}</Button>
             </div>
           </div>
         </div>

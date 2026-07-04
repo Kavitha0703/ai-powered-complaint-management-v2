@@ -64,6 +64,7 @@ const ARTICLES: Article[] = [
 ];
 
 export default function HelpCenter() {
+    
   const { dbUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
@@ -102,19 +103,16 @@ export default function HelpCenter() {
         <div>
           <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-blue-500" />
-            📚 Workplace Knowledge Base
-          </h2>
+            {"📚 Workplace Knowledge Base"}</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Search official documentation guides, standard operations handbooks, and system setup help.
-          </p>
+            {"Search official documentation guides, standard operations handbooks, and system setup help."}</p>
         </div>
         <Button 
           variant="outline" 
           onClick={() => navigate(-1)} 
           className="rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold"
         >
-          <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back
-        </Button>
+          <ArrowLeft className="w-3.5 h-3.5 mr-1" /> {"Back"}</Button>
       </div>
 
       {selectedArticle ? (
@@ -125,13 +123,11 @@ export default function HelpCenter() {
             onClick={() => setSelectedArticle(null)}
             className="text-blue-500 h-8 px-2 hover:bg-transparent hover:text-blue-600 font-bold text-xs"
           >
-            ← Back to Articles list
-          </Button>
+            {"← Back to Articles list"}</Button>
           
           <div className="space-y-2 border-b border-slate-100 dark:border-slate-800 pb-4">
             <Badge className="bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 uppercase tracking-wider font-extrabold text-[9px] px-2 py-0.5">
-              {selectedArticle.category} Documentation
-            </Badge>
+              {selectedArticle.category} {"Documentation"}</Badge>
             <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{selectedArticle.title}</h3>
             <p className="text-sm text-slate-700 dark:text-slate-300">{selectedArticle.summary}</p>
           </div>
@@ -142,17 +138,16 @@ export default function HelpCenter() {
 
           <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-700 dark:text-slate-300">Was this article helpful?</span>
-              <Button size="sm" variant="outline" className="text-xs h-7 px-2.5 rounded-lg border-slate-200 dark:border-slate-800">👍 Yes</Button>
-              <Button size="sm" variant="outline" className="text-xs h-7 px-2.5 rounded-lg border-slate-200 dark:border-slate-800">👎 No</Button>
+              <span className="text-xs text-slate-700 dark:text-slate-300">{"Was this article helpful?"}</span>
+              <Button size="sm" variant="outline" className="text-xs h-7 px-2.5 rounded-lg border-slate-200 dark:border-slate-800">{"👍 Yes"}</Button>
+              <Button size="sm" variant="outline" className="text-xs h-7 px-2.5 rounded-lg border-slate-200 dark:border-slate-800">{"👎 No"}</Button>
             </div>
             
             <Button 
               onClick={() => navigate('/dashboard/register', { state: { title: "Regarding: " + selectedArticle.title, description: "I've reviewed the articles guide but need further manual assistance:\n\n" } })}
               className="bg-blue-500 hover:bg-blue-600 text-white font-semibold text-xs rounded-xl h-8 px-4"
             >
-              Need more help? Submit Ticket
-            </Button>
+              {"Need more help? Submit Ticket"}</Button>
           </div>
         </Card>
       ) : (
@@ -162,7 +157,7 @@ export default function HelpCenter() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <Input 
               type="text" 
-              placeholder="Search guides, setup directories, policies..." 
+              placeholder={"Search guides, setup directories, policies..."} 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 h-11 text-xs bg-slate-50/50 dark:bg-[#161F30] border-slate-200 dark:border-slate-800 rounded-2xl"
@@ -202,8 +197,7 @@ export default function HelpCenter() {
                         <ArtIcon className="w-5 h-5" />
                       </div>
                       <Badge className="bg-slate-100 hover:bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[8.5px] uppercase font-bold px-2 py-0.5">
-                        {art.category} Standard
-                      </Badge>
+                        {art.category} {"Standard"}</Badge>
                     </div>
                     
                     <div className="space-y-1">
@@ -213,7 +207,7 @@ export default function HelpCenter() {
                   </div>
 
                   <div className="flex items-center gap-1 text-[11px] font-black text-blue-500 hover:text-blue-600 mt-4 transition-colors">
-                    Read Article <ChevronRight className="w-3.5 h-3.5" />
+                    {"Read Article"}<ChevronRight className="w-3.5 h-3.5" />
                   </div>
                 </Card>
               );
@@ -222,10 +216,9 @@ export default function HelpCenter() {
             {filtered.length === 0 && (
               <div className="col-span-full py-16 text-center bg-white dark:bg-[#111A2E]/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center">
                 <span className="text-4xl mb-4">🔍</span>
-                <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-1">No guides found</h4>
+                <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-1">{"No guides found"}</h4>
                 <p className="text-[#94A3B8] max-w-xs mx-auto text-xs">
-                  We couldn't locate any documentation matching '{searchTerm}'. Try refining your keywords.
-                </p>
+                  {"We couldn't locate any documentation matching '"}{searchTerm}{"'. Try refining your keywords."}</p>
               </div>
             )}
           </div>
@@ -236,11 +229,9 @@ export default function HelpCenter() {
               <div>
                 <CardTitle className="text-xs font-black uppercase tracking-wider text-cyan-500 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-cyan-500 animate-pulse" />
-                  SaaS Onboarding & Interactive Tutorials
-                </CardTitle>
+                  {"SaaS Onboarding & Interactive Tutorials"}</CardTitle>
                 <CardDescription className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-1">
-                  Replay or launch any of our customized guided tours to explore features, SLAs, and cognitive camera workflows.
-                </CardDescription>
+                  {"Replay or launch any of our customized guided tours to explore features, SLAs, and cognitive camera workflows."}</CardDescription>
               </div>
               <Button 
                 type="button"
@@ -255,8 +246,7 @@ export default function HelpCenter() {
                 }}
                 className="text-[10px] font-bold h-7 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center gap-1 hover:text-red-500 hover:border-red-500 dark:hover:text-red-400 dark:hover:border-red-900 transition-all cursor-pointer rounded-lg"
               >
-                Reset Walkthrough Progress
-              </Button>
+                {"Reset Walkthrough Progress"}</Button>
             </CardHeader>
             <CardContent className="p-0 space-y-6">
 
@@ -277,8 +267,8 @@ export default function HelpCenter() {
                   <div className="bg-white dark:bg-[#111A2E]/50 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-800/50 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-3xs">
                     <div className="flex-1 w-full">
                       <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-[10.5px] font-extrabold uppercase tracking-widest text-slate-700 dark:text-slate-200">Onboarding Tutorial Progress</span>
-                        <span className="text-[11px] font-black text-cyan-600 dark:text-cyan-400 font-mono">{progressPercent}% Completed</span>
+                        <span className="text-[10.5px] font-extrabold uppercase tracking-widest text-slate-700 dark:text-slate-200">{"Onboarding Tutorial Progress"}</span>
+                        <span className="text-[11px] font-black text-cyan-600 dark:text-cyan-400 font-mono">{progressPercent}{"% Completed"}</span>
                       </div>
                       <div className="h-2 w-full bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden">
                         <div 
@@ -287,18 +277,16 @@ export default function HelpCenter() {
                         />
                       </div>
                       <span className="text-[10px] text-slate-550 dark:text-slate-400 font-semibold mt-1.5 block">
-                        {completedCount} of {totalCount} modules completed
-                      </span>
+                        {completedCount} {"of"}{totalCount} {"modules completed"}</span>
                     </div>
                     {progressPercent === 100 ? (
                       <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-xl border border-emerald-200/50 dark:border-emerald-900/40 shrink-0">
                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Certified Specialist</span>
+                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">{"Certified Specialist"}</span>
                       </div>
                     ) : (
                       <span className="text-[9px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg shrink-0">
-                        Complete all to earn badge
-                      </span>
+                        {"Complete all to earn badge"}</span>
                     )}
                   </div>
                 );
@@ -328,8 +316,7 @@ export default function HelpCenter() {
                 return (
                   <div className="space-y-3 pb-6 border-b border-slate-200/40 dark:border-slate-800/40">
                     <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-900/30 flex items-center gap-1.5 w-fit">
-                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> Bookmarked Tutorials
-                    </span>
+                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> {"Bookmarked Tutorials"}</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                       {bookmarkedItems.map((item, idx) => {
                         const comp = localStorage.getItem("dcms_tour_completed_" + item.tour) === "true";
@@ -366,8 +353,7 @@ export default function HelpCenter() {
                               }}
                               className="text-[9px] font-black uppercase text-cyan-500 flex items-center gap-1 font-mono hover:text-cyan-600 dark:hover:text-cyan-450 cursor-pointer w-fit"
                             >
-                              <Play className="w-2.5 h-2.5" /> Launch Guide
-                            </button>
+                              <Play className="w-2.5 h-2.5" /> {"Launch Guide"}</button>
                           </div>
                         );
                       })}
@@ -379,8 +365,7 @@ export default function HelpCenter() {
               {/* Onboarding Overview Section */}
               <div className="space-y-3">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#22D3EE] bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-900/30">
-                  🚀 General Platform Setup
-                </span>
+                  {"🚀 General Platform Setup"}</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {[
                     { name: "Global Landing Sandbox Tour", tour: "home", target: "/", desc: "Experience the predictive operations classifier playpen." },
@@ -420,8 +405,7 @@ export default function HelpCenter() {
                           }}
                           className="text-[9px] font-black uppercase text-cyan-500 flex items-center gap-1 font-mono hover:text-cyan-600 dark:hover:text-cyan-450 cursor-pointer w-fit"
                         >
-                          <Play className="w-2.5 h-2.5" /> Launch Guide
-                        </button>
+                          <Play className="w-2.5 h-2.5" /> {"Launch Guide"}</button>
                       </div>
                     );
                   })}
@@ -432,8 +416,7 @@ export default function HelpCenter() {
               {(!dbUser || dbUser.role === 'employee' || dbUser.role === 'user') && (
                 <div className="space-y-3">
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8B5CF6] bg-purple-950/40 px-2 py-0.5 rounded border border-purple-900/30">
-                    👤 Employee Operational Walkthroughs
-                  </span>
+                    {"👤 Employee Operational Walkthroughs"}</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {[
                       { name: "Portal Overview Guide", tour: "employee", target: "/dashboard", desc: "Interactive tour of employee metrics and timelines." },
@@ -477,8 +460,7 @@ export default function HelpCenter() {
                             }}
                             className="text-[9px] font-black uppercase text-cyan-500 flex items-center gap-1 font-mono hover:text-cyan-600 dark:hover:text-cyan-450 cursor-pointer w-fit"
                           >
-                            <Play className="w-2.5 h-2.5" /> Launch Guide
-                          </button>
+                            <Play className="w-2.5 h-2.5" /> {"Launch Guide"}</button>
                         </div>
                       );
                     })}
@@ -490,8 +472,7 @@ export default function HelpCenter() {
               {(!dbUser || dbUser.role === 'admin') && (
                 <div className="space-y-3">
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#F59E0B] bg-amber-955/40 px-2 py-0.5 rounded border border-amber-900/30">
-                    🛡️ HQ Administrator Operational Guides
-                  </span>
+                    {"🛡️ HQ Administrator Operational Guides"}</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {[
                       { name: "Executive Control Room", tour: "admin", target: "/admin", desc: "Overview of administrative controls, KPIs, and dispatch workflows." },
@@ -535,8 +516,7 @@ export default function HelpCenter() {
                             }}
                             className="text-[9px] font-black uppercase text-cyan-500 flex items-center gap-1 font-mono hover:text-cyan-600 dark:hover:text-cyan-450 cursor-pointer w-fit"
                           >
-                            <Play className="w-2.5 h-2.5" /> Launch Guide
-                          </button>
+                            <Play className="w-2.5 h-2.5" /> {"Launch Guide"}</button>
                         </div>
                       );
                     })}

@@ -86,6 +86,7 @@ export function RemediationWorkspace({
   getSeverityColor,
   getStatusBadge
 }: RemediationWorkspaceProps) {
+    
   const { dbUser } = useAuth();
   
   // Current admin details
@@ -1226,15 +1227,13 @@ export function RemediationWorkspace({
     const diffMs = Date.now() - new Date(c.created_at).getTime();
     if (diffMs > 4000) {
       return (
-        <span className="text-[9px] text-[#A5B4FC] font-bold flex items-center justify-end gap-0.5 mt-0.5" title="Read by Team">
-          <CheckCheck className="w-3.5 h-3.5 text-indigo-400" /> Read
-        </span>
+        <span className="text-[9px] text-[#A5B4FC] font-bold flex items-center justify-end gap-0.5 mt-0.5" title={"Read by Team"}>
+          <CheckCheck className="w-3.5 h-3.5 text-indigo-400" /> {"Read"}</span>
       );
     }
     return (
-      <span className="text-[9px] text-slate-400 font-medium flex items-center justify-end gap-0.5 mt-0.5" title="Delivered to Channel">
-        <Check className="w-3.5 h-3.5" /> Delivered
-      </span>
+      <span className="text-[9px] text-slate-400 font-medium flex items-center justify-end gap-0.5 mt-0.5" title={"Delivered to Channel"}>
+        <Check className="w-3.5 h-3.5" /> {"Delivered"}</span>
     );
   };
 
@@ -1251,15 +1250,14 @@ export function RemediationWorkspace({
               size="sm"
               className="h-8 gap-1.5 font-bold font-sans text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to List
-            </Button>
-            <span className="text-[10px] uppercase font-mono font-bold text-indigo-600 dark:text-indigo-400 tracking-wider">TICKET OPERATIONS CHAMBER</span>
+              <ArrowLeft className="w-3.5 h-3.5" /> {"Back to List"}</Button>
+            <span className="text-[10px] uppercase font-mono font-bold text-indigo-600 dark:text-indigo-400 tracking-wider">{"TICKET OPERATIONS CHAMBER"}</span>
           </div>
           <h3 className="font-extrabold text-slate-900 dark:text-white text-lg mt-2 leading-tight">
             {parsed.title}
           </h3>
           <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-            Category Queue: <strong className="text-indigo-600 dark:text-indigo-400 font-bold uppercase">{parsed.department}</strong>
+            {"Category Queue:"}<strong className="text-indigo-600 dark:text-indigo-400 font-bold uppercase">{parsed.department}</strong>
           </p>
         </div>
 
@@ -1280,26 +1278,25 @@ export function RemediationWorkspace({
           {/* Diagnostic Case Details Card */}
           <div className="bg-slate-50/50 dark:bg-[#111A2E]/30 p-4 border border-slate-100 dark:border-slate-800/80 rounded-xl space-y-3.5 text-xs h-full">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800/60">
-              <h4 className="text-[10px] font-mono tracking-widest uppercase font-bold text-slate-400">Incident Specifications</h4>
-              <span className="font-mono text-[10px] font-bold text-slate-500">ID: {ticket.id.toString().substring(0, 8).toUpperCase()}</span>
+              <h4 className="text-[10px] font-mono tracking-widest uppercase font-bold text-slate-400">{"Incident Specifications"}</h4>
+              <span className="font-mono text-[10px] font-bold text-slate-500">{"ID:"}{ticket.id.toString().substring(0, 8).toUpperCase()}</span>
             </div>
             
             <div className="grid grid-cols-2 gap-3.5">
               <div>
-                <span className="text-slate-400 font-medium block text-[10px] uppercase tracking-wide">Owner Client</span>
+                <span className="text-slate-400 font-medium block text-[10px] uppercase tracking-wide">{"Owner Client"}</span>
                 <span className="font-bold text-slate-800 dark:text-slate-250 block truncate">{displayName}</span>
               </div>
               <div>
-                <span className="text-slate-400 font-medium block text-[10px] uppercase tracking-wide">Submitted At</span>
+                <span className="text-slate-400 font-medium block text-[10px] uppercase tracking-wide">{"Submitted At"}</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-250 block">{new Date(ticket.created_at).toLocaleString()}</span>
               </div>
             </div>
 
             <div className="pt-2">
-              <span className="text-slate-400 font-medium block text-[10px] uppercase tracking-wide mb-1">Employee Complaint Narrative</span>
+              <span className="text-slate-400 font-medium block text-[10px] uppercase tracking-wide mb-1">{"Employee Complaint Narrative"}</span>
               <div className="bg-white dark:bg-[#070c15] p-3 rounded-lg border border-slate-100 dark:border-slate-850/80 italic text-slate-705 dark:text-slate-300 leading-relaxed font-sans whitespace-pre-wrap">
-                &ldquo;{parsed.description}&rdquo;
-              </div>
+                {"&ldquo;"}{parsed.description}{"&rdquo;"}</div>
             </div>
           </div>
 
@@ -1308,7 +1305,7 @@ export function RemediationWorkspace({
             <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 -m-4 mb-0 p-3 rounded-t-xl shrink-0">
               <h4 className="text-xs font-bold font-sans text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-indigo-500" />
-                Assigned Team Members <span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full text-[10px] ml-1">{assignments.length}</span>
+                {"Assigned Team Members"}<span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full text-[10px] ml-1">{assignments.length}</span>
               </h4>
               <Button 
                 onClick={() => setShowAddMemberPanel(!showAddMemberPanel)}
@@ -1316,15 +1313,14 @@ export function RemediationWorkspace({
                 variant="outline"
                 className="h-7 text-[10px] font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-900/50 dark:text-indigo-400 dark:hover:bg-indigo-950/30"
               >
-                + Add Member
-              </Button>
+                {"+ Add Member"}</Button>
             </div>
 
             {/* Add Member Dropdown Panel */}
             {showAddMemberPanel && (
               <div className="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
                 <Input 
-                  placeholder="Seach team directory..." 
+                  placeholder={"Seach team directory..."} 
                   value={adminSearchQuery}
                   onChange={e => setAdminSearchQuery(e.target.value)}
                   className="h-8 text-xs mb-2 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800"
@@ -1367,8 +1363,7 @@ export function RemediationWorkspace({
                         <span className="font-bold text-xs text-slate-800 dark:text-slate-200">{assign.user_name}</span>
                         {leadAssignee === assign.user_id && (
                           <span className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-500 text-[9px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded-sm flex items-center gap-1">
-                            <Star className="w-2.5 h-2.5 fill-current" /> Lead
-                          </span>
+                            <Star className="w-2.5 h-2.5 fill-current" /> {"Lead"}</span>
                         )}
                       </div>
                       
@@ -1379,10 +1374,10 @@ export function RemediationWorkspace({
                           onChange={(e) => handleUpdateRole(assign.user_id, e.target.value)}
                           className="bg-transparent border-0 text-[10.5px] font-medium text-indigo-600 dark:text-indigo-400 focus:ring-0 p-0 cursor-pointer outline-none appearance-none hover:underline"
                         >
-                          <option value="Lead Investigator">Lead Investigator</option>
-                          <option value="Support Engineer">Support Engineer</option>
-                          <option value="Observer">Observer</option>
-                          <option value="Reviewer">Reviewer</option>
+                          <option value="Lead Investigator">{"Lead Investigator"}</option>
+                          <option value="Support Engineer">{"Support Engineer"}</option>
+                          <option value="Observer">{"Observer"}</option>
+                          <option value="Reviewer">{"Reviewer"}</option>
                         </select>
                       </div>
                     </div>
@@ -1392,17 +1387,16 @@ export function RemediationWorkspace({
                         <button 
                           onClick={() => handleSetLead(assign.user_id)}
                           className="text-[10px] font-bold text-slate-500 hover:text-yellow-600 dark:hover:text-yellow-400 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5"
-                          title="Make Lead"
+                          title={"Make Lead"}
                         >
-                          Set Lead
-                        </button>
+                          {"Set Lead"}</button>
                       )}
                       
                       {assignments.length > 1 && (
                         <button 
                           onClick={() => handleRemoveAssignment(assign.user_id)}
                           className="text-slate-400 hover:text-red-500 p-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded transition-colors"
-                          title="Unassign"
+                          title={"Unassign"}
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -1417,8 +1411,7 @@ export function RemediationWorkspace({
           {/* Activity Timeline */}
           <div className="mt-4 bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col shadow-sm max-h-[300px] flex-1">
             <h4 className="text-xs font-bold font-sans text-slate-800 dark:text-slate-200 flex items-center gap-1.5 mb-3">
-              <Activity className="w-4 h-4 text-emerald-500" /> Activity Log
-            </h4>
+              <Activity className="w-4 h-4 text-emerald-500" /> {"Activity Log"}</h4>
             
             <div className="flex-1 overflow-y-auto space-y-0 relative pl-2 before:absolute before:inset-0 before:ml-[13px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 dark:before:via-slate-800 before:to-transparent pr-2">
               {activities.map((act, i) => (
@@ -1442,15 +1435,14 @@ export function RemediationWorkspace({
           <div className="bg-slate-50 dark:bg-[#111A2E]/50 border-b border-slate-200/60 dark:border-slate-800 p-3 flex justify-between items-center z-10 shrink-0">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-indigo-500" />
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-220">👥 Support Team Internal Chat</span>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-220">{"👥 Support Team Internal Chat"}</span>
               <span className="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 rounded text-[10px] font-mono font-bold">
-                {comments.filter(c => c.sender_id !== 'system' && c.thread_id === activeThreadId).length} Messages
-              </span>
+                {comments.filter(c => c.sender_id !== 'system' && c.thread_id === activeThreadId).length} {"Messages"}</span>
             </div>
 
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-[#8B5CF6] animate-pulse"></div>
-              <span className="text-[10px] font-mono text-slate-400 font-semibold uppercase">Channel Locked (Admins Only)</span>
+              <span className="text-[10px] font-mono text-slate-400 font-semibold uppercase">{"Channel Locked (Admins Only)"}</span>
             </div>
           </div>
 
@@ -1458,7 +1450,7 @@ export function RemediationWorkspace({
           <div className="bg-slate-100/60 dark:bg-[#0d1527] border-b border-slate-200/60 dark:border-slate-800/80 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 z-10 shrink-0 select-none">
             {/* Thread selector */}
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-505 uppercase tracking-wider">Stream:</span>
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-505 uppercase tracking-wider">{"Stream:"}</span>
               <select
                 value={activeThreadId}
                 onChange={(e) => setActiveThreadId(e.target.value)}
@@ -1479,10 +1471,9 @@ export function RemediationWorkspace({
                 type="button"
                 onClick={handleStartNewThread}
                 className="px-2 py-1 text-[10px] font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-                title="Start a fresh active discussion thread"
+                title={"Start a fresh active discussion thread"}
               >
-                <span>🔄</span> New Thread
-              </button>
+                <span>🔄</span> {"New Thread"}</button>
 
               {/* Archive */}
               <button
@@ -1490,27 +1481,25 @@ export function RemediationWorkspace({
                 onClick={handleArchiveThread}
                 disabled={threads.find(t => t.id === activeThreadId)?.is_archived}
                 className="px-2 py-1 text-[10px] font-extrabold bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                title="Archive current thread to prevent editing/replies"
+                title={"Archive current thread to prevent editing/replies"}
               >
-                <span>📦</span> Archive
-              </button>
+                <span>📦</span> {"Archive"}</button>
 
               {/* Clear For Me */}
               <button
                 type="button"
                 onClick={handleClearChatForMe}
                 className="px-2 py-1 text-[10px] font-extrabold bg-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Clear current stream for your view only"
+                title={"Clear current stream for your view only"}
               >
-                <span>🧹</span> Clear For Me
-              </button>
+                <span>🧹</span> {"Clear For Me"}</button>
             </div>
           </div>
 
           {/* Archived Bannerlock */}
           {threads.find(t => t.id === activeThreadId)?.is_archived && (
             <div className="bg-amber-500/10 border-b border-amber-500/20 px-3 py-1.5 text-amber-600 dark:text-amber-400 text-xs font-bold font-sans flex items-center justify-center gap-2">
-              <span>🔒 This discussion thread has been archived. Read-only view.</span>
+              <span>{"🔒 This discussion thread has been archived. Read-only view."}</span>
             </div>
           )}
 
@@ -1541,7 +1530,7 @@ export function RemediationWorkspace({
                   <span className="text-[10px] text-slate-450 font-bold px-1.5 flex items-center gap-1.5">
                     {c.sender_name} 
                     <span className="text-[9px] font-medium text-slate-400">{c.time}</span>
-                    {c.is_edited && <span className="text-[9px] text-[#A5B4FC] italic font-normal">(edited)</span>}
+                    {c.is_edited && <span className="text-[9px] text-[#A5B4FC] italic font-normal">{"(edited)"}</span>}
                   </span>
 
                   {/* Bubble content */}
@@ -1591,8 +1580,8 @@ export function RemediationWorkspace({
                           className="text-xs bg-slate-100 dark:bg-slate-950 text-black dark:text-white p-2 border-slate-300 dark:border-slate-800 h-16 rounded-lg"
                         />
                         <div className="flex gap-1.5 justify-end">
-                          <Button size="xs" variant="outline" className="h-6 text-[10px]" onClick={() => setEditingCommentId(null)}>Cancel</Button>
-                          <Button size="xs" className="h-6 text-[10px] bg-indigo-650 text-white" onClick={() => handleEditComment(c.id)}>Apply</Button>
+                          <Button size="xs" variant="outline" className="h-6 text-[10px]" onClick={() => setEditingCommentId(null)}>{"Cancel"}</Button>
+                          <Button size="xs" className="h-6 text-[10px] bg-indigo-650 text-white" onClick={() => handleEditComment(c.id)}>{"Apply"}</Button>
                         </div>
                       </div>
                     ) : (
@@ -1633,7 +1622,7 @@ export function RemediationWorkspace({
                       <button 
                         onClick={() => setShowEmojiPicker(showEmojiPicker === c.id ? null : c.id)}
                         className="w-7 h-7 bg-white dark:bg-slate-800 dark:border-slate-705 border border-slate-150 hover:bg-slate-50 dark:hover:bg-slate-755 text-slate-450 hover:text-slate-800 rounded-full flex items-center justify-center cursor-pointer shadow-xs"
-                        title="React to note"
+                        title={"React to note"}
                       >
                         <Smile className="w-3.5 h-3.5" />
                       </button>
@@ -1641,7 +1630,7 @@ export function RemediationWorkspace({
                       <button 
                         onClick={() => setReplyTarget(c)}
                         className="w-7 h-7 bg-white dark:bg-slate-800 dark:border-slate-705 border border-slate-150 hover:bg-slate-50 dark:hover:bg-slate-755 text-slate-450 hover:text-slate-800 rounded-full flex items-center justify-center cursor-pointer shadow-xs"
-                        title="Reply / Quote"
+                        title={"Reply / Quote"}
                       >
                         <Reply className="w-3.5 h-3.5" />
                       </button>
@@ -1651,14 +1640,14 @@ export function RemediationWorkspace({
                           <button 
                             onClick={() => { setEditingCommentId(c.id); setEditInput(c.text); }}
                             className="w-7 h-7 bg-white dark:bg-slate-800 dark:border-slate-705 border border-slate-150 hover:bg-slate-50 dark:hover:bg-slate-755 text-slate-450 hover:text-indigo-450 rounded-full flex items-center justify-center cursor-pointer shadow-xs"
-                            title="Edit"
+                            title={"Edit"}
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button 
                             onClick={() => handleDeleteComment(c.id)}
                             className="w-7 h-7 bg-white dark:bg-slate-800 dark:border-slate-705 border border-slate-150 hover:bg-red-50 hover:text-red-505 rounded-full flex items-center justify-center cursor-pointer shadow-xs"
-                            title="Delete"
+                            title={"Delete"}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1692,7 +1681,7 @@ export function RemediationWorkspace({
             {/* Teammate Writing indicator loading indicator */}
             {typingUser && (
               <div className="self-start flex flex-col space-y-1 items-start">
-                <span className="text-[10px] text-slate-400 font-bold">{typingUser} is typing...</span>
+                <span className="text-[10px] text-slate-400 font-bold">{typingUser} {"is typing..."}</span>
                 <div className="bg-slate-100 dark:bg-slate-800/60 px-4 py-2.5 border border-slate-100 dark:border-slate-800 rounded-full rounded-tl-none">
                   <div className="flex gap-1">
                     <div className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce"></div>
@@ -1709,7 +1698,7 @@ export function RemediationWorkspace({
           {replyTarget && (
             <div className="bg-[#EEF2FF] dark:bg-[#111c34] px-4 py-2 border-t border-indigo-200/50 dark:border-indigo-950 flex justify-between items-center text-xs shrink-0 z-10">
               <div className="flex items-center gap-2 overflow-hidden text-left">
-                <span className="text-indigo-500 font-bold">↳ Replying to:</span>
+                <span className="text-indigo-500 font-bold">{"↳ Replying to:"}</span>
                 <div className="font-semibold text-black dark:text-white truncate">
                   <strong className="text-indigo-600 dark:text-indigo-400 font-bold uppercase text-[9.5px] block leading-none mb-0.5">{replyTarget.sender_name}</strong>
                   <span className="text-[10.5px] italic opacity-85">{replyTarget.text}</span>
@@ -1763,7 +1752,7 @@ export function RemediationWorkspace({
               }}
               disabled={threads.find(t => t.id === activeThreadId)?.is_archived}
               className="w-10 h-10 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-center hover:bg-slate-100 hover:border-slate-300 text-slate-500 cursor-pointer transition-all shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Attach File/Image"
+              title={"Attach File/Image"}
             >
               <Paperclip className="w-4 h-4" />
             </button>
@@ -1787,35 +1776,34 @@ export function RemediationWorkspace({
         {/* Core resolution properties row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <span className="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400 block">Incident Triage Status</span>
+            <span className="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400 block">{"Incident Triage Status"}</span>
             <Select value={status} onValueChange={(val) => setStatus(val)}>
               <SelectTrigger className="h-10 text-xs bg-white dark:bg-[#111A2E] border-slate-200 dark:border-slate-805 text-slate-800 dark:text-slate-200 rounded-xl">
-                <SelectValue placeholder="Select Status" />
+                <SelectValue placeholder={"Select Status"} />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-[#0B1222] border-slate-200 dark:border-slate-800">
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="In Progress">In Progress</SelectItem>
-                <SelectItem value="Resolved">Resolved</SelectItem>
-                <SelectItem value="Closed">Closed</SelectItem>
+                <SelectItem value="Pending">{"Pending"}</SelectItem>
+                <SelectItem value="In Progress">{"In Progress"}</SelectItem>
+                <SelectItem value="Resolved">{"Resolved"}</SelectItem>
+                <SelectItem value="Closed">{"Closed"}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-1.5">
             <span className="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400 block flex items-center gap-1">
-              <UserPlus className="w-3.5 h-3.5 text-indigo-500" /> Assigned To Team Specialist
-            </span>
+              <UserPlus className="w-3.5 h-3.5 text-indigo-500" /> {"Assigned To Team Specialist"}</span>
             <Select value={assignedTo} onValueChange={handleAssignChange}>
               <SelectTrigger className="h-10 text-xs bg-white dark:bg-[#111A2E] border-slate-200 dark:border-slate-805 text-slate-800 dark:text-slate-200 rounded-xl">
-                <SelectValue placeholder="Unassigned Queue" />
+                <SelectValue placeholder={"Unassigned Queue"} />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-[#0B1222] border-slate-200 dark:border-slate-800">
-                <SelectItem value="Unassigned">Unassigned</SelectItem>
-                <SelectItem value="Kavitha">👩‍💼 Kavitha (Operations Supervisor)</SelectItem>
-                <SelectItem value="Arun">👨‍💻 Arun (Networking Engineer)</SelectItem>
-                <SelectItem value="Priya">👩‍💻 Priya (Software Stack Support)</SelectItem>
-                <SelectItem value="Network Team">🏢 Network Team Group</SelectItem>
-                <SelectItem value="Software Team">🏢 Software Team Group</SelectItem>
+                <SelectItem value="Unassigned">{"Unassigned"}</SelectItem>
+                <SelectItem value="Kavitha">{"👩‍💼 Kavitha (Operations Supervisor)"}</SelectItem>
+                <SelectItem value="Arun">{"👨‍💻 Arun (Networking Engineer)"}</SelectItem>
+                <SelectItem value="Priya">{"👩‍💻 Priya (Software Stack Support)"}</SelectItem>
+                <SelectItem value="Network Team">{"🏢 Network Team Group"}</SelectItem>
+                <SelectItem value="Software Team">{"🏢 Software Team Group"}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1823,10 +1811,10 @@ export function RemediationWorkspace({
 
         {/* Resolution note text input */}
         <div className="space-y-2 pt-2 text-left">
-          <span className="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400 block">📝 Official Corrective Resolution Note</span>
+          <span className="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400 block">{"📝 Official Corrective Resolution Note"}</span>
           
           <Textarea
-            placeholder="Describe action steps, configuration parameters, and diagnostic parameters of the active workspace fix..."
+            placeholder={"Describe action steps, configuration parameters, and diagnostic parameters of the active workspace fix..."}
             value={resolutionNote}
             onChange={(e) => setResolutionNote(e.target.value)}
             className="min-h-[100px] text-xs bg-white dark:bg-[#111A2E] border-slate-205 dark:border-slate-800 p-3.5 rounded-xl resize-y text-slate-800 dark:text-slate-200 placeholder:text-slate-450"
@@ -1850,8 +1838,7 @@ export function RemediationWorkspace({
               onClick={() => handleAIImprove("professional")}
               className="h-8 text-xs font-bold text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-900 bg-indigo-50/10 hover:bg-indigo-100 dark:hover:bg-indigo-905 leading-none transition-all cursor-pointer rounded-lg px-3 flex items-center gap-1.5"
             >
-              🌿 Professional
-            </Button>
+              {"🌿 Professional"}</Button>
             <Button
               type="button"
               variant="outline"
@@ -1860,8 +1847,7 @@ export function RemediationWorkspace({
               onClick={() => handleAIImprove("friendly")}
               className="h-8 text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-250 dark:border-emerald-900 bg-emerald-50/10 hover:bg-emerald-100 dark:hover:bg-emerald-905 leading-none transition-all cursor-pointer rounded-lg px-3 flex items-center gap-1.5"
             >
-              😊 Friendly
-            </Button>
+              {"😊 Friendly"}</Button>
             <Button
               type="button"
               variant="outline"
@@ -1870,8 +1856,7 @@ export function RemediationWorkspace({
               onClick={() => handleAIImprove("shorten")}
               className="h-8 text-xs font-bold text-amber-600 dark:text-amber-400 border-amber-250 dark:border-amber-900 bg-amber-50/10 hover:bg-amber-100 dark:hover:bg-amber-905 leading-none transition-all cursor-pointer rounded-lg px-3 flex items-center gap-1.5"
             >
-              ✂️ Concise
-            </Button>
+              {"✂️ Concise"}</Button>
             <Button
               type="button"
               variant="outline"
@@ -1880,8 +1865,7 @@ export function RemediationWorkspace({
               onClick={() => handleAIImprove("technical")}
               className="h-8 text-xs font-bold text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900 bg-blue-50/10 hover:bg-blue-100 dark:hover:bg-blue-905 leading-none transition-all cursor-pointer rounded-lg px-3 flex items-center gap-1.5"
             >
-              🔧 Technical
-            </Button>
+              {"🔧 Technical"}</Button>
           </div>
         </div>
 
@@ -1889,8 +1873,8 @@ export function RemediationWorkspace({
         <div className="space-y-2.5 pt-2 text-left border-t border-slate-100 dark:border-slate-800/80">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
             <div>
-              <span className="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400 block">📸 Proof Of Resolution Media</span>
-              <p className="text-[10.5px] text-slate-400">Attach screenshot uploads or capture system photos representing corrected diagnostic operations.</p>
+              <span className="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400 block">{"📸 Proof Of Resolution Media"}</span>
+              <p className="text-[10.5px] text-slate-400">{"Attach screenshot uploads or capture system photos representing corrected diagnostic operations."}</p>
             </div>
             
             <div className="flex items-center gap-2 shrink-0">
@@ -1920,8 +1904,7 @@ export function RemediationWorkspace({
                 className="h-8 text-[11px] font-bold border-indigo-200 dark:border-slate-800 cursor-pointer flex items-center gap-1.5 text-slate-800 dark:text-slate-200 bg-white dark:bg-[#111A2E] hover:bg-slate-50 dark:hover:bg-[#1e293b]"
               >
                 <Camera className="w-3.5 h-3.5 text-indigo-500" />
-                📷 Open Camera
-              </Button>
+                {"📷 Open Camera"}</Button>
 
               <Button
                 type="button"
@@ -1931,8 +1914,7 @@ export function RemediationWorkspace({
                 className="h-8 text-[11px] font-bold border-indigo-200 dark:border-slate-800 cursor-pointer flex items-center gap-1.5"
               >
                 <ImageIcon className="w-3.5 h-3.5 text-indigo-500" />
-                🖼️ Upload Images
-              </Button>
+                {"🖼️ Upload Images"}</Button>
             </div>
           </div>
 
@@ -1951,7 +1933,7 @@ export function RemediationWorkspace({
           ) : (
             <div className="border-2 border-dashed border-slate-100 dark:border-slate-800/80 p-6 text-center rounded-xl bg-slate-50/10">
               <span className="text-xl">📷</span>
-              <p className="text-[11px] text-black dark:text-white italic mt-1 font-medium">No resolution screenshots or camera proof attached to this ticket yet.</p>
+              <p className="text-[11px] text-black dark:text-white italic mt-1 font-medium">{"No resolution screenshots or camera proof attached to this ticket yet."}</p>
             </div>
           )}
         </div>
@@ -1971,56 +1953,49 @@ export function RemediationWorkspace({
           onClick={handleSaveResolution}
           className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-10 px-4 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
         >
-          <Save className="w-4 h-4" /> Save Ticket Updates
-        </Button>
+          <Save className="w-4 h-4" /> {"Save Ticket Updates"}</Button>
 
         <Button
           onClick={handleMarkResolved}
           className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-4 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
         >
-          <CheckCircle className="w-4 h-4" /> Mark as Resolved
-        </Button>
+          <CheckCircle className="w-4 h-4" /> {"Mark as Resolved"}</Button>
 
         <Button
           onClick={handleDeleteTicket}
           variant="outline"
           className="border-red-200 hover:bg-red-50 hover:border-red-300 dark:border-red-900/50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 font-bold h-10 px-4 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer"
         >
-          <Trash2 className="w-4 h-4" /> Delete Ticket
-        </Button>
+          <Trash2 className="w-4 h-4" /> {"Delete Ticket"}</Button>
 
         <Button
           onClick={onBack}
           variant="outline"
           className="border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-350 font-bold h-10 px-4 rounded-xl text-xs cursor-pointer"
         >
-          Close Detail
-        </Button>
+          {"Close Detail"}</Button>
       </div>
 
       {deleteDialogTarget && (
         <div className="fixed top-0 left-0 right-0 bottom-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 w-80 shadow-2xl flex flex-col gap-2">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 text-center mb-1">Delete Message?</h3>
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 text-center mb-1">{"Delete Message?"}</h3>
             <Button
               onClick={() => handleConfirmDelete("everyone")}
               className="w-full justify-center bg-red-50 text-red-600 hover:bg-red-100 border-none font-bold text-xs py-2 shadow-none cursor-pointer"
             >
-              Delete for Everyone
-            </Button>
+              {"Delete for Everyone"}</Button>
             <Button
               onClick={() => handleConfirmDelete("me")}
               className="w-full justify-center bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 border-none font-bold text-xs py-2 shadow-none cursor-pointer"
             >
-              Delete for Me
-            </Button>
+              {"Delete for Me"}</Button>
             <Button
               onClick={() => setDeleteDialogTarget(null)}
               variant="outline"
               className="w-full justify-center border-slate-200 dark:border-slate-700 font-bold text-xs py-2 shadow-none cursor-pointer mt-1"
             >
-              Cancel
-            </Button>
+              {"Cancel"}</Button>
           </div>
         </div>
       )}

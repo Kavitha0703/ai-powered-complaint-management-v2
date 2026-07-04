@@ -87,6 +87,7 @@ interface RecentCall {
 }
 
 export default function AdminTeamChat() {
+    
   const { dbUser } = useAuth();
 
   const currentAdminName = dbUser?.name || "Kavitha";
@@ -514,7 +515,7 @@ export default function AdminTeamChat() {
         const idx = Math.max(0, Math.min(7, baseVal + offset));
         return bars[idx];
       }).join("");
-      return <span className="text-emerald-400 font-mono text-[11.5px] tracking-tighter" title="Mic Audio Stream Inward">{sequence}</span>;
+      return <span className="text-emerald-400 font-mono text-[11.5px] tracking-tighter" title={"Mic Audio Stream Inward"}>{sequence}</span>;
     } else {
       // Simulate nice live peak stream waves for team members
       const bars = ["▂", "▃", "▄", "▅", "▆", "▇", "█"];
@@ -522,7 +523,7 @@ export default function AdminTeamChat() {
         const idx = Math.floor(Math.random() * 5) + 2; // index 2 to 6
         return bars[idx];
       }).join("");
-      return <span className="text-indigo-400 font-mono text-[11.5px] tracking-tighter" title="VoIP Audio Inward">{sequence}</span>;
+      return <span className="text-indigo-400 font-mono text-[11.5px] tracking-tighter" title={"VoIP Audio Inward"}>{sequence}</span>;
     }
   };
 
@@ -1485,8 +1486,8 @@ export default function AdminTeamChat() {
                   {selectedCallDetail.type === "video" ? <Video className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white leading-none">Bridge Diagnostics Log</h3>
-                  <p className="text-[10px] text-slate-405 font-mono">ID: {selectedCallDetail.id}</p>
+                  <h3 className="text-sm font-bold text-white leading-none">{"Bridge Diagnostics Log"}</h3>
+                  <p className="text-[10px] text-slate-405 font-mono">{"ID:"}{selectedCallDetail.id}</p>
                 </div>
               </div>
               <button
@@ -1500,24 +1501,24 @@ export default function AdminTeamChat() {
             {/* Main Info */}
             <div className="space-y-4 text-left">
               <div>
-                <span className="text-[9px] uppercase font-mono tracking-wider text-slate-405 font-bold">Session Name / Task</span>
+                <span className="text-[9px] uppercase font-mono tracking-wider text-slate-405 font-bold">{"Session Name / Task"}</span>
                 <p className="text-sm font-extrabold text-white tracking-tight mt-0.5">{selectedCallDetail.title}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 bg-slate-900/40 border border-slate-800/60 rounded-2xl p-3">
                 <div>
-                  <span className="text-[9px] uppercase font-mono text-slate-405 block">Session Duration</span>
+                  <span className="text-[9px] uppercase font-mono text-slate-405 block">{"Session Duration"}</span>
                   <span className="text-xs font-mono font-bold text-indigo-300">{selectedCallDetail.duration}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] uppercase font-mono text-slate-405 block">Connected At</span>
+                  <span className="text-[9px] uppercase font-mono text-slate-405 block">{"Connected At"}</span>
                   <span className="text-xs font-mono font-bold text-teal-300">{selectedCallDetail.timestamp}</span>
                 </div>
               </div>
 
               {/* Participants */}
               <div>
-                <span className="text-[9px] uppercase font-mono tracking-wider text-slate-405 font-bold block mb-2">Connected Huddle Members ({selectedCallDetail.participants.length})</span>
+                <span className="text-[9px] uppercase font-mono tracking-wider text-slate-405 font-bold block mb-2">{"Connected Huddle Members ("}{selectedCallDetail.participants.length})</span>
                 <div className="flex flex-wrap gap-2 animate-fade-in text-white">
                   {selectedCallDetail.participants.map((pname) => {
                     const mate = teammates.find(t => t.name === pname);
@@ -1536,23 +1537,23 @@ export default function AdminTeamChat() {
 
               {/* Diagnostics details */}
               <div className="space-y-1.5">
-                <span className="text-[9px] uppercase font-mono tracking-wider text-slate-405 font-bold block">Network Health Quality Metrics</span>
+                <span className="text-[9px] uppercase font-mono tracking-wider text-slate-405 font-bold block">{"Network Health Quality Metrics"}</span>
                 <div className="space-y-1 bg-slate-900/20 rounded-xl p-2.5 text-[10px] font-mono border border-slate-800/40">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Connection Quality</span>
-                    <span className="text-emerald-400 font-bold">Excellent (100% stable)</span>
+                    <span className="text-slate-400">{"Connection Quality"}</span>
+                    <span className="text-emerald-400 font-bold">{"Excellent (100% stable)"}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Session Host Nodes</span>
-                    <span className="text-slate-300">AWS regional-ingress-3</span>
+                    <span className="text-slate-400">{"Session Host Nodes"}</span>
+                    <span className="text-slate-300">{"AWS regional-ingress-3"}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Audio Jitter Buffer</span>
-                    <span className="text-teal-400 font-bold">12ms avg</span>
+                    <span className="text-slate-400">{"Audio Jitter Buffer"}</span>
+                    <span className="text-teal-400 font-bold">{"12ms avg"}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Encryption Cypher</span>
-                    <span className="text-indigo-400 font-bold font-sans">AES-256 (DTLS-SRTP)</span>
+                    <span className="text-slate-400">{"Encryption Cypher"}</span>
+                    <span className="text-indigo-400 font-bold font-sans">{"AES-256 (DTLS-SRTP)"}</span>
                   </div>
                 </div>
               </div>
@@ -1577,15 +1578,13 @@ export default function AdminTeamChat() {
                 className="flex-1 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1 border-none shadow-lg active:scale-95 duration-100"
               >
                 {selectedCallDetail.type === "video" ? <Video className="w-3.5 h-3.5" /> : <Phone className="w-3.5 h-3.5" />}
-                Re-connect Huddle
-              </button>
+                {"Re-connect Huddle"}</button>
               <button
                 type="button"
                 onClick={() => setSelectedCallDetail(null)}
                 className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer border-none"
               >
-                Close Logs
-              </button>
+                {"Close Logs"}</button>
             </div>
           </div>
         </div>
@@ -1603,8 +1602,8 @@ export default function AdminTeamChat() {
                   <Phone className="w-4 h-4 text-indigo-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white leading-none">New Call Bridge</h3>
-                  <p className="text-[10px] text-slate-400">Select participants to connect instantly</p>
+                  <h3 className="text-sm font-bold text-white leading-none">{"New Call Bridge"}</h3>
+                  <p className="text-[10px] text-slate-400">{"Select participants to connect instantly"}</p>
                 </div>
               </div>
               <button
@@ -1617,7 +1616,7 @@ export default function AdminTeamChat() {
 
             {/* Step 1: Call Medium Selection */}
             <div className="space-y-1.5 text-left">
-              <p className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">1. Select Media Type</p>
+              <p className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">{"1. Select Media Type"}</p>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -1629,7 +1628,7 @@ export default function AdminTeamChat() {
                   }`}
                 >
                   <Phone className="w-5 h-5 text-indigo-400 animate-pulse" />
-                  <span className="text-xs">Audio Huddle</span>
+                  <span className="text-xs">{"Audio Huddle"}</span>
                 </button>
                 <button
                   type="button"
@@ -1641,14 +1640,14 @@ export default function AdminTeamChat() {
                   }`}
                 >
                   <Video className="w-5 h-5 text-rose-400 animate-pulse" />
-                  <span className="text-xs">Video War Room</span>
+                  <span className="text-xs">{"Video War Room"}</span>
                 </button>
               </div>
             </div>
 
             {/* Step 2: Distribution Mode */}
             <div className="space-y-1.5 text-left">
-              <p className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">2. Distribution Scope</p>
+              <p className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">{"2. Distribution Scope"}</p>
               <div className="grid grid-cols-3 gap-1.5">
                 {[
                   { id: "direct", label: "Single Person" },
@@ -1682,7 +1681,7 @@ export default function AdminTeamChat() {
             {newCallMode !== "group" && (
               <div className="space-y-1.5 text-left">
                 <div className="flex justify-between items-center">
-                  <p className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">3. Select Contacts ({selectedParticipantsForNewCall.length})</p>
+                  <p className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">{"3. Select Contacts ("}{selectedParticipantsForNewCall.length})</p>
                   {newCallMode === "multi" && (
                     <button
                       type="button"
@@ -1694,8 +1693,7 @@ export default function AdminTeamChat() {
                       }}
                       className="text-[9px] hover:text-indigo-400 font-bold transition-all text-slate-400 hover:underline"
                     >
-                      Toggle All
-                    </button>
+                      {"Toggle All"}</button>
                   )}
                 </div>
                 <div className="max-h-[160px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-slate-80s">
@@ -1736,7 +1734,7 @@ export default function AdminTeamChat() {
                             <div className="flex items-center gap-1.5">
                               <span className="text-xs font-bold text-white truncate">{t.name}</span>
                               {isUserBusy && (
-                                <span className="text-[7.5px] bg-rose-500/15 text-rose-400 font-extrabold px-1 rounded uppercase tracking-wider">Busy</span>
+                                <span className="text-[7.5px] bg-rose-500/15 text-rose-400 font-extrabold px-1 rounded uppercase tracking-wider">{"Busy"}</span>
                               )}
                             </div>
                             <span className="text-[10px] text-slate-400 truncate block leading-none mt-0.5">{t.role}</span>
@@ -1771,8 +1769,7 @@ export default function AdminTeamChat() {
                 className="flex-1 border-slate-800 hover:bg-slate-900 h-9 text-xs font-bold text-slate-300"
                 onClick={() => setIsNewCallDialogOpen(false)}
               >
-                Go Back
-              </Button>
+                {"Go Back"}</Button>
               <Button
                 disabled={newCallMode !== "group" && selectedParticipantsForNewCall.length === 0}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-xs font-extrabold text-white h-9 cursor-pointer"
@@ -1781,8 +1778,7 @@ export default function AdminTeamChat() {
                   setIsNewCallDialogOpen(false);
                 }}
               >
-                Dial Out Call
-              </Button>
+                {"Dial Out Call"}</Button>
             </div>
           </div>
         </div>
@@ -1792,11 +1788,9 @@ export default function AdminTeamChat() {
       <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#070C15]/40 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-2">
           <span className="p-1 px-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-mono text-[10px] uppercase font-bold rounded-md">
-            Custom Panels Enabled
-          </span>
+            {"Custom Panels Enabled"}</span>
           <span className="text-[11px] text-slate-400 hidden sm:inline">
-            Drag the vertical lines to adjust widths exactly like VS Code or Discord. Sizes persist automatically.
-          </span>
+            {"Drag the vertical lines to adjust widths exactly like VS Code or Discord. Sizes persist automatically."}</span>
         </div>
         <Button
           onClick={resetLayoutToDefaults}
@@ -1804,8 +1798,7 @@ export default function AdminTeamChat() {
           size="xs"
           className="h-7 text-[10.5px] font-bold text-slate-700 border-slate-200 dark:text-slate-200 dark:border-slate-800"
         >
-          <RotateCcw className="w-3 h-3 mr-1" /> Reset Layout
-        </Button>
+          <RotateCcw className="w-3 h-3 mr-1" /> {"Reset Layout"}</Button>
       </div>
 
       {/* MOBILE TAB CONTROLS */}
@@ -1817,24 +1810,21 @@ export default function AdminTeamChat() {
               mobileActiveTab === "channels" ? "bg-indigo-600 text-white" : "bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400"
             }`}
           >
-            Channels
-          </button>
+            {"Channels"}</button>
           <button
             onClick={() => setMobileActiveTab("chat")}
             className={`p-2 rounded-xl text-xs font-bold transition-all ${
               mobileActiveTab === "chat" ? "bg-indigo-600 text-white" : "bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400"
             }`}
           >
-            Active Chat
-          </button>
+            {"Active Chat"}</button>
           <button
             onClick={() => setMobileActiveTab("users")}
             className={`p-2 rounded-xl text-xs font-bold transition-all ${
               mobileActiveTab === "users" ? "bg-indigo-600 text-white" : "bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400"
             }`}
           >
-            Teammates
-          </button>
+            {"Teammates"}</button>
         </div>
       )}
 
@@ -1854,7 +1844,7 @@ export default function AdminTeamChat() {
                 setIsChannelsSidebarCollapsed(false);
               }}
               className="absolute left-[22px] top-[21px] z-50 p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 duration-150 border border-indigo-500/30"
-              title="Expand Channels Sidebar"
+              title={"Expand Channels Sidebar"}
             >
               <ChevronRight className="w-4 h-4 animate-pulse" />
             </button>
@@ -1877,7 +1867,7 @@ export default function AdminTeamChat() {
                       localStorage.setItem("dcms_chat_channels_collapsed", "false");
                     }}
                     className="p-2 mb-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/60 dark:hover:bg-slate-800 text-slate-705 dark:text-slate-200 rounded-xl cursor-pointer transition-colors"
-                    title="Expand Sidebar"
+                    title={"Expand Sidebar"}
                   >
                     <Menu className="w-[18px] h-[18px]" />
                   </button>
@@ -1934,14 +1924,14 @@ export default function AdminTeamChat() {
                         localStorage.setItem("dcms_chat_channels_collapsed", "true");
                       }}
                       className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg cursor-pointer transition-colors"
-                      title="Collapse Panel (VS Code style)"
+                      title={"Collapse Panel (VS Code style)"}
                     >
                       <Menu className="w-3.5 h-3.5" />
                     </button>
                     <div className="relative flex-1">
                       <Search className="w-3.5 h-3.5 text-slate-405 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <Input
-                        placeholder="Search channels..."
+                        placeholder={"Search channels..."}
                         value={globalSearch}
                         onChange={e => setGlobalSearch(e.target.value)}
                         className="h-8 pl-8 text-[11px] bg-white dark:bg-slate-900 border-slate-205 dark:border-slate-800 text-slate-700 dark:text-white"
@@ -1955,19 +1945,18 @@ export default function AdminTeamChat() {
                     <div className="space-y-1">
                       <div className="flex justify-between items-center px-1 mb-1">
                         <span className="text-[9px] uppercase font-mono tracking-wider font-bold text-slate-405 block">
-                          Active Discussion boards
-                        </span>
+                          {"Active Discussion boards"}</span>
                         <button
                           onClick={() => setShowNewChatPanel(true)}
                           className="p-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer"
-                          title="Create New Channel (+ New Chat)"
+                          title={"Create New Channel (+ New Chat)"}
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>
 
                       {sortedRooms.length === 0 ? (
-                        <span className="text-[10px] text-slate-400 italic block p-2">No matching active rooms</span>
+                        <span className="text-[10px] text-slate-400 italic block p-2">{"No matching active rooms"}</span>
                       ) : (
                         sortedRooms.map((r) => {
                           const isActive = r.id === activeRoomId;
@@ -2027,8 +2016,7 @@ export default function AdminTeamChat() {
                                       className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-900 border-none cursor-pointer flex items-center gap-1.5 text-slate-700 dark:text-slate-200"
                                     >
                                       <Archive className="w-3.5 h-3.5 text-purple-500" />
-                                      Archive Discussion
-                                    </button>
+                                      {"Archive Discussion"}</button>
 
                                     <button
                                       onClick={() => {
@@ -2038,8 +2026,7 @@ export default function AdminTeamChat() {
                                       className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-900 border-none cursor-pointer flex items-center gap-1.5 text-slate-705 dark:text-slate-200"
                                     >
                                       <Edit className="w-3.5 h-3.5 text-blue-500" />
-                                      Rename Channel
-                                    </button>
+                                      {"Rename Channel"}</button>
                                     
                                     <hr className="border-slate-100 dark:border-slate-800 my-1" />
                                     
@@ -2048,8 +2035,7 @@ export default function AdminTeamChat() {
                                       className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-905 border-none cursor-pointer text-red-500 flex items-center gap-1.5"
                                     >
                                       <Trash className="w-3.5 h-3.5" />
-                                      Delete Board Room
-                                    </button>
+                                      {"Delete Board Room"}</button>
                                   </div>
                                 )}
                               </div>
@@ -2067,7 +2053,7 @@ export default function AdminTeamChat() {
                           onClick={() => setIsRecentCallsCollapsed(!isRecentCallsCollapsed)}
                           className="flex items-center gap-1.5 text-[9px] uppercase font-mono tracking-wider font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-350 transition-colors cursor-pointer border-none bg-transparent"
                         >
-                          <span>{isRecentCallsCollapsed ? "▶" : "▼"} Recent Bridge Calls ({recentCalls.length})</span>
+                          <span>{isRecentCallsCollapsed ? "▶" : "▼"} {"Recent Bridge Calls ("}{recentCalls.length})</span>
                         </button>
                         {recentCalls.length > 0 && !isRecentCallsCollapsed && (
                           <button
@@ -2079,10 +2065,9 @@ export default function AdminTeamChat() {
                               }
                             }}
                             className="text-[9px] text-slate-400 hover:text-red-500 hover:underline border-none bg-transparent cursor-pointer font-bold"
-                            title="Clear History Log"
+                            title={"Clear History Log"}
                           >
-                            Clear
-                          </button>
+                            {"Clear"}</button>
                         )}
                       </div>
 
@@ -2103,8 +2088,7 @@ export default function AdminTeamChat() {
                             </div>
                           ) : recentCalls.length === 0 ? (
                             <span className="text-[10.5px] text-slate-450 italic p-3 block text-center bg-slate-100/10 dark:bg-slate-900/5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 select-none">
-                              No recent bridge calls logged
-                            </span>
+                              {"No recent bridge calls logged"}</span>
                           ) : (
                             recentCalls.map((call) => {
                               const isVideo = call.type === "video";
@@ -2113,7 +2097,7 @@ export default function AdminTeamChat() {
                                   key={call.id}
                                   onClick={() => setSelectedCallDetail(call)}
                                   className="group flex items-center justify-between p-2 rounded-xl bg-white/40 dark:bg-slate-900/15 hover:bg-slate-100/70 dark:hover:bg-slate-900/40 transition-all border border-slate-200/40 dark:border-slate-800/20 hover:border-indigo-500/20 dark:hover:border-indigo-500/20 cursor-pointer"
-                                  title="Click to view full call metrics & records"
+                                  title={"Click to view full call metrics & records"}
                                 >
                                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                     {/* Type badge icon */}
@@ -2159,7 +2143,7 @@ export default function AdminTeamChat() {
                                       setIsNewCallDialogOpen(true);
                                     }}
                                     className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center hover:bg-indigo-650 hover:text-white cursor-pointer transition-all border-none scale-90"
-                                    title="Start new bridge huddle with this team"
+                                    title={"Start new bridge huddle with this team"}
                                   >
                                     <Plus className="w-3.5 h-3.5" />
                                   </button>
@@ -2178,7 +2162,7 @@ export default function AdminTeamChat() {
                           onClick={() => setIsArchivedSectionExpanded(!isArchivedSectionExpanded)}
                           className="w-full flex justify-between items-center px-1 py-1 text-[9px] uppercase font-mono tracking-wider font-bold text-slate-400 hover:text-slate-600 transition-colors"
                         >
-                          <span>Archived Boards ({archivedRoomsList.length})</span>
+                          <span>{"Archived Boards ("}{archivedRoomsList.length})</span>
                           <span>{isArchivedSectionExpanded ? "▼" : "▶"}</span>
                         </button>
 
@@ -2197,10 +2181,9 @@ export default function AdminTeamChat() {
                                 <button
                                   onClick={() => handleToggleArchiveChannel(r.id)}
                                   className="text-[9.5px] px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 hover:bg-indigo-100 hover:text-indigo-650 rounded-lg font-bold border-none cursor-pointer text-slate-500 font-sans opacity-0 group-hover:opacity-100 transition-opacity"
-                                  title="Restore to Active Board"
+                                  title={"Restore to Active Board"}
                                 >
-                                  Restore
-                                </button>
+                                  {"Restore"}</button>
                               </div>
                             ))}
                           </div>
@@ -2224,8 +2207,7 @@ export default function AdminTeamChat() {
                       </div>
                       <div className="text-left min-w-0">
                         <p className="text-[11px] font-black leading-none truncate text-slate-850 dark:text-slate-100">
-                          {currentAdminName} (You)
-                        </p>
+                          {currentAdminName} {"(You)"}</p>
                         <p className="text-[9px] text-[#818CF8] font-bold uppercase mt-1 leading-none tracking-widest truncate">
                           {currentUserStatus === "online" ? "Available" : currentUserStatus === "away" ? "Away" : "Offline"}
                         </p>
@@ -2236,9 +2218,9 @@ export default function AdminTeamChat() {
                       <button
                         onClick={() => setShowStatusMenu(!showStatusMenu)}
                         className="p-1 px-1.5 bg-slate-200/50 hover:bg-slate-200 dark:bg-slate-800/40 dark:hover:bg-slate-800 rounded-lg text-slate-555 dark:text-slate-300 hover:text-[#818CF8] transition-colors border-none cursor-pointer flex items-center gap-0.5 outline-none font-sans"
-                        title="Change my active status"
+                        title={"Change my active status"}
                       >
-                        <span className="text-[10px] font-bold">Status</span>
+                        <span className="text-[10px] font-bold">{"Status"}</span>
                         <ChevronDown className="w-3 h-3" />
                       </button>
 
@@ -2252,8 +2234,7 @@ export default function AdminTeamChat() {
                             className="w-full text-left p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition-all flex items-center gap-2 border-none bg-transparent cursor-pointer text-slate-700 dark:text-slate-200"
                           >
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            Available
-                          </button>
+                            {"Available"}</button>
                           <button
                             onClick={() => {
                               setCurrentUserStatus("away");
@@ -2262,8 +2243,7 @@ export default function AdminTeamChat() {
                             className="w-full text-left p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition-all flex items-center gap-2 border-none bg-transparent cursor-pointer text-slate-700 dark:text-slate-200"
                           >
                             <span className="w-2 h-2 rounded-full bg-amber-400" />
-                            Away
-                          </button>
+                            {"Away"}</button>
                           <button
                             onClick={() => {
                               setCurrentUserStatus("offline");
@@ -2272,8 +2252,7 @@ export default function AdminTeamChat() {
                             className="w-full text-left p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition-all flex items-center gap-2 border-none bg-transparent cursor-pointer text-slate-700 dark:text-slate-200"
                           >
                             <span className="w-2 h-2 rounded-full bg-slate-500" />
-                            Offline
-                          </button>
+                            {"Offline"}</button>
                         </div>
                       )}
                     </div>
@@ -2298,7 +2277,7 @@ export default function AdminTeamChat() {
                 <div className="bg-amber-50/70 dark:bg-amber-950/20 px-3 py-1.5 border-b border-amber-100 dark:border-amber-950/40 flex justify-between items-center text-xs text-slate-700 dark:text-amber-300 z-15 shrink-0 animate-fade-in select-none">
                   <div className="flex items-center gap-2 truncate min-width-0">
                     <Pin className="w-3.5 h-3.5 text-amber-500 shrink-0 rotate-45" />
-                    <span className="font-bold underline text-[10.5px]">Pinned Rule:</span>
+                    <span className="font-bold underline text-[10.5px]">{"Pinned Rule:"}</span>
                     <p className="truncate italic font-medium text-[10.5px]">
                       "{pinnedMessagesInRoom[pinnedMessagesInRoom.length - 1].text}"
                     </p>
@@ -2307,8 +2286,7 @@ export default function AdminTeamChat() {
                     onClick={() => handleTogglePinMessage(pinnedMessagesInRoom[pinnedMessagesInRoom.length - 1].id)}
                     className="p-1 px-2.5 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg font-black text-[9.5px] cursor-pointer text-amber-700 dark:text-amber-400"
                   >
-                    Dismiss Pin
-                  </button>
+                    {"Dismiss Pin"}</button>
                 </div>
               )}
 
@@ -2324,7 +2302,7 @@ export default function AdminTeamChat() {
                         setIsChannelsSidebarOpen(false);
                       }}
                       className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-850 cursor-pointer transition-all flex items-center justify-center shrink-0"
-                      title="Hide Channels Sidebar"
+                      title={"Hide Channels Sidebar"}
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
@@ -2337,8 +2315,7 @@ export default function AdminTeamChat() {
                         {activeChannelObj?.name || "operations-stream"}
                         {activeChannelObj?.is_archived && (
                           <span className="ml-2 px-1.5 py-0.5 text-[8.5px] uppercase tracking-wider bg-purple-100 dark:bg-[#2C1A3F] text-purple-600 dark:text-purple-400 rounded-md font-black border border-purple-200/50">
-                            Archived / Read-only
-                          </span>
+                            {"Archived / Read-only"}</span>
                         )}
                       </h3>
                     </div>
@@ -2353,7 +2330,7 @@ export default function AdminTeamChat() {
                   <div className="relative hidden lg:block">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <Input
-                      placeholder="Search messages..."
+                      placeholder={"Search messages..."}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-8 h-8 text-[11px] w-44 bg-slate-100/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 text-slate-705 dark:text-slate-200"
@@ -2371,7 +2348,7 @@ export default function AdminTeamChat() {
                         ? "bg-indigo-600 border-indigo-500 text-white"
                         : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-500"
                     }`}
-                    title="Batch Message Selection Mode"
+                    title={"Batch Message Selection Mode"}
                   >
                     <CheckSquare className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">{isSelectModeActive ? "Cancel Select" : "Batch Select"}</span>
@@ -2385,7 +2362,7 @@ export default function AdminTeamChat() {
                       setIsNewCallDialogOpen(true);
                     }}
                     className={`cursor-pointer p-1.5 rounded-lg text-xs transition-colors ${activeCall && activeCall.type === "voice" ? "bg-emerald-600 text-white animate-pulse" : "text-slate-400 hover:text-indigo-500 hover:bg-slate-105 dark:hover:bg-slate-900"}`}
-                    title="Start Live Voice Huddle / Audio Bridge"
+                    title={"Start Live Voice Huddle / Audio Bridge"}
                   >
                     <Phone className="w-4 h-4" />
                   </button>
@@ -2397,7 +2374,7 @@ export default function AdminTeamChat() {
                       setIsNewCallDialogOpen(true);
                     }}
                     className={`cursor-pointer p-1.5 rounded-lg text-xs transition-colors ${activeCall && activeCall.type === "video" ? "bg-indigo-600 text-white animate-pulse" : "text-slate-400 hover:text-indigo-500 hover:bg-slate-105 dark:hover:bg-slate-900"}`}
-                    title="Start Live Video War Room"
+                    title={"Start Live Video War Room"}
                   >
                     <Video className="w-4 h-4" />
                   </button>
@@ -2411,7 +2388,7 @@ export default function AdminTeamChat() {
                         ? "bg-amber-100 dark:bg-amber-950 text-amber-650 dark:text-amber-400 font-extrabold"
                         : "text-slate-400 hover:text-indigo-505 hover:bg-slate-100 dark:hover:bg-slate-900"
                     }`}
-                    title="Toggle Message Multi-Selection Mode"
+                    title={"Toggle Message Multi-Selection Mode"}
                   >
                     <CheckSquare className="w-4 h-4" />
                   </button>
@@ -2427,7 +2404,7 @@ export default function AdminTeamChat() {
                         ? "bg-indigo-100 dark:bg-indigo-950 text-indigo-650 dark:text-indigo-400 font-extrabold"
                         : "text-slate-400 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-900"
                     }`}
-                    title="Toggle Teammate Presence Board"
+                    title={"Toggle Teammate Presence Board"}
                   >
                     <Users className="w-4 h-4" />
                   </button>
@@ -2450,20 +2427,18 @@ export default function AdminTeamChat() {
                       <Paperclip className="w-8 h-8 animate-bounce" />
                     </div>
                     <h3 className="text-sm font-black text-indigo-905 dark:text-indigo-200">
-                      Drop files to attach to chat
-                    </h3>
+                      {"Drop files to attach to chat"}</h3>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      Release your files here to instantly upload and share with the support team.
-                    </p>
+                      {"Release your files here to instantly upload and share with the support team."}</p>
                   </div>
                 )}
 
                 {filteredChatMessages.length === 0 ? (
                   <div className="my-auto flex flex-col items-center justify-center p-8 text-center text-slate-400 select-none">
                     <span className="text-4xl text-slate-350">💬</span>
-                    <p className="text-xs font-bold mt-2">No messages match your search criteria.</p>
+                    <p className="text-xs font-bold mt-2">{"No messages match your search criteria."}</p>
                     <p className="text-[10px] text-slate-401 mt-1">
-                      Be the target-setter and start the support thread in #{activeChannelObj?.name}!
+                      {"Be the target-setter and start the support thread in #"}{activeChannelObj?.name}!
                     </p>
                   </div>
                 ) : (
@@ -2501,8 +2476,8 @@ export default function AdminTeamChat() {
                           <div className={`text-[10px] text-slate-400 font-bold px-1.5 flex items-center gap-1.5 select-none leading-none ${isSelf ? "justify-end" : "justify-start"} w-full`}>
                             {m.sender_name}
                             <span className="text-[9px] font-medium text-slate-400 leading-none">{m.time}</span>
-                            {m.is_edited && <span className="text-[9px] text-indigo-400 italic font-normal leading-none">(edited)</span>}
-                            {m.is_pinned && <span className="text-[9px] text-amber-500 font-bold flex items-center gap-0.5 leading-none">📌 Pinned</span>}
+                            {m.is_edited && <span className="text-[9px] text-indigo-400 italic font-normal leading-none">{"(edited)"}</span>}
+                            {m.is_pinned && <span className="text-[9px] text-amber-500 font-bold flex items-center gap-0.5 leading-none">{"📌 Pinned"}</span>}
                           </div>
 
                           {/* Text bubble bubble */}
@@ -2546,8 +2521,7 @@ export default function AdminTeamChat() {
                                   {att.name}
                                 </p>
                                 <span className="text-[9px] opacity-70 block">
-                                  Attached Resource
-                                </span>
+                                  {"Attached Resource"}</span>
                               </div>
                             </div>
                           ))}
@@ -2597,7 +2571,7 @@ export default function AdminTeamChat() {
                                  <div className="flex items-center justify-between text-[9px] font-mono font-bold text-slate-400">
                                    <div className="flex items-center gap-1">
                                      <Mic className="w-3 h-3 text-indigo-500 animate-pulse" />
-                                     <span>Voice memo</span>
+                                     <span>{"Voice memo"}</span>
                                    </div>
                                    <span className="text-indigo-600 dark:text-indigo-400">
                                      {playingVoiceId === m.id
@@ -2621,7 +2595,7 @@ export default function AdminTeamChat() {
                                    ) : (
                                      <Phone className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                                    )}
-                                   <span>{m.call_summary.type === 'video' ? '🎥 Video Meeting' : '📞 Team Call'} Summary</span>
+                                   <span>{m.call_summary.type === 'video' ? '🎥 Video Meeting' : '📞 Team Call'} {"Summary"}</span>
                                  </div>
                                  <span className="text-[9.5px] bg-slate-850 text-slate-350 font-bold px-2 py-0.5 rounded-full">
                                    {m.call_summary.duration}
@@ -2629,7 +2603,7 @@ export default function AdminTeamChat() {
                                </div>
                                
                                <div className="space-y-1">
-                                 <p className="text-[9px] text-slate-400 font-bold uppercase font-sans tracking-wide">Participants:</p>
+                                 <p className="text-[9px] text-slate-400 font-bold uppercase font-sans tracking-wide">{"Participants:"}</p>
                                  <div className="flex flex-wrap gap-1">
                                    {m.call_summary.participants.map((person, idx) => (
                                      <span key={idx} className="bg-slate-850 text-slate-200 px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1 border border-slate-800/60">
@@ -2655,25 +2629,25 @@ export default function AdminTeamChat() {
                                {expandedCallDetailsMessageIds.includes(m.id) && (
                                  <div className="mt-1.5 pt-2 border-t border-slate-800 text-[10.5px] space-y-1.5 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-850 animate-fade-in text-left">
                                    <div className="flex justify-between items-center text-[10px]">
-                                     <span className="text-slate-450 uppercase font-mono">Screen Share:</span>
+                                     <span className="text-slate-450 uppercase font-mono">{"Screen Share:"}</span>
                                      <span className="font-extrabold text-white">{m.call_summary.screenShareUsed ? 'Used' : 'Not Used'}</span>
                                    </div>
                                    <div className="flex justify-between items-center text-[10px]">
-                                     <span className="text-slate-450 uppercase font-mono">Recording Mode:</span>
-                                     <span className="font-extrabold text-white text-emerald-500">Not Enabled</span>
+                                     <span className="text-slate-450 uppercase font-mono">{"Recording Mode:"}</span>
+                                     <span className="font-extrabold text-white text-emerald-500">{"Not Enabled"}</span>
                                    </div>
                                    {m.call_summary.ticketNumber && (
                                      <div className="p-1.5 bg-slate-900 rounded-lg space-y-0.5 border border-slate-800 border-dashed">
                                        <div className="flex items-center gap-1 text-[9.5px]">
                                          <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                         <span className="text-slate-400 capitalize font-bold">Related Ticket:</span>
+                                         <span className="text-slate-400 capitalize font-bold">{"Related Ticket:"}</span>
                                          <span className="text-indigo-400 font-extrabold">{m.call_summary.ticketNumber}</span>
                                        </div>
                                        <p className="text-[9.5px] italic text-slate-300 truncate">{m.call_summary.ticketTitle}</p>
                                      </div>
                                    )}
                                    <div className="text-[9.5px] leading-relaxed text-slate-400 border-l-2 border-indigo-500 pl-1.5 mt-1.5">
-                                     <p className="font-bold tracking-wide uppercase text-indigo-400 text-[8px]">Audit Notes:</p>
+                                     <p className="font-bold tracking-wide uppercase text-indigo-400 text-[8px]">{"Audit Notes:"}</p>
                                      <p>{m.call_summary.recordingNotes}</p>
                                    </div>
                                  </div>
@@ -2689,8 +2663,8 @@ export default function AdminTeamChat() {
                                 className="text-xs bg-slate-50 dark:bg-slate-950 text-black dark:text-white p-2 border-slate-300 dark:border-slate-800 h-16 rounded-lg font-medium"
                               />
                               <div className="flex gap-1.5 justify-end">
-                                <Button size="xs" variant="outline" className={`h-6 text-[10px] ${isSelf ? "text-white border-white/30 hover:bg-white/10" : "text-black dark:text-white"}`} onClick={() => setEditingMessageId(null)}>Cancel</Button>
-                                <Button size="xs" className={`h-6 text-[10px] bg-emerald-600 hover:bg-emerald-700 border-none ${isSelf ? "text-white" : "text-black dark:text-white"}`} onClick={() => handleSaveEditMessage(m.id)}>Save</Button>
+                                <Button size="xs" variant="outline" className={`h-6 text-[10px] ${isSelf ? "text-white border-white/30 hover:bg-white/10" : "text-black dark:text-white"}`} onClick={() => setEditingMessageId(null)}>{"Cancel"}</Button>
+                                <Button size="xs" className={`h-6 text-[10px] bg-emerald-600 hover:bg-emerald-700 border-none ${isSelf ? "text-white" : "text-black dark:text-white"}`} onClick={() => handleSaveEditMessage(m.id)}>{"Save"}</Button>
                               </div>
                             </div>
                           ) : m.text && (!m.call_summary || (!m.text.includes("Team Call Completed") && !m.text.includes("Ad-hoc Triage Huddle Notes") && m.text !== "Team Call Summary")) ? (
@@ -2727,11 +2701,11 @@ export default function AdminTeamChat() {
                           {isSelf && (
                             <div className="absolute right-1.5 bottom-1 opacity-70">
                               {m.message_status === "read" ? (
-                                <CheckCheck className="w-3.5 h-3.5 text-sky-400" title="Read (✓✓ Blue)" />
+                                <CheckCheck className="w-3.5 h-3.5 text-sky-400" title={"Read (✓✓ Blue)"} />
                               ) : m.message_status === "delivered" ? (
-                                <CheckCheck className="w-3.5 h-3.5 text-slate-300" title="Delivered (✓✓ Gray)" />
+                                <CheckCheck className="w-3.5 h-3.5 text-slate-300" title={"Delivered (✓✓ Gray)"} />
                               ) : (
-                                <Check className="w-3.5 h-3.5 text-slate-400" title="Sent (✓ Gray)" />
+                                <Check className="w-3.5 h-3.5 text-slate-400" title={"Sent (✓ Gray)"} />
                               )}
                             </div>
                           )}
@@ -2746,7 +2720,7 @@ export default function AdminTeamChat() {
                               <button
                                 onClick={() => setShowEmojiPicker(showEmojiPicker === m.id ? null : m.id)}
                                 className="w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 rounded-lg flex items-center justify-center cursor-pointer shadow-xs border-none"
-                                title="Add Quick Reaction"
+                                title={"Add Quick Reaction"}
                               >
                                 <Smile className="w-3.5 h-3.5" />
                               </button>
@@ -2760,7 +2734,7 @@ export default function AdminTeamChat() {
                                       ? "bg-indigo-100 dark:bg-indigo-950 border-indigo-400 text-indigo-650 dark:text-indigo-400"
                                       : "bg-white dark:bg-slate-800 border-slate-205 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-505"
                                   }`}
-                                  title="Message Actions"
+                                  title={"Message Actions"}
                                 >
                                   <MoreVertical className="w-3.5 h-3.5" />
                                 </button>
@@ -2772,8 +2746,7 @@ export default function AdminTeamChat() {
                                     isSelf ? "right-0" : "left-0"
                                   }`}>
                                     <div className="px-3 py-1 text-[9px] uppercase font-mono tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-950/10 mb-1">
-                                      Message Options
-                                    </div>
+                                      {"Message Options"}</div>
 
                                     <button
                                       onClick={() => {
@@ -2783,8 +2756,7 @@ export default function AdminTeamChat() {
                                       className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 flex items-center gap-2 border-none cursor-pointer bg-transparent text-slate-700 dark:text-slate-200"
                                     >
                                       <Reply className="w-3.5 h-3.5 text-indigo-500" />
-                                      Reply Message
-                                    </button>
+                                      {"Reply Message"}</button>
 
                                     {isSelf && (
                                       <button
@@ -2796,8 +2768,7 @@ export default function AdminTeamChat() {
                                         className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 flex items-center gap-2 border-none cursor-pointer bg-transparent text-slate-700 dark:text-slate-200"
                                       >
                                         <Edit2 className="w-3.5 h-3.5 text-blue-500" />
-                                        Edit Text
-                                      </button>
+                                        {"Edit Text"}</button>
                                     )}
 
                                     <button
@@ -2808,8 +2779,7 @@ export default function AdminTeamChat() {
                                       className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 flex items-center gap-2 border-none cursor-pointer bg-transparent text-slate-700 dark:text-slate-200"
                                     >
                                       <FileText className="w-3.5 h-3.5 text-slate-400" />
-                                      Copy Text
-                                    </button>
+                                      {"Copy Text"}</button>
 
                                     <button
                                       onClick={() => {
@@ -2830,8 +2800,7 @@ export default function AdminTeamChat() {
                                       className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 flex items-center gap-2 border-none cursor-pointer bg-transparent text-slate-700 dark:text-slate-200"
                                     >
                                       <ArrowRight className="w-3.5 h-3.5 text-teal-500" />
-                                      Forward ...
-                                    </button>
+                                      {"Forward ..."}</button>
 
                                     <button
                                       onClick={() => {
@@ -2841,8 +2810,7 @@ export default function AdminTeamChat() {
                                       className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 flex items-center gap-2 border-none cursor-pointer bg-transparent text-slate-700 dark:text-slate-200"
                                     >
                                       <Smile className="w-3.5 h-3.5 text-amber-500" />
-                                      Add Reaction
-                                    </button>
+                                      {"Add Reaction"}</button>
 
                                     <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
 
@@ -2852,11 +2820,10 @@ export default function AdminTeamChat() {
                                         handleDeleteForMe(m.id);
                                       }}
                                       className="w-full text-left px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 flex items-center gap-2 border-none cursor-pointer bg-transparent"
-                                      title="Hide message from my feed"
+                                      title={"Hide message from my feed"}
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
-                                      Delete for Me
-                                    </button>
+                                      {"Delete for Me"}</button>
 
                                     {/* The logged-in administrator can delete any message for everyone */}
                                     {true && (
@@ -2866,11 +2833,10 @@ export default function AdminTeamChat() {
                                           setDeleteConfMsg(m);
                                         }}
                                         className="w-full text-left px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 flex items-center gap-2 border-none cursor-pointer bg-transparent"
-                                        title="Delete message for all participants"
+                                        title={"Delete message for all participants"}
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
-                                        Delete for Everyone
-                                      </button>
+                                        {"Delete for Everyone"}</button>
                                     )}
 
                                   </div>
@@ -2907,8 +2873,7 @@ export default function AdminTeamChat() {
                 {typingUsers.length > 0 && (
                   <div className="self-start flex flex-col space-y-1 items-start">
                     <span className="text-[10px] text-slate-400 font-bold select-none">
-                      {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing...
-                    </span>
+                      {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"} {"typing..."}</span>
                     <div className="bg-slate-100/80 dark:bg-slate-805/60 px-4 py-2.5 border border-slate-100 dark:border-slate-800/80 rounded-full rounded-tl-none select-none">
                       <div className="flex gap-1 items-center justify-center h-2">
                         <div className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce [animation-duration:1s]" />
@@ -2926,8 +2891,7 @@ export default function AdminTeamChat() {
               {isSelectModeActive && selectedMessageIds.length > 0 && (
                 <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-[#0F172A] border border-slate-800 shadow-2xl rounded-2xl px-4 py-2.5 flex items-center gap-2.5 z-50 animate-fade-in text-[10.5px] font-bold text-white">
                   <span className="text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded select-none">
-                    {selectedMessageIds.length} Selected
-                  </span>
+                    {selectedMessageIds.length} {"Selected"}</span>
                   
                   {/* Bulk Copy */}
                   <button
@@ -2940,11 +2904,10 @@ export default function AdminTeamChat() {
                       setIsSelectModeActive(false);
                     }}
                     className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors border-none cursor-pointer"
-                    title="Copy selected messages texts"
+                    title={"Copy selected messages texts"}
                   >
                     <FileText className="w-3 h-3 text-indigo-400" />
-                    Copy
-                  </button>
+                    {"Copy"}</button>
 
                   {/* Bulk Forward */}
                   <button
@@ -2967,11 +2930,10 @@ export default function AdminTeamChat() {
                       setIsSelectModeActive(false);
                     }}
                     className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors border-none cursor-pointer"
-                    title="Forward combined text"
+                    title={"Forward combined text"}
                   >
                     <ArrowRight className="w-3 h-3 text-teal-400" />
-                    Forward
-                  </button>
+                    {"Forward"}</button>
 
                   <div className="w-px h-5 bg-slate-800" />
 
@@ -2981,11 +2943,10 @@ export default function AdminTeamChat() {
                       setBulkDeleteConfirmOpen(true);
                     }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-600 hover:text-white text-rose-400 rounded-xl transition-all duration-200 border border-rose-500/20 hover:border-rose-600 cursor-pointer shadow-sm hover:shadow-rose-950/20"
-                    title="Delete all selected messages permanently"
+                    title={"Delete all selected messages permanently"}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    Delete All
-                  </button>
+                    {"Delete All"}</button>
                   <div className="w-px h-5 bg-slate-800" />
                   <button
                     onClick={() => {
@@ -2995,8 +2956,7 @@ export default function AdminTeamChat() {
                     className="flex items-center gap-1.5 px-3 py-1.5 text-slate-400 hover:text-white transition-colors border-none bg-transparent cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
-                    Cancel
-                  </button>
+                    {"Cancel"}</button>
                 </div>
               )}
 
@@ -3004,7 +2964,7 @@ export default function AdminTeamChat() {
               {replyTarget && (
                 <div className="bg-indigo-50/65 dark:bg-[#162137]/80 px-4 py-2.5 border-t border-indigo-200/50 dark:border-indigo-950 flex justify-between items-center text-xs shrink-0 z-10 text-left animate-fade-in relative shadow-sm">
                   <div className="flex items-center gap-2 overflow-hidden">
-                    <span className="text-indigo-500 font-bold shrink-0">↳ Replying to:</span>
+                    <span className="text-indigo-500 font-bold shrink-0">{"↳ Replying to:"}</span>
                     <div className="font-semibold text-black dark:text-gray-200 truncate min-width-0">
                       <strong className="text-indigo-600 dark:text-indigo-400 font-black uppercase text-[9px] tracking-wide block leading-none mb-0.5">
                         {replyTarget.sender_name}
@@ -3044,8 +3004,7 @@ export default function AdminTeamChat() {
               <div className="border-t border-slate-200 dark:border-slate-800 p-3 bg-white dark:bg-[#0B1222] shrink-0">
                 {activeChannelObj?.is_archived ? (
                   <div className="p-3 bg-purple-50/50 dark:bg-purple-950/20 text-purple-650 dark:text-purple-305 text-xs text-center rounded-xl border border-purple-200/40 font-bold select-none">
-                    🔒 This conversation has been archived and is placed under Read-only mode for admins.
-                  </div>
+                    {"🔒 This conversation has been archived and is placed under Read-only mode for admins."}</div>
                 ) : (
                   <form onSubmit={handleSendMessage} className="flex flex-col gap-2 relative">
                     
@@ -3053,8 +3012,7 @@ export default function AdminTeamChat() {
                     {showMentionSuggestions && mentionSuggestionsList.length > 0 && (
                       <div className="absolute bottom-full mb-2 left-10 bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 overflow-hidden font-bold text-[11px] w-52 max-h-48 overflow-y-auto select-none">
                         <span className="px-3 py-1.5 text-[9px] uppercase font-mono tracking-wider text-slate-400 block border-b border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-950/20">
-                          Teammate Directory Autocomplete
-                        </span>
+                          {"Teammate Directory Autocomplete"}</span>
                         {mentionSuggestionsList.map((t) => (
                           <button
                             key={t.id}
@@ -3090,7 +3048,7 @@ export default function AdminTeamChat() {
                           }
                         }}
                         rows={2}
-                        placeholder={`Message to #${activeChannelObj?.name || 'chat'}...`}
+                        placeholder={`${"Message to #"}${activeChannelObj?.name || "chat"}...`}
                         className="w-full bg-transparent border-none text-xs text-black dark:text-white p-2.5 focus:outline-none resize-none font-medium placeholder-slate-400 [scrollbar-width:thin] min-h-[50px] max-h-[140px]"
                       />
 
@@ -3109,7 +3067,7 @@ export default function AdminTeamChat() {
                             type="button"
                             onClick={() => document.getElementById("drag-panels-team-uploader")?.click()}
                             className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer transition-all shrink-0 border-none bg-transparent"
-                            title="Attach files (📎)"
+                            title={"Attach files (📎)"}
                           >
                             <Paperclip className="w-4 h-4" />
                           </button>
@@ -3119,7 +3077,7 @@ export default function AdminTeamChat() {
                             type="button"
                             onClick={() => setChatCameraActive(true)}
                             className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer transition-all shrink-0 border-none bg-transparent"
-                            title="Take live snapshot with AI Camera"
+                            title={"Take live snapshot with AI Camera"}
                           >
                             <Camera className="w-4 h-4" />
                           </button>
@@ -3133,7 +3091,7 @@ export default function AdminTeamChat() {
                               setCommentInput(prev => prev + picked);
                             }}
                             className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer transition-all shrink-0 border-none bg-transparent"
-                            title="Insert instant reaction emoji (😀)"
+                            title={"Insert instant reaction emoji (😀)"}
                           >
                             <Smile className="w-4 h-4" />
                           </button>
@@ -3158,22 +3116,20 @@ export default function AdminTeamChat() {
                                 onClick={stopAndSendVoiceNote}
                                 className="px-1.5 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-[9.5px] font-bold shrink-0 border-none cursor-pointer"
                               >
-                                Send
-                              </button>
+                                {"Send"}</button>
                               <button
                                 type="button"
                                 onClick={cancelVoiceNote}
                                 className="text-[9.5px] text-slate-405 hover:text-red-700 font-bold shrink-0 border-none cursor-pointer"
                               >
-                                Stop
-                              </button>
+                                {"Stop"}</button>
                             </div>
                           ) : (
                             <button
                               type="button"
                               onClick={startRecordingVoiceNote}
                               className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer transition-all shrink-0 border-none bg-transparent"
-                              title="Simulate Voice Note recording (🎤)"
+                              title={"Simulate Voice Note recording (🎤)"}
                             >
                               <Mic className="w-4 h-4 text-slate-500 hover:text-red-505 duration-100" />
                             </button>
@@ -3189,7 +3145,7 @@ export default function AdminTeamChat() {
                                   ? "bg-indigo-100 dark:bg-indigo-950 text-indigo-650 dark:text-indigo-400 font-bold shadow-xs" 
                                   : "hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400"
                               }`}
-                              title="✨ AI polish assistant"
+                              title={"✨ AI polish assistant"}
                             >
                               <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
                             </button>
@@ -3197,8 +3153,7 @@ export default function AdminTeamChat() {
                             {showAiMenu && (
                               <div className="absolute left-0 bottom-full mb-2 w-48 bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 overflow-hidden font-bold text-[11px] py-1 text-left">
                                 <span className="px-3 py-1 text-[9px] uppercase font-mono tracking-wider text-slate-400 block border-b border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-950/10">
-                                  ✨ AI Polish Assistant
-                                </span>
+                                  {"✨ AI Polish Assistant"}</span>
                                 {[
                                   { label: "👔 Make Professional", val: "professional" },
                                   { label: "🤝 Make Friendly", val: "friendly" },
@@ -3264,41 +3219,37 @@ export default function AdminTeamChat() {
                   
                   <div className="p-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
                     <span className="text-[10px] uppercase font-mono tracking-wider font-bold text-slate-400 block px-0.5 leading-none">
-                      Core Teammates ({teammates.filter(m => m.status === 'online').length} active)
-                    </span>
+                      {"Core Teammates ("}{teammates.filter(m => m.status === 'online').length} {"active)"}</span>
 
                     {/* Multiselect Group Call Prompt */}
                     {selectedTeammatesForCall.length > 0 ? (
                       <div className="mt-3 p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex items-center justify-between gap-1.5 animate-pulse">
                         <div className="space-y-0.5 text-left min-w-0">
                           <p className="text-[10px] font-bold text-white leading-none">
-                            Group Huddle ({selectedTeammatesForCall.length})
+                            {"Group Huddle ("}{selectedTeammatesForCall.length})
                           </p>
                           <p className="text-[8.5px] text-indigo-300 leading-none mt-0.5">
-                            Secure multi-peer bridge
-                          </p>
+                            {"Secure multi-peer bridge"}</p>
                         </div>
                         <div className="flex gap-1 shrink-0">
                           <button
                             onClick={() => startCall("voice", selectedTeammatesForCall.length > 1 ? "multi" : "direct", selectedTeammatesForCall)}
                             className="p-1 px-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-[9px] font-black flex items-center gap-1 cursor-pointer duration-100 border-none"
-                            title="Start voice bridge with selected"
+                            title={"Start voice bridge with selected"}
                           >
                             <Phone className="w-2.5 h-2.5" />
-                            Voice
-                          </button>
+                            {"Voice"}</button>
                           <button
                             onClick={() => startCall("video", selectedTeammatesForCall.length > 1 ? "multi" : "direct", selectedTeammatesForCall)}
                             className="p-1 px-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-[9px] font-black flex items-center gap-1 cursor-pointer duration-100 border-none"
-                            title="Start video war-room with selected"
+                            title={"Start video war-room with selected"}
                           >
                             <Video className="w-2.5 h-2.5" />
-                            Video
-                          </button>
+                            {"Video"}</button>
                           <button
                             onClick={() => setSelectedTeammatesForCall([])}
                             className="p-1 text-slate-400 hover:text-white rounded text-[9px] cursor-pointer border-none bg-transparent"
-                            title="Clear selection"
+                            title={"Clear selection"}
                           >
                             <X className="w-2.5 h-2.5" />
                           </button>
@@ -3407,7 +3358,7 @@ export default function AdminTeamChat() {
                   <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-100/30 dark:bg-[#111A2D]/10 shrink-0">
                     <div className="flex items-start gap-1.5 text-[9.5px] leading-relaxed text-slate-400">
                       <ShieldAlert className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
-                      <p>Admins are authenticated via the central triage hub. Chat is logged.</p>
+                      <p>{"Admins are authenticated via the central triage hub. Chat is logged."}</p>
                     </div>
                   </div>
 
@@ -3430,7 +3381,7 @@ export default function AdminTeamChat() {
               <div className="relative mb-2 shrink-0">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <Input
-                  placeholder="Search channels..."
+                  placeholder={"Search channels..."}
                   value={globalSearch}
                   onChange={e => setGlobalSearch(e.target.value)}
                   className="pl-9 h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 text-slate-700 dark:text-white"
@@ -3439,13 +3390,12 @@ export default function AdminTeamChat() {
 
               <div className="space-y-1">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400">Collaboration Channels</span>
+                  <span className="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400">{"Collaboration Channels"}</span>
                   <button
                     onClick={() => setShowNewChatPanel(true)}
                     className="p-1 px-2.5 text-xs font-bold text-white bg-indigo-600 rounded-lg"
                   >
-                    + Create
-                  </button>
+                    {"+ Create"}</button>
                 </div>
 
                 {sortedRooms.map((r) => {
@@ -3497,7 +3447,7 @@ export default function AdminTeamChat() {
               {/* Messages feed */}
               <div className="flex-1 overflow-y-auto p-3 space-y-3 flex flex-col select-text">
                 {filteredChatMessages.length === 0 ? (
-                  <p className="text-xs italic text-slate-400 my-auto text-center font-bold">No messages matching.</p>
+                  <p className="text-xs italic text-slate-400 my-auto text-center font-bold">{"No messages matching."}</p>
                 ) : (
                   filteredChatMessages.map((m) => {
                     const isSelf = m.sender_id === currentAdminId;
@@ -3524,7 +3474,7 @@ export default function AdminTeamChat() {
                   <Input
                     value={commentInput}
                     onChange={e => setCommentInput(e.target.value)}
-                    placeholder="Type team chat message..."
+                    placeholder={"Type team chat message..."}
                     className="flex-1 h-9 text-xs bg-slate-50 dark:bg-[#111A2E]"
                   />
                   <Button type="submit" className="h-9 w-9 p-0 bg-indigo-600 text-white border-none shrink-0 rounded-lg">
@@ -3539,7 +3489,7 @@ export default function AdminTeamChat() {
           {/* TAB 3: MEMBERS DIRECTORY LIST */}
           {mobileActiveTab === "users" && (
             <div className="flex-1 p-4 space-y-2 overflow-y-auto bg-[#070C15]/40 animate-fade-in select-none">
-              <span className="text-[10px] uppercase font-mono tracking-wider font-bold text-slate-450 block mb-2">Ops Core Staff Presence</span>
+              <span className="text-[10px] uppercase font-mono tracking-wider font-bold text-slate-450 block mb-2">{"Ops Core Staff Presence"}</span>
               {teammates.map((m) => (
                 <div key={m.id} className="flex items-center justify-between p-3 bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-xl">
                   <div className="flex items-center gap-2">
@@ -3564,8 +3514,7 @@ export default function AdminTeamChat() {
           <div className="bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-850 p-6 rounded-2xl max-w-sm w-full mx-4 space-y-4 shadow-2xl animate-fade-in text-slate-800 dark:text-slate-200">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-extrabold text-sm flex items-center gap-1.5 text-slate-900 dark:text-white">
-                <Plus className="w-4 h-4 text-indigo-505" /> Start New Collaboration
-              </h3>
+                <Plus className="w-4 h-4 text-indigo-505" /> {"Start New Collaboration"}</h3>
               <button onClick={() => setShowNewChatPanel(false)} className="text-slate-400 hover:text-slate-655 cursor-pointer p-1 rounded-full border-none bg-transparent">
                 <X className="w-4 h-4" />
               </button>
@@ -3573,7 +3522,7 @@ export default function AdminTeamChat() {
 
             {/* Template presets */}
             <div className="space-y-1.5 select-none">
-              <span className="text-[9px] uppercase font-mono tracking-wider font-bold text-slate-400 block">Workspace Templates Presets</span>
+              <span className="text-[9px] uppercase font-mono tracking-wider font-bold text-slate-400 block">{"Workspace Templates Presets"}</span>
               <div className="grid grid-cols-2 gap-2">
                 {["Network Team", "HR Operations", "Level 2 Escalations", "Corporate Board"].map((preset) => (
                   <button
@@ -3589,32 +3538,32 @@ export default function AdminTeamChat() {
             </div>
 
             <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
-              <span className="text-[9px] uppercase font-mono tracking-wider font-bold text-slate-400 block">Or Custom Channel</span>
+              <span className="text-[9px] uppercase font-mono tracking-wider font-bold text-slate-400 block">{"Or Custom Channel"}</span>
               
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 block">Channel Name</label>
+                <label className="text-[10px] font-bold text-slate-400 block">{"Channel Name"}</label>
                 <Input
                   value={customRoomName}
                   onChange={e => setCustomRoomName(e.target.value)}
-                  placeholder="e.g. system-onboarding"
+                  placeholder={"e.g. system-onboarding"}
                   className="h-9 text-xs bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 block">Description (Optional)</label>
+                <label className="text-[10px] font-bold text-slate-400 block">{"Description (Optional)"}</label>
                 <Input
                   value={customRoomDesc}
                   onChange={e => setCustomRoomDesc(e.target.value)}
-                  placeholder="What is this discussion about?"
+                  placeholder={"What is this discussion about?"}
                   className="h-9 text-xs bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
                 />
               </div>
             </div>
 
             <div className="pt-2 flex justify-end gap-2.5">
-              <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => setShowNewChatPanel(false)}>Cancel</Button>
-              <Button size="sm" className="h-9 text-xs bg-indigo-600 text-white border-none shrink-0" onClick={() => handleCreateRoom()}>Create Channel</Button>
+              <Button size="sm" variant="outline" className="h-9 text-xs" onClick={() => setShowNewChatPanel(false)}>{"Cancel"}</Button>
+              <Button size="sm" className="h-9 text-xs bg-indigo-600 text-white border-none shrink-0" onClick={() => handleCreateRoom()}>{"Create Channel"}</Button>
             </div>
           </div>
         </div>
@@ -3625,10 +3574,9 @@ export default function AdminTeamChat() {
         <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center select-none text-left">
           <div className="bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 max-w-sm w-full mx-4 shadow-2xl flex flex-col gap-3">
             <h3 className="text-sm font-black text-slate-850 dark:text-slate-100 mb-1 flex items-center gap-1.5">
-              <Trash2 className="w-4 h-4 text-red-500" /> Delete chat channel?
-            </h3>
+              <Trash2 className="w-4 h-4 text-red-500" /> {"Delete chat channel?"}</h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Are you sure you want to remove the channel <strong>#{deleteConfRoom.name}</strong>?
+              {"Are you sure you want to remove the channel"}<strong>#{deleteConfRoom.name}</strong>?
             </p>
 
             <div className="flex flex-col gap-2 pt-2">
@@ -3636,21 +3584,18 @@ export default function AdminTeamChat() {
                 onClick={() => handleConfirmDeleteRoom("me")}
                 className="w-full h-9 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-black dark:text-white font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 shadow-none"
               >
-                Delete For Me
-              </Button>
+                {"Delete For Me"}</Button>
               <Button
                 onClick={() => handleConfirmDeleteRoom("everyone")}
                 className="w-full h-9 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl border-none shadow-none"
               >
-                Delete For Everyone (Admin Purge)
-              </Button>
+                {"Delete For Everyone (Admin Purge)"}</Button>
               <Button
                 onClick={() => setDeleteConfRoom(null)}
                 variant="outline"
                 className="w-full h-9 font-bold text-xs rounded-xl text-black dark:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
               >
-                Cancel
-              </Button>
+                {"Cancel"}</Button>
             </div>
           </div>
         </div>
@@ -3661,8 +3606,7 @@ export default function AdminTeamChat() {
         <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center select-none text-left">
           <div className="bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 max-w-sm w-full mx-4 shadow-2xl flex flex-col gap-3">
             <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 mb-1 flex items-center gap-1.5">
-              <Trash className="w-4 h-4 text-red-500" /> Delete message?
-            </h3>
+              <Trash className="w-4 h-4 text-red-500" /> {"Delete message?"}</h3>
             <p className="text-[11px] text-slate-400 italic mt-0.5">"{deleteConfMsg.text}"</p>
 
             <div className="flex flex-col gap-2 pt-2">
@@ -3670,24 +3614,21 @@ export default function AdminTeamChat() {
                 onClick={() => handleConfirmDeleteMessage("me")}
                 className="w-full h-9 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-black dark:text-white font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 shadow-none"
               >
-                Delete For Me
-              </Button>
+                {"Delete For Me"}</Button>
               {/* Logged in admin can delete any message for everyone */}
               {true && (
                 <Button
                   onClick={() => handleConfirmDeleteMessage("everyone")}
                   className="w-full h-9 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl border-none shadow-none"
                 >
-                  Delete For Everyone
-                </Button>
+                  {"Delete For Everyone"}</Button>
               )}
               <Button
                 onClick={() => setDeleteConfMsg(null)}
                 variant="outline"
                 className="w-full h-9 font-bold text-xs rounded-xl text-black dark:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
               >
-                Cancel
-              </Button>
+                {"Cancel"}</Button>
             </div>
           </div>
         </div>
@@ -3698,26 +3639,22 @@ export default function AdminTeamChat() {
         <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center select-none text-left animate-fade-in">
           <div className="bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 max-w-sm w-full mx-4 shadow-2xl flex flex-col gap-3">
             <h3 className="text-sm font-black text-slate-800 dark:text-slate-100 mb-1 flex items-center gap-1.5">
-              <Trash className="w-4 h-4 text-red-500 animate-pulse" /> Confirm Bulk Deletion
-            </h3>
+              <Trash className="w-4 h-4 text-red-500 animate-pulse" /> {"Confirm Bulk Deletion"}</h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-              Are you sure you want to permanently delete <span className="font-extrabold text-red-500">{selectedMessageIds.length}</span> selected messages for everyone? This action is permanent and cannot be undone.
-            </p>
+              {"Are you sure you want to permanently delete"}<span className="font-extrabold text-red-500">{selectedMessageIds.length}</span> {"selected messages for everyone? This action is permanent and cannot be undone."}</p>
 
             <div className="flex flex-col gap-2 pt-2">
               <Button
                 onClick={handleConfirmBulkDelete}
                 className="w-full h-9 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl border-none shadow-none flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Trash2 className="w-3.5 h-3.5" /> Confirm Permanent Delete
-              </Button>
+                <Trash2 className="w-3.5 h-3.5" /> {"Confirm Permanent Delete"}</Button>
               <Button
                 onClick={() => setBulkDeleteConfirmOpen(false)}
                 variant="outline"
                 className="w-full h-9 font-bold text-xs rounded-xl cursor-pointer text-black dark:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
               >
-                Cancel
-              </Button>
+                {"Cancel"}</Button>
             </div>
           </div>
         </div>
@@ -3729,8 +3666,7 @@ export default function AdminTeamChat() {
           <div className="bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-850 p-6 rounded-2xl max-w-sm w-full mx-4 space-y-4 shadow-2xl animate-fade-in select-none text-slate-800 dark:text-slate-200">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-850">
               <h3 className="font-extrabold text-sm flex items-center gap-1.5 text-slate-905 dark:text-white">
-                <ArrowRight className="w-4 h-4 text-indigo-505" /> Forward Message text
-              </h3>
+                <ArrowRight className="w-4 h-4 text-indigo-505" /> {"Forward Message text"}</h3>
               <button onClick={() => setForwardDialogMsg(null)} className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer p-0.5">
                 <X className="w-4 h-4" />
               </button>
@@ -3741,7 +3677,7 @@ export default function AdminTeamChat() {
             </p>
 
             <div className="space-y-1.5">
-              <span className="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400 block mb-1">Select Target Chat Board</span>
+              <span className="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400 block mb-1">{"Select Target Chat Board"}</span>
               <div className="max-h-[160px] overflow-y-auto space-y-1 pr-1">
                 {rooms.map((ch) => (
                   <button
@@ -3757,7 +3693,7 @@ export default function AdminTeamChat() {
             </div>
 
             <div className="pt-2 flex justify-end">
-              <Button size="sm" variant="outline" className="h-9 text-xs text-black dark:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer rounded-xl font-bold" onClick={() => setForwardDialogMsg(null)}>Cancel</Button>
+              <Button size="sm" variant="outline" className="h-9 text-xs text-black dark:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer rounded-xl font-bold" onClick={() => setForwardDialogMsg(null)}>{"Cancel"}</Button>
             </div>
           </div>
         </div>
@@ -3781,11 +3717,9 @@ export default function AdminTeamChat() {
 
             <div className="bg-rose-500/5 border border-rose-500/10 dark:border-rose-500/20 rounded-xl p-3">
               <p className="text-xs font-bold text-rose-550 dark:text-rose-400 flex items-center gap-1.5 leading-tight">
-                📵 User is currently in another call
-              </p>
+                {"📵 User is currently in another call"}</p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-                The peer is currently engaged in a dynamic system huddle or war room stream. Please utilize offline queues.
-              </p>
+                {"The peer is currently engaged in a dynamic system huddle or war room stream. Please utilize offline queues."}</p>
             </div>
 
             {busySuccessMessage && (
@@ -3798,28 +3732,25 @@ export default function AdminTeamChat() {
             {isLeavingMessage ? (
               <div className="space-y-2 animate-fade-in">
                 <label className="text-[10px] uppercase font-mono tracking-wider font-extrabold text-slate-405 block">
-                  Compose Sticky Note:
-                </label>
+                  {"Compose Sticky Note:"}</label>
                 <textarea
                   value={stickyMessageText}
                   onChange={(e) => setStickyMessageText(e.target.value)}
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 min-h-[70px] outline-none"
-                  placeholder={`Send direct note to ${busyCallTarget.name}...`}
+                  placeholder={`${"Send direct note to "}${busyCallTarget.name}...`}
                 />
                 <div className="flex gap-2">
                   <Button
                     onClick={submitStickyMessage}
                     className="flex-1 h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl border-none shadow-none"
                   >
-                    Send Note
-                  </Button>
+                    {"Send Note"}</Button>
                   <Button
                     onClick={() => setIsLeavingMessage(false)}
                     variant="outline"
                     className="h-9 px-3 font-bold text-xs rounded-xl"
                   >
-                    Back
-                  </Button>
+                    {"Back"}</Button>
                 </div>
               </div>
             ) : (
@@ -3829,8 +3760,7 @@ export default function AdminTeamChat() {
                   className="w-full h-9 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 text-slate-705 dark:text-slate-200 font-bold text-xs rounded-xl border-none shadow-none flex items-center justify-center gap-1.5"
                 >
                   <MessageSquare className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                  Leave Message
-                </Button>
+                  {"Leave Message"}</Button>
                 <button
                   type="button"
                   onClick={toggleNotificationRequest}
@@ -3854,8 +3784,7 @@ export default function AdminTeamChat() {
                   variant="outline"
                   className="w-full h-9 font-bold text-xs rounded-xl"
                 >
-                  Close
-                </Button>
+                  {"Close"}</Button>
               </div>
             )}
           </div>

@@ -229,12 +229,9 @@ body {
   * {
     @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
+  body, html {
+    @apply bg-background text-foreground font-sans;
     }
-  html {
-    @apply font-sans;
-  }
 }
 
 /* Fix text and background color in dark mode for the selected elements */
@@ -309,5 +306,11 @@ html:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1
 }
 
 html:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(3) > div:nth-of-type(2) > p:nth-of-type(1) {
+  color: #000000 !important;
+}
+
+/* Custom style to ensure ESC text is black in both light and dark mode */
+.dark div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(1),
+html:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(1) {
   color: #000000 !important;
 }
