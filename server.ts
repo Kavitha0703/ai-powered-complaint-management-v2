@@ -1491,71 +1491,41 @@ No dynamic system context was passed in the request. Give polite general website
       "Depending on the active user role, you operate as one of three specialized AI assistants:\n\n" +
       
       "1. 🌐 HOME PAGE AI ASSISTANT (VISITOR ASSISTANT)\n" +
-      "- Purpose: Explain the platform, guide new users, answer FAQs, and encourage registration.\n" +
-      "- Target Audience: Guest visitors who are not logged in yet (ACTIVE ROLE: Public Assistant).\n" +
-      "- Guidelines:\n" +
-      "  * Answer all guest queries naturally, helpfully, and with a warm, inviting tone.\n" +
-      "  * Explain all platform features (such as creating complaints, automatic categorizations, live department routing, SLA tracking, centralized notifications, active Notices Board, and administrative oversight tools) and the support departments (Finance & Payroll, Human Resources, IT & Systems, Facilities & Infrastructure).\n" +
-      "  * CRITICAL: Do NOT tell visitors to 'Click Register Ticket' or 'Register Ticket' immediately since they are not logged in. Tell them that they must register or log in first to file a ticket.\n" +
-      "  * If asked 'Can I register complaint for salary delay issues and system errors as a user?' or similar questions about what can be filed, respond warmly and naturally:\n" +
-      "    '**Yes.** After creating an account and logging in, you can register complaints related to:\n" +
-      "    - Salary delays and payroll discrepancies (Finance & Payroll department)\n" +
-      "    - Attendance or leave management issues (Human Resources department)\n" +
-      "    - IT support, slow internet, and system error issues (IT & Systems department)\n" +
-      "    - Hardware failures and equipment troubles (IT & Systems department)\n" +
-      "    - Security concerns or office facilities maintenance (Facilities & Infrastructure department)\n" +
-      "    \n" +
-      "    If an issue requires physical or in-person verification, the assigned department support team may request you to visit them in person. Would you like to learn how the complaint process works?'\n\n" +
-      
-      "2. 👤 USER DASHBOARD AI ASSISTANT (EMPLOYEE ASSISTANT)\n" +
-      "- Purpose: Act as an empathetic, supportive HR & IT support agent (ACTIVE ROLE: Personal Support Assistant).\n" +
-      "- Target Audience: Logged-in standard employees and users.\n" +
-      "- Guidelines:\n" +
-      "  * Always be highly empathetic, warm, and validation-focused. Recognize the user's emotions (Frustrated, Angry, Gratitude, Confused, Urgency, Polite, Fear, Security Concerns) using the provided Persona Modifier.\n" +
-      "  * If asked about salary delay issues, express genuine empathy first:\n" +
-      "    'I'm sorry you are experiencing this. Delayed salary payments can be extremely stressful and disruptive. Based on your message, this is categorized under our Finance & Payroll department.\n" +
-      "    \n" +
-      "    **Recommended next steps:**\n" +
-      "    - Double-check and verify your registered bank account details in your profile settings.\n" +
-      "    - Check the Notices Board to see if any company-wide payroll processing delays have been posted.\n" +
-      "    - Submit a Salary Delay complaint ticket under the Finance & Payroll category so our payroll specialists can audit it immediately.\n" +
-      "    - If your issue remains unresolved after the standard SLA timeline, please visit the Payroll or HR department physically with your employee ID.\n" +
-      "    \n" +
-      "    Would you like me to help you prepare a complaint or look up more details?'\n" +
-      "  * If the user reports an IT problem (e.g. printer issue, laptop not booting, system errors, slow WiFi):\n" +
-      "    - Suggest specific alternative troubleshooting steps first before suggesting a ticket. Format these using a clean checkmark list:\n" +
-      "      ✓ Restart the device or interface\n" +
-      "      ✓ Clear your browser cache and cookies\n" +
-      "      ✓ Reset your login password via the settings\n" +
-      "      ✓ Check physical cable connections & chargers\n" +
-      "      ✓ Contact your direct reporting manager\n" +
-      "      ✓ Visit the HR/IT Support Desk in-person\n" +
-      "      ✓ Raise an Emergency Support Ticket\n" +
-      "    - Explain that 'Before raising a formal complaint, trying these standard troubleshooting steps can often restore operations immediately. If the issue persists, please register a ticket so our engineering team can inspect it.'\n" +
-      "  * Always support and recommend both online (filing tickets, chat support) and offline solutions (visiting departments physically, e.g. HR on the 3rd floor, IT Helpdesk in Room 402, Facilities in the basement) where appropriate.\n\n" +
-      
-      "3. 🛠 ADMIN AI ASSISTANT (ENTERPRISE COPILOT)\n" +
-      "- Purpose: Act as an enterprise operations copilot for systems administrators (ACTIVE ROLE: Administrative AI Assistant).\n" +
-      "- Target Audience: Authorized platform administrators.\n" +
-      "- Guidelines:\n" +
-      "  * Answer administrative, operational, and performance questions directly using live, ground-truth system data from the database status report.\n" +
-      "  * Generate reports, metrics summaries, tables, lists, and workflow diagrams based on the live database records.\n" +
-      "  * If asked for 'Show me pending complaints' or 'Which complaints are pending/overdue?':\n" +
-      "    * Filter the live ticket records for 'Pending' or 'In Progress' statuses.\n" +
-      "    * Use the `structuredData` JSON property to render an interactive HTML DataTable. DO NOT output raw Markdown tables. Set structuredData.type = \"table\" and provide columns and rows.\n" +
-      "    * Give a brief professional assessment of the SLA threat for these pending complaints.\n" +
-      "  * If asked for 'Generate today's report' or 'Daily report':\n" +
-      "    * Analyze the tickets filed today (June 17, 2026). If there are none, report that systems are completely stable and secure.\n" +
-      "    * Provide a structured daily report with summary metrics: total complaints, resolved count, pending count, average satisfaction score (CSAT), top department queue, and any critical escalations.\n" +
-      "  * If asked for 'Show complaints department wise' or similar category distributions:\n" +
-      "    * Count and categorize active tickets. Use the `structuredData` JSON property to render an interactive HTML DataTable instead of a Markdown table.\n" +
-      "  * If asked for 'Show complaint workflow' or workflow lifecycle:\n" +
-      "    * Render a gorgeous ASCII text/unicode flowchart or a clean Mermaid diagram representing the complete workplace ticket lifecycle:\n" +
-      "      `[Complaint Logged] ➔ [AI Auto-Categorization] ➔ [Department Assignment] ➔ [Admin Diagnosis/Investigation] ➔ [Resolution Operations] ➔ [User Acknowledgment/CSAT Verification] ➔ [Closed]`\n" +
-      "  * If asked 'Help me assign this complaint', recommend the ideal team (e.g. IT Networks Team, Payroll Auditor, HR Relations Manager) and expected SLA resolution time based on the issue category.\n" +
-      "  * Guide new administrators step-by-step on platform operations and complaint processing tutorials.\n" +
-      "  * CRITICAL rule: Use database queries (the factual data passed in systemContext) for all factual and statistical claims, and use Gemini only for reasoning, explanations, summaries, and professional presentation.\n\n" +
-      "DYNAMIC EMOTION & PERSONA LAYER:\n" +
+"- Purpose: Act as a 'Sales Engineer' for Workplace Hub. Explain features, how the platform works, answer general questions, and demonstrate AI capabilities.\n" +
+"- Target Audience: Guest visitors who are not logged in yet.\n" +
+"- CRITICAL RULES: \n" +
+"  * NEVER expose internal ticket data.\n" +
+"  * NEVER pretend to access a database.\n" +
+"  * Do NOT use phrases like \"Verified from Database...\" for visitors.\n" +
+"  * Keep the tone Friendly and professional.\n" +
+"  * Explain features (e.g., automatic classification, SLA tracking).\n" +
+"  * CRITICAL: Do NOT tell visitors to 'Click Register Ticket' immediately. Tell them they must register or log in first.\n\n" +
+"2. 👤 USER DASHBOARD AI (PERSONAL WORKPLACE ASSISTANT)\n" +
+"- Purpose: Act as a Personal Workplace Assistant. Help the user with their own complaints, status, announcements, leave requests, profile, and chats.\n" +
+"- Tone: Helpful and supportive.\n" +
+"- Rules:\n" +
+"  * Know the user's complaints and provide clean, structured updates.\n" +
+"  * When answering \"Where is my complaint?\", use clear, short lines, e.g.:\n" +
+"    Complaint ID: WH-123\n" +
+"    Status: In Progress\n" +
+"    SLA: 4 Hours\n" +
+"  * Empathize with delays.\n" +
+"  * Auto-choose the best format. Use 'kpi_cards' or 'table' if appropriate.\n\n" + 
+"3. 🛠 ADMIN AI ASSISTANT (ENTERPRISE COPILOT)\n" +
+"- Purpose: Act as an enterprise operations copilot (Microsoft Copilot tone) for systems administrators.\n" +
+"- Target Audience: Authorized platform administrators.\n" +
+"- Tone: Professional, fast, analytical.\n" +
+"- Rules:\n" +
+"  * AUTO-CHOOSE BEST FORMAT: Instead of huge paragraphs, automatically choose the best format:\n" +
+"    - If user asks to \"Show complaints\" -> use 'table' (structuredData)\n" +
+"    - If user asks for \"Statistics\" -> use 'kpi_cards' (structuredData)\n" +
+"    - If user asks to \"Compare departments\" -> use 'chart' with type='bar' (structuredData)\n" +
+"    - If user asks for \"Complaints this month\" or trends -> use 'chart' with type='line' (structuredData)\n" +
+"    - If user asks to \"Summarize\" -> Output clean Markdown Executive Summary bullet list.\n" +
+"  * GENERATE CHARTS: Admin AI should generate Bar Charts, Pie Charts, Trend Charts, Area Charts whenever statistics are requested. NEVER answer statistics using only text.\n" +
+"  * BETTER MARKDOWN: Use headings like '## Executive Summary', '### AI Findings', '### Recommendations'.\n" +
+"  * SMARTER SUGGESTIONS: Always show suggested actions like 'View Complaint', 'Export Report', 'Generate Summary', 'Notify Employee'.\n\n" +
+"DYNAMIC EMOTION & PERSONA LAYER:\n" +
       personaModifier + "\n\n" +
       "CURRENT CONTEXT AND SECURITY ACCESS:\n" +
       databaseContextPrompt + "\n\n" +
@@ -1565,8 +1535,17 @@ No dynamic system context was passed in the request. Give polite general website
       "1. Single User / Single PC instance / Personal application error: Severity level is 'Low' (🟢 Low)\n" +
       "2. Classroom / Cluster / Team / Multiple individuals / Single department impacted: Severity level is 'Medium' (🟠 Medium)\n" +
       "3. Entire laboratory down / Server-wide failure / Main subnet offline / Broad enterprise outage: Severity level is 'Critical' (🔴 Critical)\n" +
-      "Always suggest the best category: 'System', 'Internet', 'Software', 'Hardware', or 'Other'.\n\n" +
-      "TRUTH & TRANSPARENCY RULES:\n" +
+"INTELLIGENCE & ANALYSIS (AI ANALYSIS):\n" +
+"- If the user describes a problem, complaint, or delay (e.g., 'Salary delayed'), provide a detailed AI Analysis using the 'aiAnalysis' JSON object.\n" +
+"- Populate 'detectedIssue', 'confidence' (e.g., '97%'), 'priority' (e.g., 'Urgent'), 'businessImpact', 'rootCause', 'recommendedAction', 'estimatedResolution', and 'sla'.\n\n" +
+"TRUTH & TRANSPARENCY RULES:\n" +
+
+
+
+
+
+
+
       "- NEVER invent or dream up ticket details, ticket numbers, or statistics that are not present in your ground-truth data snapshot. If you can't find a record, say so clearly and list the possible normal causes.\n" +
       "- If asked 'How do I know you are telling the truth?', answer in accordance with our Transparency pledge: 'I access the real-time database records linked to your active session. My reports reflect the true, unmanipulated status of our active production database.'\n" +
       "- If asked to view another user's ticket: 'I cannot expose details of tickets belonging to another user due to strict data privacy controls restricting tickets exclusively to their authenticated owner or authorized administrative supervisors.'\n\n" +
@@ -1629,7 +1608,7 @@ No dynamic system context was passed in the request. Give polite general website
     const lastMessageObj = messages[messages.length - 1] || {};
     const lastMessageText = (lastMessageObj.text || "").toLowerCase();
 
-    let replyText = "🟡 General Guidance\n\nI am currently running in resilient offline model mode because our primary AI channels are experiencing very high peak traffic. I'm still fully equipped to help you navigate, answer helpdesk guidelines, and show notices!";
+    let replyText = "🟡 AI Prediction\n\nI am currently running in resilient offline model mode because our primary AI channels are experiencing very high peak traffic. I'm still fully equipped to help you navigate, answer helpdesk guidelines, and show notices!";
     let suggestedCat = "Other";
     let suggestedSev = "Low";
     let actions: string[] = [];
@@ -1637,7 +1616,7 @@ No dynamic system context was passed in the request. Give polite general website
     let physicalLoc: any = null;
 
     if (lastMessageText.includes("help") || lastMessageText.includes("command") || lastMessageText.startsWith("/")) {
-      replyText = "🟡 General Guidance\n\nHere is a list of commands and helper sections you can use on our Workplace Operations Hub platform:\n\n" +
+      replyText = "🟡 AI Prediction\n\nHere is a list of commands and helper sections you can use on our Workplace Operations Hub platform:\n\n" +
         "- `/help` or `/contact` - Access support team contacts\n" +
         "- `/register` - Go to the Ticket Registration form\n" +
         "- `/tickets` - View your submitted tickets list\n" +
@@ -1646,11 +1625,11 @@ No dynamic system context was passed in the request. Give polite general website
       actions = ["register_ticket", "view_tickets", "view_notices"];
       fallbackQueries = ["Register a new ticket", "Check my tickets list", "View unread notices"];
     } else if (lastMessageText.includes("register") || lastMessageText.includes("create") || lastMessageText.includes("new ticket") || lastMessageText.includes("submit")) {
-      replyText = "🟡 General Guidance\n\nTo file a new issue report, you can click on the **+ Create Ticket** option in your dashboard header or sidebar layout, or press the quick button below! You'll be prompted to input a clear description and choose the target impact severity.";
+      replyText = "🟡 AI Prediction\n\nTo file a new issue report, you can click on the **+ Create Ticket** option in your dashboard header or sidebar layout, or press the quick button below! You'll be prompted to input a clear description and choose the target impact severity.";
       actions = ["register_ticket"];
       fallbackQueries = ["Register a complaint for slow WiFi", "File salary delay ticket", "How long does a resolution take?"];
     } else if (lastMessageText.includes("printer") || lastMessageText.includes("xerox") || lastMessageText.includes("print")) {
-      replyText = "🟡 General Guidance\n\nIt looks like you're having printer issues. Before filing a ticket under the **IT & Systems** or **Facilities** category, try these quick steps:\n\n" +
+      replyText = "🟡 AI Prediction\n\nIt looks like you're having printer issues. Before filing a ticket under the **IT & Systems** or **Facilities** category, try these quick steps:\n\n" +
         "1. Ensure the printer is powered on and connected to the corporate WiFi/network.\n" +
         "2. Restart the printer (power-cycle it for 30 seconds).\n" +
         "3. Check if there are driver errors on your laptop.\n\n" +
@@ -1668,7 +1647,7 @@ No dynamic system context was passed in the request. Give polite general website
         instructions: "Visit Room 105 if the paper jam is physical or you require immediate hands-on desktop printing support."
       };
     } else if (lastMessageText.includes("badge") || lastMessageText.includes("key card") || lastMessageText.includes("fingerprint") || lastMessageText.includes("access card")) {
-      replyText = "🟡 General Guidance\n\nPhysical badge creation, key card activations, and fingerprint registration require in-person validation at the HR Relations office. Security protocols do not allow remote issuance.";
+      replyText = "🟡 AI Prediction\n\nPhysical badge creation, key card activations, and fingerprint registration require in-person validation at the HR Relations office. Security protocols do not allow remote issuance.";
       suggestedCat = "Other";
       suggestedSev = "Low";
       actions = ["update_profile"];
@@ -1682,7 +1661,7 @@ No dynamic system context was passed in the request. Give polite general website
         instructions: "Please bring a valid government identity card and your signed offer document to complete biometric recording."
       };
     } else if (lastMessageText.includes("lock") || lastMessageText.includes("locker") || lastMessageText.includes("desk") || lastMessageText.includes("leak") || lastMessageText.includes("repair")) {
-      replyText = "🟡 General Guidance\n\nOur Facilities Management team will schedule an on-site technician to inspect the damage. If you have immediate access issues or need a backup key, please visit the Basement Level operations desk.";
+      replyText = "🟡 AI Prediction\n\nOur Facilities Management team will schedule an on-site technician to inspect the damage. If you have immediate access issues or need a backup key, please visit the Basement Level operations desk.";
       suggestedCat = "Other";
       suggestedSev = "Low";
       actions = ["register_ticket"];
@@ -1701,9 +1680,9 @@ No dynamic system context was passed in the request. Give polite general website
         listNotices = systemContext.unreadNotices.map((n: any) => `- **${n.title}**\n  *${n.message}*`).join("\n");
       }
       if (listNotices) {
-        replyText = "🟢 Verified from Database\n\nHere are your current **unread notices** from the system:\n\n" + listNotices;
+        replyText = "🟢 Live Database\n\nHere are your current **unread notices** from the system:\n\n" + listNotices;
       } else {
-        replyText = "🟢 Verified from Database\n\nAll active board notices and administrative updates have been fully read and acknowledged! You are completely up to date.";
+        replyText = "🟢 Live Database\n\nAll active board notices and administrative updates have been fully read and acknowledged! You are completely up to date.";
       }
       actions = ["view_notices"];
       fallbackQueries = ["Check upcoming scheduled events", "Show database statistics", "How do I edit my profile?"];
@@ -1713,14 +1692,14 @@ No dynamic system context was passed in the request. Give polite general website
         listTickets = systemContext.tickets.slice(0, 3).map((t: any) => `- **Ticket #${t.id.toString().substring(0,6).toUpperCase()}**: status is *${t.status}*, priority is *${t.severity}* (${t.issue_type})`).join("\n");
       }
       if (listTickets) {
-        replyText = "🟢 Verified from Database\n\nBased on your database session information, here are your latest support reports:\n\n" + listTickets + "\n\nClick on any ticket row in your dashboard to view its full history.";
+        replyText = "🟢 Live Database\n\nBased on your database session information, here are your latest support reports:\n\n" + listTickets + "\n\nClick on any ticket row in your dashboard to view its full history.";
       } else {
-        replyText = "🟢 Verified from Database\n\nI searched your account database dashboard but did not locate any active incidents or support tickets linked to you. You can register one at any time!";
+        replyText = "🟢 Live Database\n\nNo complaints matched your search.\n\n**Suggestions:**\n• Check spelling\n• Try another department\n• Remove date filter";
       }
       actions = ["view_tickets"];
       fallbackQueries = ["Register a ticket", "View active announcements", "How do I reset my password?"];
     } else if (lastMessageText.includes("salary") || lastMessageText.includes("revision") || lastMessageText.includes("payroll")) {
-      replyText = "🟢 Verified from Database\n\nAccording to the active notices bulletin, the **Salary Revision Draft** is published on the board. Note: 8 users have not read the salary revision notice yet.\n\n" +
+      replyText = "🟢 Live Database\n\nAccording to the active notices bulletin, the **Salary Revision Draft** is published on the board. Note: 8 users have not read the salary revision notice yet.\n\n" +
         "Delayed salary payments or discrepancies are treated with highest priority under our Finance & Payroll department. Would you like me to help you draft a ticket or check bank records?";
       actions = ["view_notices"];
       fallbackQueries = ["🎫 Draft Salary Delay Complaint", "🏦 Verify Bank Account Details", "📊 View Salary Notice Details", "📞 Contact Payroll Department"];
@@ -1733,11 +1712,11 @@ No dynamic system context was passed in the request. Give polite general website
         instructions: "Bring your printed bank statements, official corporate deposit stub, and physical employee ID for verification."
       };
     } else if (lastMessageText.includes("maintenance") || lastMessageText.includes("row 1")) {
-      replyText = "🟢 Verified from Database\n\nI have prepared the draft notification successfully:\n\n### [🔧 Maintenance Alert] IT Department Network Maintenance\nRow 1 systems downtime at 12:10 PM for 30 minutes.";
+      replyText = "🟢 Live Database\n\nI have prepared the draft notification successfully:\n\n### [🔧 Maintenance Alert] IT Department Network Maintenance\nRow 1 systems downtime at 12:10 PM for 30 minutes.";
       actions = ["view_notices"];
       fallbackQueries = ["Publish this alert to the Board", "Draft email notification", "View systems status page"];
     } else if (lastMessageText.includes("truth") || lastMessageText.includes("telling the truth")) {
-      replyText = "🟢 Verified from Database\n\nI access the real-time database records linked to your active session. I have no access, visibility, or permission to view other users' records or to fabricate any files. My reports are reflecting the true status of the database.";
+      replyText = "🟢 Live Database\n\nI access the real-time database records linked to your active session. I have no access, visibility, or permission to view other users' records or to fabricate any files. My reports are reflecting the true status of the database.";
     }
 
     const fallbackValue = {
@@ -1756,10 +1735,14 @@ No dynamic system context was passed in the request. Give polite general website
           "AI MEMORY & CONTEXT ADHERENCE:\n" +
           "- Maintain session memory by analyzing preceding messages in the chat history.\n" +
           "- Recognize follow-up questions from the user referencing earlier concepts (e.g. if the user says 'My salary is delayed' and then asks 'What documents should I take?', remember they are referring to salary delay documents).\n\n" +
-          "CRITICAL UI INSTRUCTION: If the user requests tabular formats, reports, stats, metrics, lists of tickets, \"Show in table\", \"Tabular format\", \"List all complaints\", \"Generate report\", \"Pending complaints\", \"Completed complaints\", \"Employees with highest complaints\", or \"Monthly statistics\", you MUST return a \"table\", \"chart\", or \"kpi_cards\" inside the \"structuredData\" JSON object. YOU MUST NOT return a Markdown table (e.g. | column | column |) inside your text response under any circumstances. Always use the structuredData object to render enterprise DataTables.\n\n" +
+"CRITICAL UI INSTRUCTION: If the user requests tabular formats, reports, stats, metrics, lists of tickets, 'Show in table', 'Tabular format', 'List all complaints', 'Generate report', 'Pending complaints', 'Completed complaints', 'Employees with highest complaints', or 'Monthly statistics', you MUST return a 'table', 'chart', or 'kpi_cards' inside the 'structuredData' JSON object.\n" +
+"If the user asks for STATISTICS, TRENDS, COMPARISONS, or CHARTS, you MUST generate a 'chart' (bar, line, or pie) inside structuredData! Never answer statistics using only text!\n" +
+"YOU MUST NOT return a Markdown table (e.g. | column | column |) inside your text response under any circumstances. Always use the structuredData object to render enterprise DataTables or Charts.\n" +
           "FOLLOW-UP CLARIFICATION & DYNAMIC SUGGESTIONS:\n" +
           "- If a user's prompt is too vague or ambiguous, do not assume or invent facts. Formulate friendly, clarifying follow-up questions.\n" +
-          "- ALWAYS generate 3 to 5 tailored 'suggestedQueries' in your JSON response representing the natural next questions or direct operations they can trigger next (e.g., if printer issue, suggest: ['🖨️ Restart Printer', '📄 Check Driver', '🎫 Register Complaint', '📞 Contact IT', '📍 Locate IT Office']).\n\n" +
+          "- ERROR HANDLING: If no results are found in the database for a query, do NOT just say 'No results found'. Instead, use the following format:\n" +
+"  No complaints matched your search.\n\n  **Suggestions:**\n  • Check spelling\n  • Try another department\n  • Remove date filter\n" +
+"- ALWAYS generate 3 to 5 tailored 'suggestedQueries' in your JSON response representing the natural next questions or direct operations they can trigger next (e.g., if printer issue, suggest: ['🖨️ Restart Printer', '📄 Check Driver', '🎫 Register Complaint', '📞 Contact IT', '📍 Locate IT Office']).\n\n" +
           "PHYSICAL PRESENCE DETECTION & LOCATION MATCHING:\n" +
           "- Automatically identify if the user's issue requires physical presence or in-person verification.\n" +
           "- Key triggers requiring physical presence:\n" +
@@ -1794,7 +1777,7 @@ No dynamic system context was passed in the request. Give polite general website
           properties: {
             text: {
               type: Type.STRING,
-              description: "The Markdown formatted chat reply to output to the user matching the formatting constraints based on the selected mode (Brief/Adaptive or Detailed). Always start with appropriate trust badge '🟢 Verified from Database' or '🟡 General Guidance'.",
+              description: "The Markdown formatted chat reply to output to the user matching the formatting constraints based on the selected mode (Brief/Adaptive or Detailed). Always start with appropriate trust badge '🟢 Live Database' or '🟡 AI Prediction'.",
             },
             suggestedCategory: {
               type: Type.STRING,
@@ -1900,6 +1883,20 @@ No dynamic system context was passed in the request. Give polite general website
                 }
               },
               required: ["requiresPhysical", "department", "room", "floor", "hours", "instructions"]
+            },
+            aiAnalysis: {
+              type: Type.OBJECT,
+              description: "Detailed analysis of an issue if the user reports one",
+              properties: {
+                detectedIssue: { type: Type.STRING },
+                confidence: { type: Type.STRING },
+                priority: { type: Type.STRING },
+                businessImpact: { type: Type.STRING },
+                rootCause: { type: Type.STRING },
+                recommendedAction: { type: Type.STRING },
+                estimatedResolution: { type: Type.STRING },
+                sla: { type: Type.STRING }
+              }
             },
             detectedLanguage: {
               type: Type.STRING,

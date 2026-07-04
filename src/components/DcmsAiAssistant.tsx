@@ -61,6 +61,7 @@ interface ChatMessage {
   detectedLanguage?: string;
   originalComplaint?: string;
   translatedComplaint?: string;
+  aiAnalysis?: { detectedIssue?: string; confidence?: string; priority?: string; businessImpact?: string; rootCause?: string; recommendedAction?: string; estimatedResolution?: string; sla?: string; };
   physicalLocation?: {
     requiresPhysical: boolean;
     department: string;
@@ -1264,7 +1265,8 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         structuredData: rawResult.structuredData,
         detectedLanguage: rawResult.detectedLanguage,
         originalComplaint: rawResult.originalComplaint,
-        translatedComplaint: rawResult.translatedComplaint
+        translatedComplaint: rawResult.translatedComplaint,
+        aiAnalysis: rawResult.aiAnalysis
       };
       
       const fullText = rawResult.text || "I was unable to analyze that request accurately.";
@@ -1283,7 +1285,8 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         structuredData: rawResult.structuredData,
         detectedLanguage: rawResult.detectedLanguage,
         originalComplaint: rawResult.originalComplaint,
-        translatedComplaint: rawResult.translatedComplaint
+        translatedComplaint: rawResult.translatedComplaint,
+        aiAnalysis: rawResult.aiAnalysis
       };
 
       // Append empty AI Assistant response to active state
@@ -1328,7 +1331,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
             typingIntervalRef.current = null;
           }
         }
-      }, 25); // high response speed (25ms per word)
+      }, 10); // ultra high response speed
     } catch (err: any) {
       console.error(err);
       
@@ -1782,7 +1785,69 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                     </div>
                   )}
 
-                  {/* Classification suggestions */}
+                  {m.aiAnalysis && m.aiAnalysis.detectedIssue && (
+  <div className="mt-3.5 p-3 bg-gradient-to-br from-indigo-950/40 to-blue-900/20 border border-indigo-500/20 rounded-xl space-y-2">
+    <div className="flex items-center justify-between pb-2 border-b border-indigo-500/20">
+      <span className="text-[10px] font-black uppercase text-indigo-400 tracking-wider flex items-center gap-1 font-mono">
+        <Sparkles className="w-3 h-3 text-indigo-400" /> AI Analysis
+      </span>
+      {m.aiAnalysis.confidence && (
+        <span className="text-[9px] font-bold text-slate-400 bg-black/30 px-1.5 py-0.5 rounded">
+          Confidence: <span className="text-emerald-400">{m.aiAnalysis.confidence}</span>
+        </span>
+      )}
+    </div>
+    
+    <div className="grid grid-cols-2 gap-2 text-[10px] leading-relaxed">
+      <div>
+        <span className="text-slate-500 font-bold block mb-0.5">Detected Issue</span>
+        <span className="text-slate-200 font-medium">{m.aiAnalysis.detectedIssue}</span>
+      </div>
+      <div>
+        <span className="text-slate-500 font-bold block mb-0.5">Priority</span>
+        <span className={`font-medium ${m.aiAnalysis.priority === 'Urgent' || m.aiAnalysis.priority === 'Critical' ? 'text-rose-400' : 'text-amber-400'}`}>{m.aiAnalysis.priority || 'Normal'}</span>
+      </div>
+      
+      {m.aiAnalysis.businessImpact && (
+        <div className="col-span-2">
+          <span className="text-slate-500 font-bold block mb-0.5">Business Impact</span>
+          <span className="text-slate-200 font-medium">{m.aiAnalysis.businessImpact}</span>
+        </div>
+      )}
+      
+      {m.aiAnalysis.rootCause && (
+        <div className="col-span-2">
+          <span className="text-slate-500 font-bold block mb-0.5">Likely Root Cause</span>
+          <span className="text-slate-200 font-medium">{m.aiAnalysis.rootCause}</span>
+        </div>
+      )}
+      
+      {m.aiAnalysis.recommendedAction && (
+        <div className="col-span-2">
+          <span className="text-slate-500 font-bold block mb-0.5">Recommended Action</span>
+          <span className="text-indigo-300 font-medium">{m.aiAnalysis.recommendedAction}</span>
+        </div>
+      )}
+      
+      <div className="flex items-center gap-4 col-span-2 pt-1 border-t border-indigo-500/10">
+        {m.aiAnalysis.estimatedResolution && (
+          <div>
+            <span className="text-slate-500 font-bold mr-1">Est. Resolution:</span>
+            <span className="text-slate-300 font-medium">{m.aiAnalysis.estimatedResolution}</span>
+          </div>
+        )}
+        {m.aiAnalysis.sla && (
+          <div>
+            <span className="text-slate-500 font-bold mr-1">SLA:</span>
+            <span className="text-slate-300 font-medium">{m.aiAnalysis.sla}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+{/* Classification suggestions */}
                   {m.translatedComplaint && (
                     <div className="mt-4 p-3.5 bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/20 rounded-2xl space-y-2.5">
                       <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-1.5 font-mono">
@@ -2257,7 +2322,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                                 <button
                                   key={act}
                                   onClick={() => handleTriggerQuickAction(act)}
-                                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] text-slate-200 font-bold rounded cursor-pointer"
+                                  className="px-2 py-1 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-[10px] text-slate-900 dark:text-white font-bold rounded cursor-pointer shadow-sm transition-colors"
                                 >
                                   {label}
                                 </button>
