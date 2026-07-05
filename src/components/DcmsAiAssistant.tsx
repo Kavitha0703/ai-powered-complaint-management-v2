@@ -635,7 +635,8 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       id: "welcome_" + Date.now(),
       sender: "assistant",
       text: greetingText,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      quickActions: ["register_ticket", "view_tickets", "view_notices"]
     };
     
     const newThread: ChatThread = {
@@ -2146,7 +2147,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
   // ==========================================
   return (
     <div 
-      className="fixed bottom-24 right-6 z-[9999] font-sans flex flex-col items-center gap-2"
+      className="fixed bottom-6 md:bottom-24 right-6 z-[9999] font-sans flex flex-col items-center gap-2"
       style={{
         transform: `translate(${position.x}px, ${position.y}px)`,
       }}
@@ -2160,32 +2161,6 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
             // Responsive: dynamic screen-fitted heights & widths with explicit device min-widths & min-heights
             className="absolute bottom-16 right-0 z-[9999] w-[300px] h-[450px] min-w-[280px] min-h-[400px] sm:w-[340px] sm:h-[500px] sm:min-w-[300px] sm:min-h-[450px] lg:w-[360px] lg:h-[540px] lg:min-w-[320px] lg:min-h-[500px] xl:w-[385px] xl:h-[580px] xl:min-w-[340px] xl:min-h-[530px] bg-slate-900/95 dark:bg-[#070B13]/95 backdrop-blur-xl border border-slate-800/80 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-white cursor-default"
           >
-              {/* Floating Widget Header */}
-              <div 
-                onMouseDown={handleDragStart}
-                onTouchStart={handleDragStart}
-                className="px-5 py-4 bg-slate-950/90 border-b border-slate-800/80 flex justify-between items-center shrink-0 cursor-grab active:cursor-grabbing select-none"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20 relative shrink-0 border border-blue-400/20">
-                    <Sparkles className="w-4 h-4 text-white animate-pulse" />
-                    <span className="absolute bottom-[-1px] right-[-1px] w-2.5 h-2.5 bg-emerald-400 rounded-full border border-slate-950 animate-pulse" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black tracking-tight flex items-center gap-1.5">
-                      <span>{"Workplace Hub AI"}</span>
-                      <span className="px-1.5 py-0.5 text-[8px] font-black bg-emerald-950/80 text-emerald-400 border border-emerald-900/40 rounded-full uppercase flex items-center gap-0.5 animate-pulse shrink-0">
-                        <span className="w-1 h-1 rounded-full bg-emerald-400" /> {"Online"}</span>
-                    </h4>
-                    <div className="mt-0.5">
-                      {getRoleBadge()}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                </div>
-              </div>
-
               {/* Dynamic Mode Switcher Bar */}
               <div className="bg-[#0b0f19] border-b border-slate-800/80 px-4 py-2 flex items-center justify-between gap-2 text-[10px] shrink-0">
                 <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">

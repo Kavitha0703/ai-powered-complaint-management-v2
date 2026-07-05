@@ -920,7 +920,7 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
           </h1>
         </div>
 
-        {/* Desktop Menu */}
+        {/* Desktop Menu (>1024px) */}
         <div className="space-x-6 text-xs font-black text-slate-705 hidden lg:flex items-center">
           <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-blue-600 active:scale-95 transition-all text-slate-700 dark:text-slate-300">{"Home"}</button>
           <button onClick={() => scrollToSection('features')} className="hover:text-blue-600 active:scale-95 transition-all text-slate-700 dark:text-slate-300">{"Features"}</button>
@@ -928,8 +928,7 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
           <button onClick={() => scrollToSection('faq')} className="hover:text-blue-600 active:scale-95 transition-all text-slate-700 dark:text-slate-300">{"Support"}</button>
         </div>
 
-        {/* Desktop Actions */}
-          
+        {/* Desktop Actions (>1024px) */}
         <div className="hidden lg:flex gap-2 items-center">
           <Button 
             onClick={triggerInstallApp} 
@@ -955,8 +954,30 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
           </Link>
         </div>
 
-        {/* Mobile Hamburger */}
-        <div className="lg:hidden">
+        {/* Tablet Actions (768px - 1024px) */}
+        <div className="hidden md:flex lg:hidden gap-2 items-center">
+           <Link 
+            to="/auth/user"
+            onClick={(e) => {
+              const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+              if (isIframe) {
+                e.preventDefault();
+                setShowLaunchModal(true);
+              }
+            }}
+          >
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-md shadow-blue-500/10 h-9 transition-all">{"Launch"}</Button>
+          </Link>
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="text-slate-700 dark:text-slate-200 p-2 ml-2"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+
+        {/* Mobile Hamburger (<768px) */}
+        <div className="md:hidden flex items-center">
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="text-slate-700 dark:text-slate-200 p-2"
@@ -1001,7 +1022,7 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
 
       <main className="flex-1">
         {/* PREMIUM HERO SECTION WITH AURORA ANIMATIONS */}
-        <section className="relative bg-[#0B132B] text-white py-24 md:py-32 px-6 overflow-hidden">
+        <section className="relative bg-[#0B132B] text-white py-24 md:py-32 px-6 sm:px-8 overflow-hidden">
           {/* Glowing Animated Orbs */}
           <div className="absolute top-[-10%] left-[10%] w-[450px] h-[450px] bg-blue-600 rounded-full mix-blend-screen filter blur-[150px] opacity-25 animate-pulse"></div>
           <div className="absolute bottom-[10%] right-[5%] w-[400px] h-[400px] bg-cyan-500 rounded-full mix-blend-screen filter blur-[140px] opacity-20"></div>
@@ -1019,33 +1040,28 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
 
               <p className="text-slate-200 text-sm md:text-base max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed">{"Resolve employee issues 70% faster with intelligent ticket routing, AI diagnostics, real-time tracking and automated SLA management."}</p>
 
-              <div className="pt-2 flex flex-wrap justify-center lg:justify-start gap-4">
-                <Link to="/auth/user">
-                  <Button id="tour-get-started-btn" size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-extrabold shadow-lg shadow-cyan-500/20 border-0 rounded-2xl h-12 md:h-14 px-8 text-xs transform hover:-translate-y-0.5 transition-all">
-                    {"Employee Portal"}<ArrowRight className="ml-2 h-4 w-4" />
+              <div className="pt-2 flex flex-col sm:flex-row justify-center lg:justify-start gap-4 w-full sm:w-auto px-4 sm:px-0">
+                <Link to="/auth/user" className="w-full sm:w-auto">
+                  <Button id="tour-get-started-btn" size="lg" className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-extrabold shadow-lg shadow-cyan-500/20 border-0 rounded-2xl h-12 md:h-14 px-8 text-xs transform hover:-translate-y-0.5 transition-all">
+                    {"Get Started as User"}<ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
-                <Link to="/auth/admin">
-                  <Button id="tour-admin-portal-btn" size="lg" variant="outline" className="bg-slate-900/40 backdrop-blur-xl border-slate-700/60 text-slate-200 hover:bg-slate-800/80 hover:text-white transition-all rounded-2xl h-12 md:h-14 px-8 text-xs">
-                    <ShieldCheck className="mr-2 h-4 w-4 text-cyan-400" /> {"Administrator Portal"}</Button>
+                <Link to="/auth/admin" className="w-full sm:w-auto">
+                  <Button id="tour-admin-portal-btn" size="lg" variant="outline" className="w-full bg-slate-900/40 backdrop-blur-xl border-slate-700/60 text-slate-200 hover:bg-slate-800/80 hover:text-white transition-all rounded-2xl h-12 md:h-14 px-8 text-xs">
+                    <ShieldCheck className="mr-2 h-4 w-4 text-cyan-400" /> {"Admin Portal"}</Button>
+                </Link>
+                <Link to="/auth/user" onClick={(e) => {
+                  const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+                  if (isIframe) {
+                    e.preventDefault();
+                    setShowLaunchModal(true);
+                  }
+                }} className="w-full sm:w-auto lg:hidden">
+                  <Button size="lg" variant="outline" className="w-full bg-slate-900/40 backdrop-blur-xl border-slate-700/60 text-slate-200 hover:bg-slate-800/80 hover:text-white transition-all rounded-2xl h-12 md:h-14 px-8 text-xs">
+                    {"Launch Demo"}</Button>
                 </Link>
               </div>
-
-              {/* Trust Indicators */}
-              <div className="pt-8 flex flex-col gap-4">
-                <div className="flex items-center gap-2 justify-center lg:justify-start text-yellow-500 text-sm">
-                  <Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" />
-                  <span className="text-white font-bold ml-2 text-xs">{"Trusted by Enterprises"}</span>
-                </div>
-                <div className="flex flex-wrap justify-center lg:justify-start gap-3 text-[10px] sm:text-[11px] font-black text-slate-200 uppercase tracking-wider">
-                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14223A]/80 rounded-full border border-slate-800 backdrop-blur-sm"><span className="w-2 h-2 rounded-full bg-blue-400"></span> {"99.8% SLA Accuracy"}</span>
-                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14223A]/80 rounded-full border border-slate-800 backdrop-blur-sm"><span className="w-2 h-2 rounded-full bg-purple-400"></span> {"AI Powered"}</span>
-                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14223A]/80 rounded-full border border-slate-800 backdrop-blur-sm"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> {"24×7 Monitoring"}</span>
-                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#14223A]/80 rounded-full border border-slate-800 backdrop-blur-sm"><span className="w-2 h-2 rounded-full bg-cyan-400"></span> {"PWA Enabled"}</span>
-                </div>
-              </div>
             </div>
-
             {/* Right side: Ask AI Assistant Container */}
             <div className="lg:col-span-5 w-full">
               <div className="w-full max-w-sm mx-auto bg-slate-900/80 backdrop-blur-lg border border-slate-805/70 p-6 rounded-3xl shadow-xl space-y-5 text-left relative">

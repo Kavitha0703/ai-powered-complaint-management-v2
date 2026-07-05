@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+const fs = require('fs');
+
+const code = `import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   X, Smartphone, QrCode, Clipboard, Share2, 
@@ -290,11 +292,11 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
                   </div>
                   <button
                     onClick={triggerNativePWAInstall}
-                    className={`w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    className={\`w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer \${
                       isInstalled 
                         ? "bg-emerald-950/40 border border-emerald-900 text-emerald-400" 
                         : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg"
-                    }`}
+                    }\`}
                   >
                     {isInstalled ? (
                       <><Check className="w-5 h-5" /> {"Installed Successfully"}</>
@@ -452,3 +454,5 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
     </>
   );
 }
+`
+fs.writeFileSync('src/components/AppInstallModal.tsx', code);

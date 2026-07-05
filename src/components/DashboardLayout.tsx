@@ -297,8 +297,39 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
                             </div>
                           )}
                         </Link>
-                      );
-                   })}
+                      );                   })}
+                    {isMobileDrawer && (
+                      <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800/80">
+                        <button 
+                          onClick={() => { setMobileSidebarOpen(false); setNotifOpen(true); }}
+                          className="w-full flex items-center px-3 pl-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+                        >
+                          <Bell className="w-4 h-4 shrink-0 transition-transform duration-200 text-slate-400 mr-3" />
+                          <span>{"Notifications"}</span>
+                          {unreadCount > 0 && (
+                            <span className="ml-auto w-5 h-5 bg-red-500 rounded-full text-[10px] text-white font-extrabold flex items-center justify-center animate-bounce">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </button>
+
+                        <button 
+                          onClick={() => { setMobileSidebarOpen(false); window.dispatchEvent(new CustomEvent("open-install-modal")); }}
+                          className="w-full flex items-center px-3 pl-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+                        >
+                          <Smartphone className="w-4 h-4 shrink-0 transition-transform duration-200 text-cyan-500 mr-3" />
+                          <span>{"Install App"}</span>
+                        </button>
+                        
+                        <button 
+                          onClick={() => { setMobileSidebarOpen(false); setTheme(theme === 'dark' ? 'light' : 'dark'); }}
+                          className="w-full flex items-center px-3 pl-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+                        >
+                          {theme === 'dark' ? <Sun className="w-4 h-4 shrink-0 transition-transform duration-200 text-amber-500 mr-3" /> : <Moon className="w-4 h-4 shrink-0 transition-transform duration-200 text-slate-500 mr-3" />}
+                          <span>{theme === 'dark' ? 'Light Theme' : 'Dark Theme'}</span>
+                        </button>
+                      </div>
+                    )}
                  </nav>
               </div>
 
@@ -446,29 +477,14 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
           </div>
 
           <div className="flex items-center gap-4 ml-auto">
-            {/* Quick Actions Array - Desktop Only */}
-            <div className="hidden lg:flex items-center gap-2 mr-2">
-              {dbUser?.role !== 'admin' && (
-                <>
-                  <Button id="tour-new-ticket-btn" onClick={() => navigate('/dashboard/register')} variant="outline" size="sm" className="h-8 text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0B1222] text-slate-700 dark:text-slate-200 mb-0">
-                    <Plus className="w-3.5 h-3.5 mr-1" /> {"New Ticket"}</Button>
-                  <Button id="tour-my-tickets-btn" onClick={() => navigate('/dashboard/my-complaints')} variant="outline" size="sm" className="h-8 text-xs font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0B1222] text-slate-700 dark:text-slate-200 mb-0">
-                    <FileText className="w-3.5 h-3.5 mr-1" /> {"My Tickets"}</Button>
-                </>
-              )}
-              <Button id="tour-ask-ai-btn" onClick={() => navigate(dbUser?.role === 'admin' ? '/admin/ai-assistant' : '/dashboard/ai-assistant')} size="sm" className="h-8 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm mb-0">
-                <Sparkles className="w-3.5 h-3.5 mr-1" /> {"Ask AI"}</Button>
-            </div>
+            {/* Quick Actions Array - Desktop Only (Removed) */}
             {/* SLA Status Indicator Pill */}
             <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-full border border-emerald-100 dark:border-emerald-950/60 text-[11px] font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               {"99.2% Global SLA Compliance"}</div>
 
             {/* PWA MOBILE INSTALL & DISTRIBUTE TRIGGER */}
-            <button
-              id="tour-install-app"
-              onClick={() => window.dispatchEvent(new CustomEvent("open-install-modal"))}
-              className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-cyan-400 flex items-center justify-center transition-colors shadow-sm border border-slate-100 dark:border-slate-800 bg-[#FCFDFE] dark:bg-[#11192A]"
+            <button id="tour-install-app" onClick={() => window.dispatchEvent(new CustomEvent("open-install-modal"))} className="hidden md:flex w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-cyan-400 flex items-center justify-center transition-colors shadow-sm border border-slate-100 dark:border-slate-800 bg-[#FCFDFE] dark:bg-[#11192A]"
               title={"Install & Share Mobile PWA"}
             >
               <Smartphone className="w-4 h-4 text-cyan-500" />
@@ -477,19 +493,15 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
 
 
             {/* LIGHT / DARK THEME TOGGLE */}
-            <button
-              id="tour-theme-toggle"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors shadow-sm border border-slate-100 dark:border-slate-800 bg-[#FCFDFE] dark:bg-[#11192A]"
+            <button id="tour-theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="hidden md:flex w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors shadow-sm border border-slate-100 dark:border-slate-800 bg-[#FCFDFE] dark:bg-[#11192A]"
               title={"Toggle Light / Dark Mode"}
             >
               {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
             </button>
 
             {/* Notification Bell (Triggers Drawer) */}
-            <div className="relative">
-              <button 
-                id="tour-notification-bell"
+            <div className="relative hidden md:block">
+              <button id="tour-notification-bell"
                 onClick={() => setNotifOpen(true)}
                 className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors relative shadow-sm border border-slate-100 dark:border-slate-800 bg-[#FCFDFE] dark:bg-[#11192A]"
                 title={"System Notifications"}
@@ -566,113 +578,6 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
             {children}
           </div>
         </main>
-
-        {/* FLOATING QUICK ACTIONS BAR */}
-        <div className="fixed bottom-6 right-6 z-40 flex flex-col-reverse md:flex-row items-end md:items-center gap-3 font-sans transition-all duration-300">
-          
-          <button
-            onClick={() => setFabContainerExpanded(!fabContainerExpanded)}
-            className={`w-10 h-10 rounded-full bg-white dark:bg-[#1E293B] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-lg transition-transform duration-300 hover:scale-105 active:scale-95 cursor-pointer z-50 ${fabContainerExpanded ? "rotate-90 md:rotate-0" : "-rotate-90 md:rotate-180"}`}
-            title={fabContainerExpanded ? "Hide Quick Actions" : "Show Quick Actions"}
-          >
-            <ChevronRight className="w-5 h-5 hidden md:block" />
-            <ChevronRight className="w-5 h-5 block md:hidden" style={{ transform: "rotate(-90deg)" }} />
-          </button>
-
-          <AnimatePresence>
-            {fabContainerExpanded && (
-              <motion.div 
-                initial={{ opacity: 0, x: window.innerWidth > 768 ? 20 : 0, y: window.innerWidth > 768 ? 0 : 20, pointerEvents: 'none' }}
-                animate={{ opacity: 1, x: 0, y: 0, pointerEvents: 'auto' }}
-                exit={{ opacity: 0, x: window.innerWidth > 768 ? 20 : 0, y: window.innerWidth > 768 ? 0 : 20, pointerEvents: 'none' }}
-                transition={{ duration: 0.2 }}
-                className="flex flex-col-reverse md:flex-row items-end md:items-center gap-3"
-              >
-                {/* Distinct FAQ Help Button next to FAB */}
-                <button
-                  onClick={() => setHelpOpen(true)}
-                  className="w-11 h-11 rounded-full bg-slate-900 hover:bg-black text-white dark:bg-white dark:text-slate-950 hover:scale-105 active:scale-95 flex items-center justify-center shadow-lg transition-all border border-slate-205/10 dark:border-slate-200/30 font-bold text-base cursor-pointer"
-                  title={"Interactive FAQ & SLAs"}
-                >
-                  ❓
-                </button>
-
-                <div className="relative flex flex-col items-end gap-2.5">
-                  <AnimatePresence>
-                    {fabOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className="flex flex-col gap-2.5 items-end absolute bottom-14 right-0 z-40"
-                      >
-                        {/* Action 1: Register Ticket */}
-                        {dbUser?.role !== 'admin' && (
-                          <div className="flex items-center gap-2 group relative">
-                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#0B1222] border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap absolute right-[110%] mr-2">
-                              {"Register Issue File"}</span>
-                            <button 
-                              onClick={() => {
-                                setFabOpen(false);
-                                navigate("/dashboard/register");
-                              }}
-                              className="w-11 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all border border-blue-500"
-                              title={"Register Ticket"}
-                            >
-                              <PenSquare className="w-4.5 h-4.5" />
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Action 2: Check Notices */}
-                        <div className="flex items-center gap-2 group relative">
-                          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#0B1222] border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap absolute right-[110%] mr-2">
-                            {"View Bulletin Notices"}</span>
-                          <button 
-                            onClick={() => {
-                              setFabOpen(false);
-                              navigate(dbUser?.role === 'admin' ? "/admin/notices" : "/dashboard/notices");
-                            }}
-                            className="w-11 h-11 bg-[#10B981] hover:bg-[#0D9668] text-white rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all border border-emerald-550"
-                            title={"View System Notices"}
-                          >
-                            <Bell className="w-4.5 h-4.5" />
-                          </button>
-                        </div>
-                        
-                        {/* Action 3: AI Assistant */}
-                        <div className="flex items-center gap-2 group relative">
-                          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#0B1222] border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap absolute right-[110%] mr-2">
-                            {"AI Assistant"}</span>
-                          <button 
-                            onClick={() => {
-                              setFabOpen(false);
-                              navigate(dbUser?.role === 'admin' ? "/admin/ai-assistant" : "/dashboard/ai-assistant");
-                            }}
-                            className="w-11 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all border border-indigo-500"
-                            title={"Open AI Assistant"}
-                          >
-                            <Sparkles className="w-4.5 h-4.5" />
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Trigger FAB Button */}
-                  <button
-                    onClick={() => setFabOpen(!fabOpen)}
-                    className={`w-12 h-12 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-650 dark:from-indigo-600 dark:to-cyan-500 text-white flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all relative z-40 border border-indigo-505/30 ${fabOpen ? "rotate-45" : ""}`}
-                    style={{ transition: "all 0.25s ease" }}
-                    title={"SaaS Quick Menu"}
-                  >
-                    <Plus className="w-6 h-6" />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
 
       </div>
 
