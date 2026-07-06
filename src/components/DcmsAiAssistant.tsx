@@ -1155,20 +1155,21 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       let systemContext: any = null;
       try {
         if (dbUser && chatbotMode === "user") {
-          // Fetch current user's tickets
-          const { data: userTickets } = await supabase
-            .from("tickets")
-            .select("id, issue_type, severity, description, status, created_at")
-            .eq("user_id", dbUser.id)
-            .order("created_at", { ascending: false });
+          const [
+            { data: userTickets },
+            { data: userNotices }
+          ] = await Promise.all([
+            supabase
+              .from("tickets")
+              .select("id, issue_type, severity, description, status, created_at")
+              .eq("user_id", dbUser.id)
+              .order("created_at", { ascending: false }),
+            supabase
+              .from("notices")
+              .select("id, title, message, created_at")
+              .order("created_at", { ascending: false })
+          ]);
 
-          // Fetch active board announcements
-          const { data: userNotices } = await supabase
-            .from("notices")
-            .select("id, title, message, created_at")
-            .order("created_at", { ascending: false });
-
-          // Determine unread notices from user's local acknowledgment dictionary
           let ackDictionary: any = {};
           try {
             ackDictionary = JSON.parse(localStorage.getItem("dcms_acknowledged_notices_v1") || "{}");
@@ -1185,21 +1186,24 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
             unreadNotices: unreadNotices
           };
         } else if (dbUser && chatbotMode === "admin") {
-          // Admin needs overview of all systems
-          const { data: adminTickets } = await supabase
-            .from("tickets")
-            .select("id, issue_type, severity, description, status, created_at")
-            .order("created_at", { ascending: false });
-
-          const { data: adminNotices } = await supabase
-            .from("notices")
-            .select("id, title, message, created_at")
-            .order("created_at", { ascending: false });
-
-          const { data: adminFeedback } = await supabase
-            .from("feedback")
-            .select("id, rating, message, created_at")
-            .order("created_at", { ascending: false });
+          const [
+            { data: adminTickets },
+            { data: adminNotices },
+            { data: adminFeedback }
+          ] = await Promise.all([
+            supabase
+              .from("tickets")
+              .select("id, issue_type, severity, description, status, created_at")
+              .order("created_at", { ascending: false }),
+            supabase
+              .from("notices")
+              .select("id, title, message, created_at")
+              .order("created_at", { ascending: false }),
+            supabase
+              .from("feedback")
+              .select("id, rating, message, created_at")
+              .order("created_at", { ascending: false })
+          ]);
 
           let simReads = [];
           try {

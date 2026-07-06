@@ -77,7 +77,8 @@ async function withRetry<T>(operation: () => Promise<T>, maxRetries = 1, baseDel
 // Utility function to try multiple Gemini models dynamically, with a programmatic fallback if all fail
 async function callGeminiWithFallback(
   params: { contents: any; config?: any },
-  fallbackValue: any
+  fallbackValue: any,
+  timeoutMs: number = 15000
 ): Promise<{ text: string; [key: string]: any }> {
   // If the key is missing entirely, trigger fallback right away
   if (!process.env.GEMINI_API_KEY) {
@@ -96,12 +97,17 @@ async function callGeminiWithFallback(
   for (const model of models) {
     try {
       const ai = getGeminiClient();
-      const response = await withRetry(() =>
-        ai.models.generateContent({
-          ...params,
-          model,
-        })
-      );
+      const response = await Promise.race([
+        withRetry(() =>
+          ai.models.generateContent({
+            ...params,
+            model,
+          })
+        ),
+        new Promise<any>((_, reject) =>
+          setTimeout(() => reject(new Error("Gemini Timeout")), timeoutMs)
+        )
+      ]);
       if (response && (response.text !== undefined && response.text !== null)) {
         return response as any;
       }
@@ -734,8 +740,13 @@ Keep responses concise (under 150 words in total). Set temperature = 0.2 for pre
       },
     }, fallbackValue);
 
+    console.timeEnd("Gemini API Call");
+
+    console.time("Response Formatting & Sending");
     const jsonText = response.text?.trim() || "{}";
     res.json(JSON.parse(jsonText));
+    console.timeEnd("Response Formatting & Sending");
+    console.timeEnd("Chat Request Total");
   } catch (error: any) {
     console.error("Gemini Analyze Error:", error);
     res.json({ status: "unavailable", error: `AI Incident Analysis Unavailable: ${error.message || error}` });
@@ -1280,12 +1291,16 @@ function emotionDetection(text: string, isAdmin: boolean): { emotion: string; pe
 // Specialized Workplace Hub AI Assistant (🤖 Workplace Hub AI Assistant) Endpoint
 app.post("/api/chat", async (req: express.Request, res: express.Response) => {
   try {
+    console.time("Chat Request Total");
+    console.time("Request Parsing & Auth");
     const { messages, file, systemContext, responsePreference } = req.body;
+    console.timeEnd("Request Parsing & Auth");
     if (!messages || !Array.isArray(messages)) {
       res.status(400).json({ error: "A valid array of conversation 'messages' is required." });
       return;
     }
 
+    console.time("Prompt Construction");
     const ai = getGeminiClient();
 
     let databaseContextPrompt = "";
@@ -1380,14 +1395,14 @@ ${unreadStr}
 
         // Format snapshots
         const ticketsStr = tickets.length > 0
-          ? tickets.slice(0, 30).map((c: any) => {
+          ? tickets.slice(0, 10).map((c: any) => {
               const ageDays = Math.max(0, Math.round((nowMs - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24)));
               return `- Ticket #DCMS-${c.id.toString().substring(0, 5).toUpperCase()}:\n  User: ${c.users?.name || c.users?.email || "User"}\n  Category: ${c.issue_type}\n  Severity: ${c.severity}\n  Status: ${c.status}\n  Age: ${ageDays} days\n  Submitted: ${new Date(c.created_at).toLocaleDateString("en-US")}\n  Description: "${c.description || "N/A"}"`;
             }).join("\n\n")
           : "No records found in database.";
 
         const feedbackStr = feedback.length > 0
-          ? feedback.slice(0, 15).map((f: any) => `- Feedback [Rating: ${f.rating} Stars / Comments: "${f.message || "None"}"] submitted on ${new Date(f.created_at).toLocaleDateString("en-US")}`).join("\n")
+          ? feedback.slice(0, 5).map((f: any) => `- Feedback [Rating: ${f.rating} Stars / Comments: "${f.message || "None"}"] submitted on ${new Date(f.created_at).toLocaleDateString("en-US")}`).join("\n")
           : "No feedback records found.";
 
         const overdueDetails = overdueTickets.length > 0
@@ -1490,6 +1505,8 @@ No dynamic system context was passed in the request. Give polite general website
         "- You MUST NOT output any rigid report blocks. COMPLETELY remove tags or headings like '📌 Summary', '🔍 Analysis', '💡 Recommendation', '### Diagnostic', '### Category', '### Urgency', '➡ Next Steps' unless explicitly asked for a formal report.\n" +
         "- Avoid unrequested telemetry lines. Limit overall reply text to 15 lines max unless scanning complex document text or analyzing attachments.";
     }
+
+    console.timeEnd("Prompt Construction");
 
     // Combine system instructions
     const systemInstruction = 
@@ -1734,6 +1751,7 @@ No dynamic system context was passed in the request. Give polite general website
       physicalLocation: physicalLoc
     };
 
+    console.time("Gemini API Call");
     const response = await callGeminiWithFallback({
       contents: recentMessages,
       config: {
@@ -1922,8 +1940,12 @@ No dynamic system context was passed in the request. Give polite general website
       }
     }, fallbackValue);
 
+    console.timeEnd("Gemini API Call");
+    console.time("Response Formatting & Sending");
     const jsonText = response.text?.trim() || "{}";
     res.json(JSON.parse(jsonText));
+    console.timeEnd("Response Formatting & Sending");
+    console.timeEnd("Chat Request Total");
   } catch (error: any) {
     console.error("Gemini AI Chat Assist Error:", error);
     res.status(500).json({ error: error.message || "Failed to process chat assistance request." });
