@@ -1028,92 +1028,52 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
           <div className="absolute bottom-[10%] right-[5%] w-[400px] h-[400px] bg-cyan-500 rounded-full mix-blend-screen filter blur-[140px] opacity-20"></div>
           <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] bg-purple-600 rounded-full mix-blend-screen filter blur-[130px] opacity-15"></div>
 
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center relative z-10">
-            {/* Left side: Premium Headings */}
-            <div className="lg:col-span-7 space-y-8 text-center lg:text-left">
+          <div className="max-w-4xl mx-auto flex flex-col items-center relative z-10 text-center">
+            {/* Premium Headings */}
+            <div className="space-y-8 w-full">
               {/* Tagline */}
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-950 border border-blue-900 shadow text-cyan-200 rounded-full text-[11px] font-black tracking-wider uppercase mx-auto lg:mx-0">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-950 border border-blue-900 shadow text-cyan-200 rounded-full text-[11px] font-black tracking-wider uppercase mx-auto">
                 <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-spin-slow" />
-                {"Sentry Grade AI Ticket Management"}</div>
-
-              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.15] max-w-2xl mx-auto lg:mx-0">{"AI-Powered Workplace"}<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-400">{"Complaint Management"}</span></h2>
-
-              <p className="text-slate-200 text-sm md:text-base max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed">{"Resolve employee issues 70% faster with intelligent ticket routing, AI diagnostics, real-time tracking and automated SLA management."}</p>
-
-              <div className="pt-2 flex flex-col sm:flex-row justify-center lg:justify-start gap-4 w-full sm:w-auto px-4 sm:px-0">
+                {"Sentry Grade AI Ticket Management"}
+              </div>
+              
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.15] mx-auto">
+                {"AI-Powered Workplace"}<br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-400">{"Complaint Management"}</span>
+              </h2>
+              
+              <p className="text-slate-200 text-sm md:text-base max-w-xl mx-auto font-medium leading-relaxed">
+                {"Resolve employee issues 70% faster with intelligent ticket routing, AI diagnostics, real-time tracking and automated SLA management."}
+              </p>
+              
+              <div className="pt-2 flex flex-col sm:flex-row justify-center gap-4 w-full sm:w-auto px-4 sm:px-0 mx-auto">
                 <Link to="/auth/user" className="w-full sm:w-auto">
                   <Button id="tour-get-started-btn" size="lg" className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-extrabold shadow-lg shadow-cyan-500/20 border-0 rounded-2xl h-12 md:h-14 px-8 text-xs transform hover:-translate-y-0.5 transition-all">
                     {"Get Started as User"}<ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
+                
                 <Link to="/auth/admin" className="w-full sm:w-auto">
                   <Button id="tour-admin-portal-btn" size="lg" variant="outline" className="w-full bg-slate-900/40 backdrop-blur-xl border-slate-700/60 text-slate-200 hover:bg-slate-800/80 hover:text-white transition-all rounded-2xl h-12 md:h-14 px-8 text-xs">
-                    <ShieldCheck className="mr-2 h-4 w-4 text-cyan-400" /> {"Admin Portal"}</Button>
+                    <ShieldCheck className="mr-2 h-4 w-4 text-cyan-400" /> {"Admin Portal"}
+                  </Button>
                 </Link>
+                
                 <Link to="/auth/user" onClick={(e) => {
                   const isIframe = typeof window !== 'undefined' && window.self !== window.top;
                   if (isIframe) {
                     e.preventDefault();
                     setShowLaunchModal(true);
                   }
-                }} className="w-full sm:w-auto lg:hidden">
+                }} className="w-full sm:w-auto">
                   <Button size="lg" variant="outline" className="w-full bg-slate-900/40 backdrop-blur-xl border-slate-700/60 text-slate-200 hover:bg-slate-800/80 hover:text-white transition-all rounded-2xl h-12 md:h-14 px-8 text-xs">
-                    {"Launch Demo"}</Button>
+                    {"Launch Demo"}
+                  </Button>
                 </Link>
               </div>
             </div>
-            {/* Right side: Ask AI Assistant Container */}
-            <div className="lg:col-span-5 w-full">
-              <div className="w-full max-w-sm mx-auto bg-slate-900/80 backdrop-blur-lg border border-slate-805/70 p-6 rounded-3xl shadow-xl space-y-5 text-left relative">
-                {/* Visual Glass glows */}
-                <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full filter blur-xl"></div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-white text-xs">
-                      🤖
-                    </div>
-                    <span className="text-xs font-black tracking-tight text-white">{"Ask AI Assistant"}</span>
-                  </div>
-                  <span className="text-[9px] font-black tracking-tight text-cyan-400 uppercase bg-cyan-950/50 border border-cyan-800/35 px-2 py-0.5 rounded-full">{"Workplace Hub AI Assistant"}</span>
-                </div>
-
-                <div className="space-y-2.5">
-                  <p className="text-3xs font-black uppercase text-slate-500 tracking-wider">{"Suggested Questions (Click to Ask)"}</p>
-                  
-                  <div className="space-y-2">
-                    {[
-                      { q: "My salary is delayed", icon: "💰" },
-                      { q: "I cannot access the finance folder", icon: "🔑" },
-                      { q: "Department report still pending", icon: "📄" },
-                      { q: "Need a new laptop", icon: "💻" },
-                      { q: "My leave request is not approved", icon: "📅" }
-                    ].map((item, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          window.dispatchEvent(new CustomEvent("dcms_open_chat", { detail: { query: item.q } }));
-                        }}
-                        className="w-full text-left p-3 rounded-2xl bg-[#090F1E]/80 border border-slate-800 hover:border-blue-500 hover:bg-[#0E1528] transition-all flex items-center justify-between text-xs font-bold text-slate-300 group cursor-pointer"
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className="text-sm">{item.icon}</span>
-                          <span className="group-hover:text-white transition-colors">{item.q}</span>
-                        </span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-3 bg-[#080D1A] rounded-xl border border-slate-800/60 text-[10.5px] text-slate-450 font-bold leading-relaxed flex gap-2 items-start">
-                  <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                  <p>{"Click any quick launcher query to instantly activate the cognitive assistant network and view real-time SLA answers."}</p>
-                </div>
-              </div>
-            </div>
           </div>
-        </section>
+</section>
 
         {/* STATS STRIP WITH GLOWING ACCENTS */}
         <section className="bg-[#050B1E] border-y border-slate-800 py-10 px-6">

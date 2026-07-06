@@ -1278,7 +1278,7 @@ function emotionDetection(text: string, isAdmin: boolean): { emotion: string; pe
 }
 
 // Specialized Workplace Hub AI Assistant (🤖 Workplace Hub AI Assistant) Endpoint
-app.post("/api/gemini/chat", async (req: express.Request, res: express.Response) => {
+app.post("/api/chat", async (req: express.Request, res: express.Response) => {
   try {
     const { messages, file, systemContext, responsePreference } = req.body;
     if (!messages || !Array.isArray(messages)) {
@@ -2083,6 +2083,10 @@ async function initializeApp() {
   });
 }
 
-initializeApp().catch((err) => {
-  console.error("Failed to start server:", err);
-});
+export default app;
+
+if (!process.env.VERCEL) {
+  initializeApp().catch((err) => {
+    console.error("Failed to start server:", err);
+  });
+}

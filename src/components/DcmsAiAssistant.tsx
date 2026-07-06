@@ -1233,7 +1233,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       // Fetch latest messages for context of target thread
       const threadMessages = currentThreads.find((t) => t.id === targetThreadId)?.messages || [];
       
-      const response = await fetch("/api/gemini/chat", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
