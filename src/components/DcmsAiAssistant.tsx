@@ -113,6 +113,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
   const navigate = useNavigate();
   const location = useLocation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const loadingIntervalRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingIntervalRef = useRef<any>(null);
 
@@ -1031,6 +1032,15 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     const outgoingFile = attachedFile ? { ...attachedFile } : null;
     setAttachedFile(null);
     setLoading(true);
+      setLoadingText("Thinking...");
+      let phase = 0;
+      const phases = ["Loading context...", "Analyzing...", "Generating response..."];
+      loadingIntervalRef.current = setInterval(() => {
+        if (phase < phases.length) {
+          setLoadingText(phases[phase]);
+          phase++;
+        }
+      }, 1000);
 
     // 💡 LOCAL RULE-BASED RESPONDER FOR FAQs & NAVIGATION
     const localRuleResponse = getLocalChatResponse(processedText, chatbotMode);
@@ -1084,6 +1094,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
             clearInterval(typingIntervalRef.current);
             typingIntervalRef.current = null;
           }
+          if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
           setLoading(false);
         }
       }, 15);
@@ -1144,6 +1155,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
             clearInterval(typingIntervalRef.current);
             typingIntervalRef.current = null;
           }
+          if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
           setLoading(false);
         }
       }, 25);
@@ -1155,77 +1167,16 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       let systemContext: any = null;
       try {
         if (dbUser && chatbotMode === "user") {
-          const [
-            { data: userTickets },
-            { data: userNotices }
-          ] = await Promise.all([
-            supabase
-              .from("tickets")
-              .select("id, issue_type, severity, description, status, created_at")
-              .eq("user_id", dbUser.id)
-              .order("created_at", { ascending: false }),
-            supabase
-              .from("notices")
-              .select("id, title, message, created_at")
-              .order("created_at", { ascending: false })
-          ]);
-
-          let ackDictionary: any = {};
-          try {
-            ackDictionary = JSON.parse(localStorage.getItem("dcms_acknowledged_notices_v1") || "{}");
-          } catch {}
-
-          const unreadNotices = (userNotices || []).filter((n: any) => !ackDictionary[n.id]);
-
           systemContext = {
             role: "user",
             permissions: ["ownTickets.read", "complaints.create"],
-            userProfile: { name: dbUser.name, email: dbUser.email },
-            tickets: userTickets || [],
-            notices: (userNotices || []).slice(0, 5),
-            unreadNotices: unreadNotices
+            userProfile: { name: dbUser.name, email: dbUser.email, id: dbUser.id }
           };
         } else if (dbUser && chatbotMode === "admin") {
-          const [
-            { data: adminTickets },
-            { data: adminNotices },
-            { data: adminFeedback }
-          ] = await Promise.all([
-            supabase
-              .from("tickets")
-              .select("id, issue_type, severity, description, status, created_at")
-              .order("created_at", { ascending: false }),
-            supabase
-              .from("notices")
-              .select("id, title, message, created_at")
-              .order("created_at", { ascending: false }),
-            supabase
-              .from("feedback")
-              .select("id, rating, message, created_at")
-              .order("created_at", { ascending: false })
-          ]);
-
-          let simReads = [];
-          try {
-            simReads = JSON.parse(localStorage.getItem("dcms_sim_notice_reads") || "[]");
-          } catch {}
-
           systemContext = {
             role: "admin",
             permissions: ["tickets.read", "users.read", "reports.read", "analytics.read"],
-            userProfile: { name: dbUser.name, email: dbUser.email },
-            stats: {
-              totalTickets: adminTickets?.length || 0,
-              pendingCount: adminTickets?.filter((c: any) => c.status === "Pending")?.length || 0,
-              inProgressCount: adminTickets?.filter((c: any) => c.status === "In Progress")?.length || 0,
-              resolvedCount: adminTickets?.filter((c: any) => c.status === "Resolved")?.length || 0
-            },
-            tickets: adminTickets || [],
-            notices: adminNotices || [],
-            feedback: adminFeedback || [],
-            simReads: simReads,
-            noticesReadsStat: "8 users have not read the salary revision notice.",
-            departmentNoticesStat: "IT Department received 32 notices this month."
+            userProfile: { name: dbUser.name, email: dbUser.email, id: dbUser.id }
           };
         } else {
           systemContext = {
@@ -1234,7 +1185,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
           };
         }
       } catch (dbErr) {
-        console.error("Failed to gather system query context from database:", dbErr);
+        console.error("Failed to build system context:", dbErr);
       }
 
       // Fetch latest messages for context of target thread
@@ -1359,7 +1310,8 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         setThreads(reLoadedThreads);
       }
     } finally {
-      setLoading(false);
+      if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
+          setLoading(false);
     }
   };
 

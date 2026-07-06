@@ -1,3 +1,8 @@
+import { createClient } from "@supabase/supabase-js";
+const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
+const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
@@ -9,6 +14,13 @@ import { existsSync } from "fs";
 
 dotenv.config();
 
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+let globalCache: any = {
+  notices: null,
+  noticesFetchedAt: 0,
+  feedback: null,
+  feedbackFetchedAt: 0
+};
 const app = express();
 const PORT = 3000;
 
@@ -86,12 +98,8 @@ async function callGeminiWithFallback(
   }
 
   // Multi-tier model array to maximize availability across different quotas
-  const models = [
-    "gemini-3.5-flash",
-    "gemini-3.1-pro-preview",
-    "gemini-3.1-flash-lite",
-    "gemini-flash-latest"
-  ];
+  // Dynamic models array
+  const models = params.model ? [params.model, "gemini-3.5-flash", "gemini-3.1-pro-preview"] : ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite"];
   let lastError: any = null;
 
   for (const model of models) {
