@@ -1158,7 +1158,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
           if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
           setLoading(false);
         }
-      }, 25);
+      }, 5);
       return;
     }
 

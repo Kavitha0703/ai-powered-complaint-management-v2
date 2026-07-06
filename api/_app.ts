@@ -88,18 +88,18 @@ async function withRetry<T>(operation: () => Promise<T>, maxRetries = 1, baseDel
 
 // Utility function to try multiple Gemini models dynamically, with a programmatic fallback if all fail
 async function callGeminiWithFallback(
-  params: { contents: any; config?: any },
+  params: { contents: any; config?: any; model?: string },
   fallbackValue: any,
   timeoutMs: number = 15000
 ): Promise<{ text: string; [key: string]: any }> {
   // If the key is missing entirely, trigger fallback right away
   if (!process.env.GEMINI_API_KEY) {
-    return { text: typeof fallbackValue === "string" ? fallbackValue : JSON.stringify(fallbackValue) };
+    return { text: JSON.stringify({ ...fallbackValue, text: "Error: " + (lastError ? String(lastError.message || lastError) : "Unknown error") }) };
   }
 
   // Multi-tier model array to maximize availability across different quotas
   // Dynamic models array
-  const models = params.model ? [params.model, "gemini-3.5-flash", "gemini-3.1-pro-preview"] : ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite"];
+  const models = params.model ? [params.model, "gemini-2.5-flash", "gemini-3.1-pro-preview"] : ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
   let lastError: any = null;
 
   for (const model of models) {
@@ -121,11 +121,14 @@ async function callGeminiWithFallback(
       }
     } catch (error: any) {
       // Suppressed console.warn to avoid false positive error logs in AI Studio
+      console.error("Model", model, "failed:", error.message || error);
+      // removed
       lastError = error;
+      console.error("Model " + model + " failed with: " + String(error.message || error));
     }
   }
 
-  return { text: typeof fallbackValue === "string" ? fallbackValue : JSON.stringify(fallbackValue) };
+  return { text: JSON.stringify({ ...fallbackValue, text: "Error: " + (lastError ? String(lastError.message || lastError) : "Unknown error") }) };
 }
 
 // REST API Endpoints
@@ -1303,652 +1306,217 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
     console.time("Request Parsing & Auth");
     const { messages, file, systemContext, responsePreference } = req.body;
     console.timeEnd("Request Parsing & Auth");
+    
     if (!messages || !Array.isArray(messages)) {
       res.status(400).json({ error: "A valid array of conversation 'messages' is required." });
       return;
     }
 
-    console.time("Prompt Construction");
-    const ai = getGeminiClient();
-
-    let databaseContextPrompt = "";
-
-    if (systemContext) {
-      if (systemContext.role === "user") {
-        const profile = systemContext.userProfile || {};
-        const ticketsStr = systemContext.tickets && systemContext.tickets.length > 0
-          ? systemContext.tickets.map((c: any) => {
-              return `- Ticket #${c.id.toString().substring(0, 8).toUpperCase()}:\n  Type: ${c.issue_type}\n  Severity: ${c.severity}\n  Status: ${c.status}\n  Submitted: ${new Date(c.created_at).toLocaleDateString("en-US")}\n  Description: ${c.description || "N/A"}`;
-            }).join("\n\n")
-          : "No tickets found in system for this account.";
-
-        const noticesStr = systemContext.notices && systemContext.notices.length > 0
-          ? systemContext.notices.map((n: any) => `- Notice: "${n.title}" [Posted ${new Date(n.created_at).toLocaleDateString("en-US")}]\n  Message: ${n.message}`).join("\n")
-          : "No active announcements.";
-
-        const unreadStr = systemContext.unreadNotices && systemContext.unreadNotices.length > 0
-          ? systemContext.unreadNotices.map((n: any) => `- Unread Announcement / Notice: "${n.title}" [Posted ${new Date(n.created_at).toLocaleDateString("en-US")}]\n  Message: ${n.message}`).join("\n")
-          : "You have no unread notices! All active announcements have been acknowledged.";
-
-        const permissions = systemContext.permissions || [];
-        databaseContextPrompt = `
-ACTIVE ROLE: Personal Support Assistant
-ACTIVE SYSTEM SECURITY ACCESS: AUTHENTICATED USER
-PERMISSIONS: ${permissions.join(", ")}
-Logged-in User Name: ${profile.name || "Default Customer"}
-Logged-in User Email: ${profile.email || "user@dcms.local"}
-
---- GROUND-TRUTH DATABASE STATUS REPORT ---
-These are the REAL, verified tickets associated with the logged-in user:
-${ticketsStr}
-
-These are the ACTIVE board notices/updates:
-${noticesStr}
-
-These are your UNREAD announcements (provide these if user asks 'Show unread notices'):
-${unreadStr}
-------------------------------------------
-`;
-      } else if (systemContext.role === "admin") {
-        const profile = systemContext.userProfile || {};
-        const stats = systemContext.stats || {};
-        const nowMs = new Date("2026-06-17T03:48:46-07:00").getTime(); // Reference current local time 2026-06-17
-        const tickets = systemContext.tickets || [];
-        const feedback = systemContext.feedback || [];
-        const notices = systemContext.notices || [];
-
-        // Identify overdue tickets: Status is Pending or In Progress, and age > 7 days (or 2-hour SLA breached if Critical)
-        const overdueTickets = tickets.filter((c: any) => {
-          const ticketTime = new Date(c.created_at).getTime();
-          const ageHours = (nowMs - ticketTime) / (1000 * 60 * 60);
-          const ageDays = ageHours / 24;
-          if (c.status === "Pending" || c.status === "In Progress") {
-            if (c.severity === "Critical" && ageHours > 2) return true;
-            if (ageDays > 7) return true;
-          }
-          return false;
-        });
-
-        // Compute CSAT metrics
-        const ratings = feedback.map((f: any) => parseFloat(f.rating)).filter((r: any) => !isNaN(r));
-        const avgRating = ratings.length > 0 ? (ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1) : "4.6";
-        const satisfactionPercent = ratings.length > 0 ? Math.round((ratings.reduce((a: number, b: number) => a + b, 0) / (ratings.length * 5)) * 100) : 92;
-
-        // Categorize for Spike Identification & SLA analysis
-        const categoryCounts: Record<string, number> = {};
-        let criticalCount = 0;
-        tickets.forEach((c: any) => {
-          const cat = c.issue_type || "Other";
-          categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-          if (c.severity === "Critical") criticalCount++;
-        });
-
-        const topCategoriesStr = Object.entries(categoryCounts)
-          .sort((a, b) => b[1] - a[1])
-          .map(([cat, cnt]) => `${cat}: ${cnt}`)
-          .join(", ") || "None";
-
-        // Filter tickets submitted today vs yesterday (for daily/yesterday reports)
-        const todayTickets = tickets.filter((c: any) => {
-          const dateStr = new Date(c.created_at).toLocaleDateString("en-US");
-          const queryDateStr = new Date("2026-06-17").toLocaleDateString("en-US");
-          return dateStr === queryDateStr;
-        });
-
-        const yesterdayTickets = tickets.filter((c: any) => {
-          const dateStr = new Date(c.created_at).toLocaleDateString("en-US");
-          const queryDateStr = new Date("2026-06-16").toLocaleDateString("en-US");
-          return dateStr === queryDateStr;
-        });
-
-        // Format snapshots
-        const ticketsStr = tickets.length > 0
-          ? tickets.slice(0, 10).map((c: any) => {
-              const ageDays = Math.max(0, Math.round((nowMs - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24)));
-              return `- Ticket #DCMS-${c.id.toString().substring(0, 5).toUpperCase()}:\n  User: ${c.users?.name || c.users?.email || "User"}\n  Category: ${c.issue_type}\n  Severity: ${c.severity}\n  Status: ${c.status}\n  Age: ${ageDays} days\n  Submitted: ${new Date(c.created_at).toLocaleDateString("en-US")}\n  Description: "${c.description || "N/A"}"`;
-            }).join("\n\n")
-          : "No records found in database.";
-
-        const feedbackStr = feedback.length > 0
-          ? feedback.slice(0, 5).map((f: any) => `- Feedback [Rating: ${f.rating} Stars / Comments: "${f.message || "None"}"] submitted on ${new Date(f.created_at).toLocaleDateString("en-US")}`).join("\n")
-          : "No feedback records found.";
-
-        const overdueDetails = overdueTickets.length > 0
-          ? overdueTickets.map((c: any) => {
-              const ageDays = Math.max(0, Math.round((nowMs - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24)));
-              return `  * Ticket #DCMS-${c.id.toString().substring(0, 5).toUpperCase()} - Severity: ${c.severity} - Age: ${ageDays} days - Current Status: '${c.status}' - Filed By: ${c.users?.email || "User"}`;
-            }).join("\n")
-          : "  * None identified.";
-
-        const permissions = systemContext.permissions || [];
-        databaseContextPrompt = `
-ACTIVE ROLE: Administrative AI Assistant (Admin Copilot Mode)
-ACTIVE SECURITY ACCESS: FULL WORKPLACE ADMINISTRATOR STATUS
-PERMISSIONS: ${permissions.join(", ")}
-Logged-in Admin Name: ${profile.name || "System Admin"}
-Logged-in Admin Email: ${profile.email || "admin@dcms.local"}
-Current Systems Query DateTime: Wednesday, June 17, 2026, 03:48 AM UTC
-
---- LIVE PRODUCTION DATABASE REAL-TIME AUDIT ---
-General Portal Metrics:
-* Total registered operations tickets: ${stats.totalTickets}
-* Actionable 'Pending' tickets: ${stats.pendingCount}
-* Active 'In Progress' tickets: ${stats.inProgressCount}
-* Successfully 'Resolved' tickets: ${stats.resolvedCount}
-* System Customer Satisfaction (CSAT): ${avgRating}/5.0 Stars (${satisfactionPercent}% satisfaction quotient)
-* SLA Breach Warnings / Overdue tickets (Pending or In Progress for > 7 Days, or Critical > 2 Hours): ${overdueTickets.length}
-* Category distribution overview: ${topCategoriesStr}
-
-Overdue / SLA Breach ticket details:
-${overdueDetails}
-
-Today's Tickets Snapshot (June 17, 2026):
-${todayTickets.length > 0 ? todayTickets.map((tc: any) => `- #DCMS-${tc.id.toString().substring(0, 5).toUpperCase()} [Severity: ${tc.severity}] - Status: ${tc.status}`).join("\n") : "No tickets filed today yet."}
-
-Yesterday's Tickets Snapshot (June 16, 2026):
-${yesterdayTickets.length > 0 ? yesterdayTickets.map((yc: any) => `- #DCMS-${yc.id.toString().substring(0, 5).toUpperCase()} [Severity: ${yc.severity}] - Status: ${yc.status}`).join("\n") : "No tickets filed yesterday."}
-
-Active Board Notices / Publications:
-${notices.length > 0 ? notices.map((n: any) => `* Notice: "${n.title}" - Message: "${n.message}" [Posted ${new Date(n.created_at).toLocaleDateString("en-US")}]`).join("\n") : "No public notices active."}
-
-Customer Satisfaction / Survey Logs:
-${feedbackStr}
-
-Comprehensive Ticket Catalog (Latest 30 items):
-${ticketsStr}
--------------------------------------------------
-`;
-      } else {
-        const permissions = systemContext.permissions || [];
-        databaseContextPrompt = `
-ACTIVE ROLE: Public Assistant (Visitor Guidance Mode)
-ACTIVE SYSTEM SECURITY ACCESS: ANONYMOUS GUEST / VISITOR
-PERMISSIONS: ${permissions.join(", ")}
-The user is not logged in or is viewing the public Home Page (index.html).
-You do NOT have access to any databases:
-- Do NOT pull or invent any tickets.
-- Do NOT promise status updates on active tickets. Intercept any query about active tickets or personal tickets by stating: "I assume you are currently in Visitor Mode. Please log in to your User Portal Dashboard to query or verify active tickets."
-- Give polite general website and portal navigation marketing/usage support.
-`;
-      }
-    } else {
-      databaseContextPrompt = `
-ACTIVE ROLE: General Workplace Hub AI Assistant
-No dynamic system context was passed in the request. Give polite general website support.
-`;
-    }
-
-    // Formulate response formatting instructions dynamically based on toggle
-    const isBriefMode = responsePreference === "brief" || !responsePreference;
-    const isAdminMode = systemContext && systemContext.role === "admin";
-
-    // Emotion sentiment analysis & persona adjustment before generating response
     const lastUserMsg = messages.filter((m: any) => m.sender === "user" || m.role === "user").pop();
     const lastUserText = lastUserMsg ? lastUserMsg.text : "";
-    const { emotion, personaModifier } = emotionDetection(lastUserText, isAdminMode);
-    console.log(`[Emotion & Persona Detection]: Text="${lastUserText}", Emotion="${emotion}", AdminMode=${isAdminMode}`);
-
-    let formattingInstruction = "";
-    if (isAdminMode) {
-      formattingInstruction = "RESPONSE FORMATTING MANDATES FOR ADMIN COPILOT PORTAL:\n" +
-        "- Act as an Operational Intelligence & Administrative Copilot (a helpful, capable colleague or supportive operations manager, not an unfeeling machine).\n" +
-        "- Always start your response text with a friendly, personal greeting: e.g. '👋 Good morning, [Admin Name]' or '👋 Hello, [Admin Name]'.\n" +
-        "- Keep the reporting style elegant, scannable, and conversationally rich. When requested reports, output detailed, action-ready summaries with clean formatting.\n" +
-        "- Suggest relevant export actions in your 'quickActions' array parameter (options: ['export_pdf', 'export_docx', 'export_csv', 'view_tickets', 'view_notices']) to match reports.\n" +
-        "- Use clean micro-emojis and visual markers style. NEVER output raw, unformatted SQL query dumps or dry, robotic dashboards.";
-    } else if (isBriefMode) {
-      formattingInstruction = "RESPONSE FORMATTING MANDATES (BRIEF ADAPTIVE MODE ACTIVE):\n" +
-        "- You MUST NOT output any rigid report blocks. DO NOT use headers like '📌 Summary', '🔍 Analysis', '💡 Recommendation', '### Diagnostic', '### Category', '### Urgency', '➡ Next Steps' under any circumstances unless a report is explicitly asked for.\n" +
-        "- Keep answers extremely compact, warm, empathetic, fast-paced, and human.\n" +
-        "- For Greetings & Quick Questions (e.g. password resets, settings help): State the direct answer immediately in 1-4 lines. No extra sections or fluff.\n" +
-        "- For Status / Database Queries: Summarize the database records directly in 3-5 lines using plain conversational key-value elements. Example:\n" +
-        "  Ticket: #CMP-1042\n" +
-        "  Current Status: In Progress\n" +
-        "  Updated: Today\n" +
-        "- For Frustrated Users: Empathize with an introductory sentence first. Frame your response with high emotional intelligence before noting live database status.\n" +
-        "- Limit overall reply text to under 6 lines total.";
-    } else {
-      formattingInstruction = "RESPONSE FORMATTING MANDATES (DETAILED MODE ACTIVE):\n" +
-        "- Provide a beautifully formatted, moderately detailed answer utilizing clean bullet lists and friendly explanatory steps. Keep it cohesive and robust.\n" +
-        "- You MUST NOT output any rigid report blocks. COMPLETELY remove tags or headings like '📌 Summary', '🔍 Analysis', '💡 Recommendation', '### Diagnostic', '### Category', '### Urgency', '➡ Next Steps' unless explicitly asked for a formal report.\n" +
-        "- Avoid unrequested telemetry lines. Limit overall reply text to 15 lines max unless scanning complex document text or analyzing attachments.";
+    const role = systemContext?.role || "visitor";
+    
+    // --- INTENT CLASSIFICATION ---
+    const lowerText = lastUserText.toLowerCase().trim();
+    let intent = "general";
+    
+    if (/^(hi|hello|hey|greetings|good morning|good afternoon|good evening|yo)$/.test(lowerText)) {
+      intent = "greeting";
+    } else if (/^(thank you|thanks|thx|ty|awesome|great|good job|ok|okay|bye|goodbye)$/.test(lowerText)) {
+      intent = "appreciation";
+    } else if (/what is this platform|how does this work|features|demo|about|who are you|help|login|navigation|faq|frequently asked/.test(lowerText)) {
+      intent = "faq";
+    } else if (role === "admin" && /(report|analytics|statistics|trend|summary|compare|all complaints)/.test(lowerText)) {
+      intent = "admin_analytics";
+    } else if (role === "admin" && /(ticket|complaint|issue|notice|feedback)/.test(lowerText)) {
+      intent = "admin_query";
+    } else if (role === "user" && /(ticket|complaint|issue|broken|not working|salary|laptop|wifi|printer|helpdesk)/.test(lowerText)) {
+      intent = "user_query";
+    } else if (file && file.data) {
+       intent = "file_analysis";
+    }
+    
+    // Check if we can skip Gemini entirely
+    if (intent === "greeting") {
+      return res.json({ text: "Hello! 👋 How can I help you today?", quickActions: role === "visitor" ? [] : ["view_notices"] });
+    }
+    if (intent === "appreciation") {
+      return res.json({ text: "You're very welcome! Let me know if you need anything else.", quickActions: [] });
+    }
+    if (intent === "faq" && role === "visitor") {
+      return res.json({ 
+        text: "I am the Workplace Hub AI Assistant! 🤖\n\nI can help you with:\n- Smart Complaint Simulation\n- AI Analytics Demo\n- Policies & Navigation\n\nPlease log in to access your personal dashboard.",
+        quickActions: ["register_ticket"]
+      });
     }
 
-    console.timeEnd("Prompt Construction");
+    // --- PARALLEL DATABASE FETCHING WITH CACHE ---
+    console.time("Parallel DB Fetch");
+    let fetchedTickets = [];
+    let fetchedNotices = [];
+    let fetchedFeedback = [];
+    let dbStats = { totalTickets: 0, pendingCount: 0, inProgressCount: 0, resolvedCount: 0 };
+    
+    if (supabase) {
+      const now = Date.now();
+      if (intent === "user_query" && systemContext?.userProfile?.id) {
+        const fetchPromises = [
+          supabase.from("tickets").select("id, issue_type, severity, description, status, created_at").eq("user_id", systemContext.userProfile.id).order("created_at", { ascending: false }).limit(10)
+        ];
+        
+        if (!globalCache.notices || now - globalCache.noticesFetchedAt > CACHE_TTL_MS) {
+          fetchPromises.push(supabase.from("notices").select("id, title, message, created_at").order("created_at", { ascending: false }).limit(5));
+        } else {
+          fetchPromises.push(Promise.resolve({ data: globalCache.notices }));
+        }
 
-    // Combine system instructions
-    const systemInstruction = 
-      "You are '🤖 Workplace Hub AI Operations Assistant', a highly capable co-pilot for our Workplace Operations Platform. " +
-      "Depending on the active user role, you operate as one of three specialized AI assistants:\n\n" +
-      
-      "1. 🌐 HOME PAGE AI ASSISTANT (VISITOR ASSISTANT)\n" +
-"- Purpose: Act as a 'Sales Engineer' for Workplace Hub. Explain features, how the platform works, answer general questions, and demonstrate AI capabilities.\n" +
-"- Target Audience: Guest visitors who are not logged in yet.\n" +
-"- CRITICAL RULES: \n" +
-"  * NEVER expose internal ticket data.\n" +
-"  * NEVER pretend to access a database.\n" +
-"  * Do NOT use phrases like \"Verified from Database...\" for visitors.\n" +
-"  * Keep the tone Friendly and professional.\n" +
-"  * Explain features (e.g., automatic classification, SLA tracking).\n" +
-"  * CRITICAL: Do NOT tell visitors to 'Click Register Ticket' immediately. Tell them they must register or log in first.\n\n" +
-"2. 👤 USER DASHBOARD AI (PERSONAL WORKPLACE ASSISTANT)\n" +
-"- Purpose: Act as a Personal Workplace Assistant. Help the user with their own complaints, status, announcements, leave requests, profile, and chats.\n" +
-"- Tone: Helpful and supportive.\n" +
-"- Rules:\n" +
-"  * Know the user's complaints and provide clean, structured updates.\n" +
-"  * When answering \"Where is my complaint?\", use clear, short lines, e.g.:\n" +
-"    Complaint ID: WH-123\n" +
-"    Status: In Progress\n" +
-"    SLA: 4 Hours\n" +
-"  * Empathize with delays.\n" +
-"  * Auto-choose the best format. Use 'kpi_cards' or 'table' if appropriate.\n\n" + 
-"3. 🛠 ADMIN AI ASSISTANT (ENTERPRISE COPILOT)\n" +
-"- Purpose: Act as an enterprise operations copilot (Microsoft Copilot tone) for systems administrators.\n" +
-"- Target Audience: Authorized platform administrators.\n" +
-"- Tone: Professional, fast, analytical.\n" +
-"- Rules:\n" +
-"  * AUTO-CHOOSE BEST FORMAT: Instead of huge paragraphs, automatically choose the best format:\n" +
-"    - If user asks to \"Show complaints\" -> use 'table' (structuredData)\n" +
-"    - If user asks for \"Statistics\" -> use 'kpi_cards' (structuredData)\n" +
-"    - If user asks to \"Compare departments\" -> use 'chart' with type='bar' (structuredData)\n" +
-"    - If user asks for \"Complaints this month\" or trends -> use 'chart' with type='line' (structuredData)\n" +
-"    - If user asks to \"Summarize\" -> Output clean Markdown Executive Summary bullet list.\n" +
-"  * GENERATE CHARTS: Admin AI should generate Bar Charts, Pie Charts, Trend Charts, Area Charts whenever statistics are requested. NEVER answer statistics using only text.\n" +
-"  * BETTER MARKDOWN: Use headings like '## Executive Summary', '### AI Findings', '### Recommendations'.\n" +
-"  * SMARTER SUGGESTIONS: Always show suggested actions like 'View Complaint', 'Export Report', 'Generate Summary', 'Notify Employee'.\n\n" +
-"DYNAMIC EMOTION & PERSONA LAYER:\n" +
-      personaModifier + "\n\n" +
-      "CURRENT CONTEXT AND SECURITY ACCESS:\n" +
-      databaseContextPrompt + "\n\n" +
-      formattingInstruction + "\n\n" +
-      "AUTO SEVERITY & CATEGORY RULES:\n" +
-      "When the user reports or describes an IT, computer, or network problem, or uploads an error screenshot, use the following logic to decide the suggested severity in your JSON response:\n" +
-      "1. Single User / Single PC instance / Personal application error: Severity level is 'Low' (🟢 Low)\n" +
-      "2. Classroom / Cluster / Team / Multiple individuals / Single department impacted: Severity level is 'Medium' (🟠 Medium)\n" +
-      "3. Entire laboratory down / Server-wide failure / Main subnet offline / Broad enterprise outage: Severity level is 'Critical' (🔴 Critical)\n" +
-"INTELLIGENCE & ANALYSIS (AI ANALYSIS):\n" +
-"- If the user describes a problem, complaint, or delay (e.g., 'Salary delayed'), provide a detailed AI Analysis using the 'aiAnalysis' JSON object.\n" +
-"- Populate 'detectedIssue', 'confidence' (e.g., '97%'), 'priority' (e.g., 'Urgent'), 'businessImpact', 'rootCause', 'recommendedAction', 'estimatedResolution', and 'sla'.\n\n" +
-"TRUTH & TRANSPARENCY RULES:\n" +
+        const [ticketsRes, noticesRes] = await Promise.all(fetchPromises);
+        fetchedTickets = ticketsRes.data || [];
+        fetchedNotices = noticesRes.data || [];
+        
+        if (now - globalCache.noticesFetchedAt > CACHE_TTL_MS && noticesRes && noticesRes.data) {
+          globalCache.notices = noticesRes.data;
+          globalCache.noticesFetchedAt = now;
+        }
+      } else if (intent === "admin_query" || intent === "admin_analytics") {
+        const limit = intent === "admin_analytics" ? 100 : 20;
+        const fetchPromises = [
+          supabase.from("tickets").select("id, issue_type, severity, description, status, created_at").order("created_at", { ascending: false }).limit(limit)
+        ];
 
+        if (!globalCache.notices || now - globalCache.noticesFetchedAt > CACHE_TTL_MS) {
+          fetchPromises.push(supabase.from("notices").select("id, title, message, created_at").order("created_at", { ascending: false }).limit(5));
+        } else {
+          fetchPromises.push(Promise.resolve({ data: globalCache.notices }));
+        }
 
+        if (!globalCache.feedback || now - globalCache.feedbackFetchedAt > CACHE_TTL_MS) {
+          fetchPromises.push(supabase.from("feedback").select("id, rating, message, created_at").order("created_at", { ascending: false }).limit(10));
+        } else {
+          fetchPromises.push(Promise.resolve({ data: globalCache.feedback }));
+        }
 
+        const [ticketsRes, noticesRes, feedbackRes] = await Promise.all(fetchPromises);
+        fetchedTickets = ticketsRes.data || [];
+        fetchedNotices = noticesRes.data || [];
+        fetchedFeedback = feedbackRes.data || [];
+        
+        if (now - globalCache.noticesFetchedAt > CACHE_TTL_MS && noticesRes && noticesRes.data) {
+          globalCache.notices = noticesRes.data;
+          globalCache.noticesFetchedAt = now;
+        }
+        if (now - globalCache.feedbackFetchedAt > CACHE_TTL_MS && feedbackRes && feedbackRes.data) {
+          globalCache.feedback = feedbackRes.data;
+          globalCache.feedbackFetchedAt = now;
+        }
+        
+        dbStats.totalTickets = fetchedTickets.length;
+        dbStats.pendingCount = fetchedTickets.filter((c: any) => c.status === "Pending").length;
+        dbStats.inProgressCount = fetchedTickets.filter((c: any) => c.status === "In Progress").length;
+        dbStats.resolvedCount = fetchedTickets.filter((c: any) => c.status === "Resolved").length;
+      }
+    }
+    console.timeEnd("Parallel DB Fetch");
 
+    // Construct Context Prompt
+    let databaseContextPrompt = "";
+    if (role === "user") {
+      databaseContextPrompt = `ACTIVE ROLE: Personal Support Assistant\nLogged-in User Name: ${systemContext?.userProfile?.name || "User"}\n\n--- GROUND-TRUTH STATUS ---\nThese are your tickets:\n${fetchedTickets.map((c: any) => `- Ticket #${c.id.toString().substring(0, 8).toUpperCase()}: ${c.issue_type} (${c.status})`).join("\n") || "No tickets found."}`;
+    } else if (role === "admin") {
+      databaseContextPrompt = `ACTIVE ROLE: Administrative AI Assistant\nLogged-in Admin: ${systemContext?.userProfile?.name || "System Admin"}\n\n--- PRODUCTION DB METRICS ---\nTotal Tickets (Loaded): ${dbStats.totalTickets}\nPending: ${dbStats.pendingCount}\nIn Progress: ${dbStats.inProgressCount}\nResolved: ${dbStats.resolvedCount}\n\nRecent Tickets:\n${fetchedTickets.slice(0, 15).map((c: any) => `- Ticket #DCMS-${c.id.toString().substring(0, 5).toUpperCase()}: ${c.issue_type} | ${c.severity} | ${c.status}`).join("\n") || "No tickets."}`;
+    } else {
+      databaseContextPrompt = `ACTIVE ROLE: General Workplace Hub AI Assistant\nNo dynamic system context was passed in the request. Give polite general website support.`;
+    }
 
+    const { emotion, personaModifier } = emotionDetection(lastUserText, role === "admin");
+    const isBriefMode = responsePreference === "brief" || !responsePreference;
+    let formattingInstruction = "";
+    
+    if (role === "admin") {
+      formattingInstruction = "RESPONSE FORMATTING MANDATES FOR ADMIN:\n- Always start with a friendly greeting.\n- Keep reporting style elegant and scannable.\n- Suggest relevant export actions in quickActions.\n- NEVER output raw SQL query dumps.";
+    } else if (isBriefMode) {
+      formattingInstruction = "RESPONSE FORMATTING MANDATES (BRIEF MODE):\n- Limit overall reply text to under 6 lines.\n- Do not output rigid report blocks unless asked.\n- Empathize with frustrated users.";
+    } else {
+      formattingInstruction = "RESPONSE FORMATTING MANDATES (DETAILED):\n- Provide beautifully formatted, detailed answers utilizing bullet lists.\n- Avoid unrequested telemetry lines.";
+    }
 
+    const systemInstruction = "You are '🤖 Workplace Hub AI Operations Assistant'.\n" + personaModifier + "\n\nCURRENT CONTEXT:\n" + databaseContextPrompt + "\n\n" + formattingInstruction + "\n\n" +
+      "UI INSTRUCTION: If user requests tabular formats, reports, stats, metrics, you MUST return a 'table', 'chart', or 'kpi_cards' inside the 'structuredData' JSON object.";
 
-      "- NEVER invent or dream up ticket details, ticket numbers, or statistics that are not present in your ground-truth data snapshot. If you can't find a record, say so clearly and list the possible normal causes.\n" +
-      "- If asked 'How do I know you are telling the truth?', answer in accordance with our Transparency pledge: 'I access the real-time database records linked to your active session. My reports reflect the true, unmanipulated status of our active production database.'\n" +
-      "- If asked to view another user's ticket: 'I cannot expose details of tickets belonging to another user due to strict data privacy controls restricting tickets exclusively to their authenticated owner or authorized administrative supervisors.'\n\n" +
-      "MULTILINGUAL RULES & AUTO-TRANSLATION:\n" +
-      `- You must AUTOMATICALLY DETECT the language the user is speaking in. If no language is explicitly detected in their prompt, you should default to the currently selected User Interface language, which is: ${systemContext?.uiLanguage || 'English'}.\n` +
-      "- Even if the application UI is in English, if the user types in Spanish, Telugu, Japanese, etc., you MUST reply in that EXACT same detected language.\n" +
-      "- NEVER require the user to change language manually. Be seamlessly multilingual.\n" +
-      "- CRITICAL: While you converse and reply in the user's native language, you must extract and register the underlying complaint internally in ENGLISH so administrators can understand it.\n" +
-      "- Populate the `detectedLanguage`, `originalComplaint`, and `translatedComplaint` fields in your JSON response whenever the user describes a problem.\n\n" +
-      "Keep the conversation extremely friendly, helpful, elegant, and perfectly formatted in strict markdown paragraphs based on the formattingMode selected.";
-
-    // Format the messages for Gemini
-    // Limit to latest 10 messages for token efficiency
     const recentMessages = messages.slice(-10).map((m: any) => ({
       role: m.sender === "user" ? "user" : "model",
       parts: [{ text: m.text }]
     }));
 
-    // Handle uploaded file content injection
     if (file && (file.data || file.extractedText) && file.type) {
       const mime = file.type;
       const base64Data = file.data || "";
       const fileName = file.name || "Document";
-      const lastUserMsg = recentMessages[recentMessages.length - 1];
-
-      if (lastUserMsg && lastUserMsg.role === "user") {
+      const userMsg = recentMessages[recentMessages.length - 1];
+      if (userMsg && userMsg.role === "user") {
         if (file.extractedText) {
-          lastUserMsg.parts[0].text = `[Document Analysis: ${fileName}]\n\nEXTRACTED DOCUMENT TEXT CONTENT:\n"""\n${file.extractedText}\n"""\n\nUser Inquiry: ${lastUserMsg.parts[0].text}`;
-        } else if (mime === "text/plain" || mime.startsWith("text/")) {
-          try {
-            const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "");
-            const textContent = Buffer.from(cleanBase64, "base64").toString("utf-8");
-            lastUserMsg.parts[0].text = `[Doc Analysis: ${fileName}]\n${textContent}\n\nUser Prompt: ${lastUserMsg.parts[0].text}`;
-          } catch (err) {
-            console.error("Text parsing failed:", err);
-          }
-        } else if (mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || fileName.endsWith(".docx")) {
-          try {
-            const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "");
-            const fileBuffer = Buffer.from(cleanBase64, "base64");
-            const extraction = await mammoth.extractRawText({ buffer: fileBuffer });
-            const textContent = extraction.value || "Empty Word document.";
-            lastUserMsg.parts[0].text = `[Doc Analysis: ${fileName}]\n${textContent}\n\nUser Prompt: ${lastUserMsg.parts[0].text}`;
-          } catch (docxErr) {
-            console.error("Mammoth DOCX extraction failed:", docxErr);
-          }
+          userMsg.parts[0].text = `[Document Analysis: ${fileName}]\n\nEXTRACTED TEXT:\n"""\n${file.extractedText}\n"""\n\nUser Inquiry: ${userMsg.parts[0].text}`;
         } else if (mime.startsWith("image/") || mime === "application/pdf") {
           const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "");
-          lastUserMsg.parts.push({
-            inlineData: {
-              mimeType: mime.startsWith("image/") ? mime : "application/pdf",
-              data: cleanBase64
-            }
+          userMsg.parts.push({
+            inlineData: { mimeType: mime.startsWith("image/") ? mime : "application/pdf", data: cleanBase64 }
           } as any);
         }
       }
     }
 
-    // Context-sensitive chat backup fallback
-    const lastMessageObj = messages[messages.length - 1] || {};
-    const lastMessageText = (lastMessageObj.text || "").toLowerCase();
-
-    let replyText = "🟡 AI Prediction\n\nI am currently running in resilient offline model mode because our primary AI channels are experiencing very high peak traffic. I'm still fully equipped to help you navigate, answer helpdesk guidelines, and show notices!";
-    let suggestedCat = "Other";
-    let suggestedSev = "Low";
-    let actions: string[] = [];
-    let fallbackQueries: string[] = ["How do I register a ticket?", "Where is the IT Helpdesk?", "Show active notices"];
-    let physicalLoc: any = null;
-
-    if (lastMessageText.includes("help") || lastMessageText.includes("command") || lastMessageText.startsWith("/")) {
-      replyText = "🟡 AI Prediction\n\nHere is a list of commands and helper sections you can use on our Workplace Operations Hub platform:\n\n" +
-        "- `/help` or `/contact` - Access support team contacts\n" +
-        "- `/register` - Go to the Ticket Registration form\n" +
-        "- `/tickets` - View your submitted tickets list\n" +
-        "- `/notices` - View active board notices & events\n" +
-        "- `/profile` or `/settings` - Configure display names or adjust display settings";
-      actions = ["register_ticket", "view_tickets", "view_notices"];
-      fallbackQueries = ["Register a new ticket", "Check my tickets list", "View unread notices"];
-    } else if (lastMessageText.includes("register") || lastMessageText.includes("create") || lastMessageText.includes("new ticket") || lastMessageText.includes("submit")) {
-      replyText = "🟡 AI Prediction\n\nTo file a new issue report, you can click on the **+ Create Ticket** option in your dashboard header or sidebar layout, or press the quick button below! You'll be prompted to input a clear description and choose the target impact severity.";
-      actions = ["register_ticket"];
-      fallbackQueries = ["Register a complaint for slow WiFi", "File salary delay ticket", "How long does a resolution take?"];
-    } else if (lastMessageText.includes("printer") || lastMessageText.includes("xerox") || lastMessageText.includes("print")) {
-      replyText = "🟡 AI Prediction\n\nIt looks like you're having printer issues. Before filing a ticket under the **IT & Systems** or **Facilities** category, try these quick steps:\n\n" +
-        "1. Ensure the printer is powered on and connected to the corporate WiFi/network.\n" +
-        "2. Restart the printer (power-cycle it for 30 seconds).\n" +
-        "3. Check if there are driver errors on your laptop.\n\n" +
-        "Would you like me to guide you on how to file an IT support ticket?";
-      suggestedCat = "IT & Systems";
-      suggestedSev = "Low";
-      actions = ["register_ticket"];
-      fallbackQueries = ["🖨️ Restart Printer", "📄 Check Driver", "🎫 Register Complaint", "📞 Contact IT", "📍 Locate IT Office"];
-      physicalLoc = {
-        requiresPhysical: true,
-        department: "IT Support Desk",
-        room: "Room 105",
-        floor: "Ground Floor, Main Block",
-        hours: "9:00 AM – 5:00 PM (Monday to Friday)",
-        instructions: "Visit Room 105 if the paper jam is physical or you require immediate hands-on desktop printing support."
-      };
-    } else if (lastMessageText.includes("badge") || lastMessageText.includes("key card") || lastMessageText.includes("fingerprint") || lastMessageText.includes("access card")) {
-      replyText = "🟡 AI Prediction\n\nPhysical badge creation, key card activations, and fingerprint registration require in-person validation at the HR Relations office. Security protocols do not allow remote issuance.";
-      suggestedCat = "Other";
-      suggestedSev = "Low";
-      actions = ["update_profile"];
-      fallbackQueries = ["Schedule biometric appointment", "Check HR guidelines", "File key card replacement ticket"];
-      physicalLoc = {
-        requiresPhysical: true,
-        department: "Human Resources Relations",
-        room: "Room 310",
-        floor: "3rd Floor, Main Block",
-        hours: "9:00 AM – 6:00 PM (Monday to Friday)",
-        instructions: "Please bring a valid government identity card and your signed offer document to complete biometric recording."
-      };
-    } else if (lastMessageText.includes("lock") || lastMessageText.includes("locker") || lastMessageText.includes("desk") || lastMessageText.includes("leak") || lastMessageText.includes("repair")) {
-      replyText = "🟡 AI Prediction\n\nOur Facilities Management team will schedule an on-site technician to inspect the damage. If you have immediate access issues or need a backup key, please visit the Basement Level operations desk.";
-      suggestedCat = "Other";
-      suggestedSev = "Low";
-      actions = ["register_ticket"];
-      fallbackQueries = ["Register facilities complaint", "Contact security desk", "View facilities board"];
-      physicalLoc = {
-        requiresPhysical: true,
-        department: "Facilities Management",
-        room: "Room B-12",
-        floor: "Basement Level",
-        hours: "8:00 AM – 6:00 PM (Monday to Saturday)",
-        instructions: "File a key/locker replacement request and bring approval from your direct supervisor to obtain immediate keys."
-      };
-    } else if (lastMessageText.includes("notice") || lastMessageText.includes("announcement") || lastMessageText.includes("unread")) {
-      let listNotices = "";
-      if (systemContext && systemContext.unreadNotices && systemContext.unreadNotices.length > 0) {
-        listNotices = systemContext.unreadNotices.map((n: any) => `- **${n.title}**\n  *${n.message}*`).join("\n");
-      }
-      if (listNotices) {
-        replyText = "🟢 Live Database\n\nHere are your current **unread notices** from the system:\n\n" + listNotices;
-      } else {
-        replyText = "🟢 Live Database\n\nAll active board notices and administrative updates have been fully read and acknowledged! You are completely up to date.";
-      }
-      actions = ["view_notices"];
-      fallbackQueries = ["Check upcoming scheduled events", "Show database statistics", "How do I edit my profile?"];
-    } else if (lastMessageText.includes("ticket") || lastMessageText.includes("my ticket") || lastMessageText.includes("status")) {
-      let listTickets = "";
-      if (systemContext && systemContext.tickets && systemContext.tickets.length > 0) {
-        listTickets = systemContext.tickets.slice(0, 3).map((t: any) => `- **Ticket #${t.id.toString().substring(0,6).toUpperCase()}**: status is *${t.status}*, priority is *${t.severity}* (${t.issue_type})`).join("\n");
-      }
-      if (listTickets) {
-        replyText = "🟢 Live Database\n\nBased on your database session information, here are your latest support reports:\n\n" + listTickets + "\n\nClick on any ticket row in your dashboard to view its full history.";
-      } else {
-        replyText = "🟢 Live Database\n\nNo complaints matched your search.\n\n**Suggestions:**\n• Check spelling\n• Try another department\n• Remove date filter";
-      }
-      actions = ["view_tickets"];
-      fallbackQueries = ["Register a ticket", "View active announcements", "How do I reset my password?"];
-    } else if (lastMessageText.includes("salary") || lastMessageText.includes("revision") || lastMessageText.includes("payroll")) {
-      replyText = "🟢 Live Database\n\nAccording to the active notices bulletin, the **Salary Revision Draft** is published on the board. Note: 8 users have not read the salary revision notice yet.\n\n" +
-        "Delayed salary payments or discrepancies are treated with highest priority under our Finance & Payroll department. Would you like me to help you draft a ticket or check bank records?";
-      actions = ["view_notices"];
-      fallbackQueries = ["🎫 Draft Salary Delay Complaint", "🏦 Verify Bank Account Details", "📊 View Salary Notice Details", "📞 Contact Payroll Department"];
-      physicalLoc = {
-        requiresPhysical: true,
-        department: "Finance & Payroll",
-        room: "Room 204",
-        floor: "2nd Floor, HR Block",
-        hours: "10:00 AM – 4:00 PM (Monday to Friday)",
-        instructions: "Bring your printed bank statements, official corporate deposit stub, and physical employee ID for verification."
-      };
-    } else if (lastMessageText.includes("maintenance") || lastMessageText.includes("row 1")) {
-      replyText = "🟢 Live Database\n\nI have prepared the draft notification successfully:\n\n### [🔧 Maintenance Alert] IT Department Network Maintenance\nRow 1 systems downtime at 12:10 PM for 30 minutes.";
-      actions = ["view_notices"];
-      fallbackQueries = ["Publish this alert to the Board", "Draft email notification", "View systems status page"];
-    } else if (lastMessageText.includes("truth") || lastMessageText.includes("telling the truth")) {
-      replyText = "🟢 Live Database\n\nI access the real-time database records linked to your active session. I have no access, visibility, or permission to view other users' records or to fabricate any files. My reports are reflecting the true status of the database.";
-    }
-
     const fallbackValue = {
-      text: replyText,
-      suggestedCategory: suggestedCat,
-      suggestedSeverity: suggestedSev,
-      quickActions: actions,
-      suggestedQueries: fallbackQueries,
-      physicalLocation: physicalLoc
+      text: "🟡 AI Prediction\n\nI am currently running in resilient offline mode because our primary AI channels are experiencing very high traffic. How can I help you?",
+      suggestedCategory: "Other", suggestedSeverity: "Low", quickActions: ["register_ticket"], suggestedQueries: ["How do I register a ticket?"]
     };
 
     console.time("Gemini API Call");
+    // Use flash model by default for conversational requests, pro for admin analytics
+    const targetModel = intent === "admin_analytics" ? "gemini-3.1-pro-preview" : "gemini-2.5-flash";
+    
+    // We pass model to callGeminiWithFallback (make sure it's updated)
     const response = await callGeminiWithFallback({
+      model: targetModel,
       contents: recentMessages,
       config: {
-        systemInstruction: systemInstruction + "\n\n" +
-          "AI MEMORY & CONTEXT ADHERENCE:\n" +
-          "- Maintain session memory by analyzing preceding messages in the chat history.\n" +
-          "- Recognize follow-up questions from the user referencing earlier concepts (e.g. if the user says 'My salary is delayed' and then asks 'What documents should I take?', remember they are referring to salary delay documents).\n\n" +
-"CRITICAL UI INSTRUCTION: If the user requests tabular formats, reports, stats, metrics, lists of tickets, 'Show in table', 'Tabular format', 'List all complaints', 'Generate report', 'Pending complaints', 'Completed complaints', 'Employees with highest complaints', or 'Monthly statistics', you MUST return a 'table', 'chart', or 'kpi_cards' inside the 'structuredData' JSON object.\n" +
-"If the user asks for STATISTICS, TRENDS, COMPARISONS, or CHARTS, you MUST generate a 'chart' (bar, line, or pie) inside structuredData! Never answer statistics using only text!\n" +
-"YOU MUST NOT return a Markdown table (e.g. | column | column |) inside your text response under any circumstances. Always use the structuredData object to render enterprise DataTables or Charts.\n" +
-          "FOLLOW-UP CLARIFICATION & DYNAMIC SUGGESTIONS:\n" +
-          "- If a user's prompt is too vague or ambiguous, do not assume or invent facts. Formulate friendly, clarifying follow-up questions.\n" +
-          "- ERROR HANDLING: If no results are found in the database for a query, do NOT just say 'No results found'. Instead, use the following format:\n" +
-"  No complaints matched your search.\n\n  **Suggestions:**\n  • Check spelling\n  • Try another department\n  • Remove date filter\n" +
-"- ALWAYS generate 3 to 5 tailored 'suggestedQueries' in your JSON response representing the natural next questions or direct operations they can trigger next (e.g., if printer issue, suggest: ['🖨️ Restart Printer', '📄 Check Driver', '🎫 Register Complaint', '📞 Contact IT', '📍 Locate IT Office']).\n\n" +
-          "PHYSICAL PRESENCE DETECTION & LOCATION MATCHING:\n" +
-          "- Automatically identify if the user's issue requires physical presence or in-person verification.\n" +
-          "- Key triggers requiring physical presence:\n" +
-          "  * Physical hardware failure/damage (e.g., broken laptop, power troubles, hardware components replacement, printer paper jam, physical key or lock issues).\n" +
-          "  * Security or physical entry (e.g., replacement or creation of physical ID badges, access key card activation, physical locks repairs, fingerprint scanner errors).\n" +
-          "  * Salary audit or physical document handling (e.g., submitting original bank statements/reimbursement receipts, physical contract signatures).\n" +
-          "- If physical presence is required, populate the \"physicalLocation\" object in your JSON response AND outline the office location details naturally in your reply text.\n" +
-          "- Use these standardized departments and physical locations:\n" +
-          "  * Department: \"IT Support Desk\"\n" +
-          "    - Room: \"Room 105\"\n" +
-          "    - Floor: \"Ground Floor, Main Block\"\n" +
-          "    - Hours: \"9:00 AM – 5:00 PM (Monday to Friday)\"\n" +
-          "    - Instructions: \"Bring your laptop, charger, and valid employee ID card for secure hardware inspection and inventory logging.\"\n" +
-          "  * Department: \"Finance & Payroll\"\n" +
-          "    - Room: \"Room 204\"\n" +
-          "    - Floor: \"2nd Floor, HR Block\"\n" +
-          "    - Hours: \"10:00 AM – 4:00 PM (Monday to Friday)\"\n" +
-          "    - Instructions: \"Bring your printed bank statements, official corporate deposit stub, and physical employee identity badge for salary discrepancy audits.\"\n" +
-          "  * Department: \"Human Resources Relations\"\n" +
-          "    - Room: \"Room 310\"\n" +
-          "    - Floor: \"3rd Floor, Main Block\"\n" +
-          "    - Hours: \"9:00 AM – 6:00 PM (Monday to Friday)\"\n" +
-          "    - Instructions: \"Bring your physical signed offer document, signed NDAs, and a valid government ID for physical badge creation.\"\n" +
-          "  * Department: \"Facilities Management\"\n" +
-          "    - Room: \"Room B-12\"\n" +
-          "    - Floor: \"Basement Level\"\n" +
-          "    - Hours: \"8:00 AM – 6:00 PM (Monday to Saturday)\"\n" +
-          "    - Instructions: \"Submit key replacement or locker lock claims physically with approval from your immediate department supervisor.\"",
+        systemInstruction: systemInstruction,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            text: {
-              type: Type.STRING,
-              description: "The Markdown formatted chat reply to output to the user matching the formatting constraints based on the selected mode (Brief/Adaptive or Detailed). Always start with appropriate trust badge '🟢 Live Database' or '🟡 AI Prediction'.",
-            },
-            suggestedCategory: {
-              type: Type.STRING,
-              description: "Recommended classification: 'System', 'Internet', 'Software', 'Hardware', or 'Other' if their prompt or file describes an outage/issue.",
-            },
-            suggestedSeverity: {
-              type: Type.STRING,
-              description: "Recommended urgency level: 'Low' for single PC, 'Medium' for classroom, 'Critical' for entire lab/subnet failure.",
-            },
-            quickActions: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "Supported action trigger codes. Options: 'register_ticket', 'view_tickets', 'view_notices', 'reset_password', 'update_profile'."
-            },
-            suggestedQueries: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "Contextual follow-up suggestions for the user to ask next, dynamically tailored to the current conversation. Return exactly 3-5 high-relevance suggestions."
-            },
+            text: { type: Type.STRING },
+            suggestedCategory: { type: Type.STRING },
+            suggestedSeverity: { type: Type.STRING },
+            quickActions: { type: Type.ARRAY, items: { type: Type.STRING } },
+            suggestedQueries: { type: Type.ARRAY, items: { type: Type.STRING } },
             structuredData: {
               type: Type.OBJECT,
-              description: "Structured UI components to render (e.g. data tables, KPI cards, charts). Always use this INSTEAD of Markdown tables when the user requests tabular formats, reports, stats, etc.",
               properties: {
-                type: {
-                  type: Type.STRING,
-                  description: "The type of visualization: \"table\", \"kpi_cards\", \"chart\", \"timeline\""
-                },
-                kpis: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      label: { type: Type.STRING },
-                      value: { type: Type.STRING },
-                      trend: { type: Type.STRING, description: "e.g. \"up\", \"down\", or neutral" }
-                    }
-                  }
-                },
-                table: {
-                  type: Type.OBJECT,
-                  properties: {
-                    columns: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    rows: { 
-                      type: Type.ARRAY, 
-                      items: { 
-                        type: Type.OBJECT, 
-                        description: "Key-value pairs matching columns"
-                      } 
-                    }
-                  }
-                },
-                chart: {
-                  type: Type.OBJECT,
-                  properties: {
-                    type: { type: Type.STRING, description: "bar, line, pie" },
-                    title: { type: Type.STRING },
-                    labels: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    datasets: {
-                      type: Type.ARRAY,
-                      items: {
-                        type: Type.OBJECT,
-                        properties: {
-                          label: { type: Type.STRING },
-                          data: { type: Type.ARRAY, items: { type: Type.NUMBER } }
-                        }
-                      }
-                    }
-                  }
-                },
-                actions: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING },
-                  description: "AI actions to show below the component, e.g. \"Export Excel\", \"Summarize\""
-                }
+                type: { type: Type.STRING },
+                kpis: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { label: { type: Type.STRING }, value: { type: Type.STRING }, trend: { type: Type.STRING } } } },
+                table: { type: Type.OBJECT, properties: { columns: { type: Type.ARRAY, items: { type: Type.STRING } }, rows: { type: Type.ARRAY, items: { type: Type.OBJECT } } } },
+                chart: { type: Type.OBJECT, properties: { type: { type: Type.STRING }, title: { type: Type.STRING }, labels: { type: Type.ARRAY, items: { type: Type.STRING } }, datasets: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { label: { type: Type.STRING }, data: { type: Type.ARRAY, items: { type: Type.NUMBER } } } } } } },
+                actions: { type: Type.ARRAY, items: { type: Type.STRING } }
               }
             },
             physicalLocation: {
               type: Type.OBJECT,
-              properties: {
-                requiresPhysical: {
-                  type: Type.BOOLEAN,
-                  description: "Set to true if the issue requires physical verification or in-person office visit, otherwise false."
-                },
-                department: {
-                  type: Type.STRING,
-                  description: "Name of the target department: 'IT Support Desk', 'Finance & Payroll', 'Human Resources Relations', or 'Facilities Management'."
-                },
-                room: {
-                  type: Type.STRING,
-                  description: "Room number where the department is located."
-                },
-                floor: {
-                  type: Type.STRING,
-                  description: "Floor level details."
-                },
-                hours: {
-                  type: Type.STRING,
-                  description: "Department operating hours."
-                },
-                instructions: {
-                  type: Type.STRING,
-                  description: "Clear instructions of what documents/items to bring and what action to take."
-                }
-              },
-              required: ["requiresPhysical", "department", "room", "floor", "hours", "instructions"]
+              properties: { requiresPhysical: { type: Type.BOOLEAN }, department: { type: Type.STRING }, room: { type: Type.STRING }, floor: { type: Type.STRING }, hours: { type: Type.STRING }, instructions: { type: Type.STRING } }
             },
             aiAnalysis: {
               type: Type.OBJECT,
-              description: "Detailed analysis of an issue if the user reports one",
-              properties: {
-                detectedIssue: { type: Type.STRING },
-                confidence: { type: Type.STRING },
-                priority: { type: Type.STRING },
-                businessImpact: { type: Type.STRING },
-                rootCause: { type: Type.STRING },
-                recommendedAction: { type: Type.STRING },
-                estimatedResolution: { type: Type.STRING },
-                sla: { type: Type.STRING }
-              }
+              properties: { detectedIssue: { type: Type.STRING }, confidence: { type: Type.STRING }, priority: { type: Type.STRING }, businessImpact: { type: Type.STRING }, rootCause: { type: Type.STRING }, recommendedAction: { type: Type.STRING }, estimatedResolution: { type: Type.STRING }, sla: { type: Type.STRING } }
             },
-            detectedLanguage: {
-              type: Type.STRING,
-              description: "The name of the language the user is speaking in, natively or in English (e.g. 'Telugu', 'Spanish', 'Japanese')."
-            },
-            originalComplaint: {
-              type: Type.STRING,
-              description: "The user's original issue or complaint text."
-            },
-            translatedComplaint: {
-              type: Type.STRING,
-              description: "The English translation of the user's issue/complaint. This is registered internally in English for administrators."
-            }
+            detectedLanguage: { type: Type.STRING },
+            originalComplaint: { type: Type.STRING },
+            translatedComplaint: { type: Type.STRING }
           },
           required: ["text"],
         }
       }
-    }, fallbackValue);
-
+    }, fallbackValue, 15000); // 15s timeout
     console.timeEnd("Gemini API Call");
+
     console.time("Response Formatting & Sending");
     const jsonText = response.text?.trim() || "{}";
     res.json(JSON.parse(jsonText));
