@@ -1178,6 +1178,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
 
           systemContext = {
             role: "user",
+            permissions: ["ownTickets.read", "complaints.create"],
             userProfile: { name: dbUser.name, email: dbUser.email },
             tickets: userTickets || [],
             notices: (userNotices || []).slice(0, 5),
@@ -1207,6 +1208,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
 
           systemContext = {
             role: "admin",
+            permissions: ["tickets.read", "users.read", "reports.read", "analytics.read"],
             userProfile: { name: dbUser.name, email: dbUser.email },
             stats: {
               totalTickets: adminTickets?.length || 0,
@@ -1223,7 +1225,8 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
           };
         } else {
           systemContext = {
-            role: "visitor"
+            role: "visitor",
+            permissions: []
           };
         }
       } catch (dbErr) {
