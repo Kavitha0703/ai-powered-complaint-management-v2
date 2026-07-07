@@ -28,25 +28,6 @@ window.addEventListener('unhandledrejection', e => {
   }
 });
 
-window.addEventListener('appinstalled', () => {
-  if (!("Notification" in window)) return;
-  if (Notification.permission === "granted") {
-    new Notification("App Installed", {
-      body: "Workplace Hub has been successfully installed on your device.",
-      icon: "/logo-192.png"
-    });
-  } else if (Notification.permission !== "denied") {
-    Notification.requestPermission().then((permission) => {
-      if (permission === "granted") {
-        new Notification("App Installed", {
-          body: "Workplace Hub has been successfully installed on your device.",
-          icon: "/logo-192.png"
-        });
-      }
-    });
-  }
-});
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider defaultTheme="system" storageKey="dcms-ui-theme">

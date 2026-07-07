@@ -91,6 +91,7 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
   };
 
   
+  
   // Trigger browser PWA setup
   const triggerNativePWAInstall = async () => {
     if (deferredPrompt) {
@@ -99,33 +100,16 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
       if (outcome === "accepted") {
         setIsInstalled(true);
         setDeferredPrompt(null);
-        showInstallNotification();
+        localStorage.setItem('showInstallSuccess', 'true');
+        window.dispatchEvent(new Event('appinstalled'));
       }
     } else {
       // Trigger mock simulation onboarding workflow
       setIsInstalled(true);
-      showInstallNotification();
+      localStorage.setItem('showInstallSuccess', 'true');
+      window.dispatchEvent(new Event('appinstalled'));
     }
-  };
-
-  const showInstallNotification = () => {
-    if (!("Notification" in window)) return;
-    
-    if (Notification.permission === "granted") {
-      new Notification("App Installed", {
-        body: "Workplace Hub has been successfully installed on your device.",
-        icon: "/logo-192.png"
-      });
-    } else if (Notification.permission !== "denied") {
-      Notification.requestPermission().then((permission) => {
-        if (permission === "granted") {
-          new Notification("App Installed", {
-            body: "Workplace Hub has been successfully installed on your device.",
-            icon: "/logo-192.png"
-          });
-        }
-      });
-    }
+    handleClose();
   };
 
 
