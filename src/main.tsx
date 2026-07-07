@@ -1,4 +1,3 @@
-
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
@@ -26,6 +25,25 @@ window.addEventListener('unhandledrejection', e => {
   if (e.reason?.message?.includes('ResizeObserver loop')) {
     e.stopImmediatePropagation();
     e.preventDefault();
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    new Notification("App Installed", {
+      body: "Workplace Hub has been successfully installed on your device.",
+      icon: "/logo-192.png"
+    });
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission().then((permission) => {
+      if (permission === "granted") {
+        new Notification("App Installed", {
+          body: "Workplace Hub has been successfully installed on your device.",
+          icon: "/logo-192.png"
+        });
+      }
+    });
   }
 });
 

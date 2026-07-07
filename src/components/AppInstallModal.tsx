@@ -90,6 +90,7 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
     }, 300); // reset after animation
   };
 
+  
   // Trigger browser PWA setup
   const triggerNativePWAInstall = async () => {
     if (deferredPrompt) {
@@ -98,12 +99,35 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
       if (outcome === "accepted") {
         setIsInstalled(true);
         setDeferredPrompt(null);
+        showInstallNotification();
       }
     } else {
       // Trigger mock simulation onboarding workflow
       setIsInstalled(true);
+      showInstallNotification();
     }
   };
+
+  const showInstallNotification = () => {
+    if (!("Notification" in window)) return;
+    
+    if (Notification.permission === "granted") {
+      new Notification("App Installed", {
+        body: "Workplace Hub has been successfully installed on your device.",
+        icon: "/logo-192.png"
+      });
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          new Notification("App Installed", {
+            body: "Workplace Hub has been successfully installed on your device.",
+            icon: "/logo-192.png"
+          });
+        }
+      });
+    }
+  };
+
 
   const getInstallUrl = () => {
     if (typeof window === "undefined") return "https://ai-powered-complaint-management-v2.vercel.app";
