@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+const fs = require('fs');
+const sharp = require('sharp');
+
+const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <linearGradient id="ai-grad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" /> <!-- Violet 500 -->
@@ -38,4 +41,22 @@
   <circle cx="256" cy="76" r="10" fill="#a78bfa" />
   <circle cx="400" cy="360" r="8" fill="#3b82f6" />
   <circle cx="112" cy="320" r="12" fill="#8b5cf6" />
-</svg>
+</svg>`;
+
+fs.writeFileSync('public/logo.svg', svgContent);
+
+async function generate() {
+  await sharp(Buffer.from(svgContent))
+    .resize(192, 192)
+    .png()
+    .toFile('public/logo-192.png');
+    
+  await sharp(Buffer.from(svgContent))
+    .resize(512, 512)
+    .png()
+    .toFile('public/logo-512.png');
+    
+  console.log("Icons generated successfully.");
+}
+
+generate().catch(console.error);
