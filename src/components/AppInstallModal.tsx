@@ -138,9 +138,6 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
         setDeferredPrompt(null);
         // Do NOT set isInstalled here manually. Let the appinstalled event handle it.
       }
-    } else {
-      // Prompt is not available. Show a compatibility message instead of navigating to help.
-      alert(`Installation is not supported on this browser or the app is already installed.\n\nPlease check if your browser supports PWA installation or try using Chrome/Safari.`);
     }
   };
 
@@ -328,20 +325,33 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
                       {"Run directly from your home screen with no app store downloads. Works offline and syncs automatically."}
                     </p>
                   </div>
-                  <button
-                    onClick={triggerNativePWAInstall}
-                    className={`w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                      isInstalled 
-                        ? "bg-emerald-950/40 border border-emerald-900 text-emerald-400" 
-                        : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg"
-                    }`}
-                  >
-                    {isInstalled ? (
-                      <><Check className="w-5 h-5" /> {"Open Workplace Hub"}</>
-                    ) : (
-                      <><Smartphone className="w-5 h-5" /> {"Install on this Device"}</>
-                    )}
-                  </button>
+                  {isInstalled ? (
+                    <button
+                      onClick={handleClose}
+                      className="w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer bg-emerald-950/40 border border-emerald-900 text-emerald-400"
+                    >
+                       <Check className="w-5 h-5" /> {"Installed Successfully"}
+                    </button>
+                  ) : deferredPrompt ? (
+                    <button
+                      onClick={triggerNativePWAInstall}
+                      className="w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white shadow-lg"
+                    >
+                      <Smartphone className="w-5 h-5" /> {"Install on this Device"}
+                    </button>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-sm font-medium text-amber-400 bg-amber-950/30 p-3 rounded-lg border border-amber-900/50">
+                        {"Native installation is not supported directly in this browser context. You can still install the app manually:"}
+                      </p>
+                      <button
+                        onClick={() => setCurrentView("help")}
+                        className="w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white"
+                      >
+                         <AlertCircle className="w-5 h-5" /> {"View Manual Instructions"}
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
