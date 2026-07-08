@@ -360,33 +360,55 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
                          <Check className="w-5 h-5" /> {"Open Workplace Hub"}
                       </button>
                     </div>
-                  ) : deferredPrompt ? (
-                    <button
-                      onClick={triggerNativePWAInstall}
-                      className="w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white shadow-lg"
-                    >
-                      <Smartphone className="w-5 h-5" /> 
-                      {deviceType === "desktop" ? "Install Desktop App (PWA)" : "Add to Home Screen (Recommended)"}
-                    </button>
                   ) : (
                     <div className="space-y-4 text-left">
                       {deviceType === "android" && (
-                        <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center">
-                          <p className="text-sm text-slate-300 mb-4">
-                            Workplace Hub native Android application is currently in development.
-                          </p>
-                          <button disabled className="w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl bg-slate-700 text-slate-400 cursor-not-allowed flex items-center justify-center gap-2">
-                            Download APK (Coming Soon)
-                          </button>
+                        <div className="space-y-4">
+                          {deferredPrompt ? (
+                            <button
+                              onClick={triggerNativePWAInstall}
+                              className="w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white shadow-lg"
+                            >
+                              <Smartphone className="w-5 h-5" /> Install as PWA
+                            </button>
+                          ) : (
+                            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                              <p className="text-sm text-slate-300 space-y-2">
+                                <strong className="block text-white mb-2">Install as PWA:</strong>
+                                <span className="block"><strong>Chrome:</strong> Menu → Add to Home Screen</span>
+                                <span className="block"><strong>Samsung Internet:</strong> Menu → Add Page To → Home Screen</span>
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center">
+                            <p className="text-sm text-slate-300 mb-4">
+                              Workplace Hub native Android application is currently in development.
+                            </p>
+                            <button disabled className="w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl bg-slate-700 text-slate-400 cursor-not-allowed flex items-center justify-center gap-2">
+                              Download APK (Coming Soon)
+                            </button>
+                          </div>
                         </div>
                       )}
                       
                       {deviceType === "desktop" && (
-                        <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                          <p className="text-sm text-slate-300 space-y-2">
-                            <strong className="block text-white mb-2">Instructions:</strong>
-                            <span className="block"><strong>Chrome / Edge / Brave:</strong> Menu → Install App</span>
-                          </p>
+                        <div className="space-y-4">
+                          {deferredPrompt ? (
+                            <button
+                              onClick={triggerNativePWAInstall}
+                              className="w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white shadow-lg"
+                            >
+                              <Smartphone className="w-5 h-5" /> Install Desktop App
+                            </button>
+                          ) : (
+                            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                              <p className="text-sm text-slate-300 space-y-2">
+                                <strong className="block text-white mb-2">Instructions:</strong>
+                                <span className="block"><strong>Chrome / Edge / Brave:</strong> Menu → Install App</span>
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
                       
