@@ -107,7 +107,7 @@ function AuthRoute({ isAdmin }: { isAdmin: boolean }) {
 }
 
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -116,6 +116,7 @@ function InstallSuccessModal() {
 
   useEffect(() => {
     const handleInstall = () => {
+      console.log("PWA Installed");
       setShow(true);
     };
     window.addEventListener('appinstalled', handleInstall);
@@ -128,6 +129,16 @@ function InstallSuccessModal() {
     
     return () => window.removeEventListener('appinstalled', handleInstall);
   }, []);
+
+  const handleOpenApp = () => {
+    setShow(false);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) {
+      window.location.href = "/";
+    } else {
+      window.location.replace("/");
+    }
+  };
 
   if (!show) return null;
 
@@ -162,8 +173,8 @@ function InstallSuccessModal() {
             </div>
           </div>
           <button 
-            onClick={() => setShow(false)}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 rounded-xl transition-colors"
+            onClick={handleOpenApp}
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 rounded-xl transition-colors cursor-pointer"
           >
             Open Workplace Hub
           </button>

@@ -66,6 +66,20 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
     };
   }, []);
 
+  // Browser-native installation success listener
+  useEffect(() => {
+    const handleAppInstalledEvent = () => {
+      console.log("PWA Installed");
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+      localStorage.setItem('showInstallSuccess', 'true');
+    };
+    window.addEventListener("appinstalled", handleAppInstalledEvent);
+    return () => {
+      window.removeEventListener("appinstalled", handleAppInstalledEvent);
+    };
+  }, []);
+
   // Auto detect user device type
   useEffect(() => {
     const ua = navigator.userAgent.toLowerCase();
@@ -90,26 +104,19 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
     }, 300); // reset after animation
   };
 
-  
-  
   // Trigger browser PWA setup
   const triggerNativePWAInstall = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === "accepted") {
-        setIsInstalled(true);
         setDeferredPrompt(null);
-        localStorage.setItem('showInstallSuccess', 'true');
-        window.dispatchEvent(new Event('appinstalled'));
+        handleClose();
       }
     } else {
-      // Trigger mock simulation onboarding workflow
-      setIsInstalled(true);
-      localStorage.setItem('showInstallSuccess', 'true');
-      window.dispatchEvent(new Event('appinstalled'));
+      // Prompt is not available. Redirect the user to device-specific guides (Help view) rather than pretending it succeeded.
+      setCurrentView("help");
     }
-    handleClose();
   };
 
 
