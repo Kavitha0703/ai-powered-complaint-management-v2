@@ -115,7 +115,10 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
     // Check if APK is available
     fetch('/downloads/WorkplaceHub.apk', { method: 'HEAD' })
       .then(res => {
-        if (res.ok) setApkAvailable(true);
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && !contentType.includes('text/html')) {
+          setApkAvailable(true);
+        }
       })
       .catch(() => {});
   }, []);
