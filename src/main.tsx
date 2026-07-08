@@ -28,6 +28,13 @@ window.addEventListener('unhandledrejection', e => {
   }
 });
 
+// Capture deferredPrompt globally as early as possible
+(window as any).deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  (window as any).deferredInstallPrompt = e;
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider defaultTheme="system" storageKey="dcms-ui-theme">

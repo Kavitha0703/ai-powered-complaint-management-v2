@@ -138,9 +138,10 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     const screenW = window.innerWidth;
     const screenH = window.innerHeight;
 
-    // Base default placement offsets: bottom-24 (96px) and right-6 (24px)
+    // Base default placement offsets: bottom-6 (24px) on mobile or bottom-24 (96px) on desktop, and right-6 (24px)
+    const isMobile = screenW < 768;
     const baseRight = 24;
-    const baseBottom = 96;
+    const baseBottom = isMobile ? 24 : 96;
 
     let widgetW = 52; // Toggle trigger bubble width
     let widgetH = 52; // Toggle trigger bubble height
@@ -200,6 +201,9 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     if (!isDragging) return;
 
     const handleDragMove = (e: MouseEvent | TouchEvent) => {
+      if (e.cancelable) {
+        e.preventDefault();
+      }
       const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
       const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
 

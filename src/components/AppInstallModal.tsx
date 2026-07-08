@@ -49,16 +49,33 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
 
   // Sync PWA trigger capture
   useEffect(() => {
+    // If we missed the event, check the global variable
+    if ((window as any).deferredInstallPrompt) {
+      setDeferredPrompt((window as any).deferredInstallPrompt);
+    }
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      (window as any).deferredInstallPrompt = e;
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     
     // Check if running in standalone display mode
-    if (window.matchMedia("(display-mode: standalone)").matches) {
+    if (window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone) {
       setIsInstalled(true);
+    } else if ("getInstalledRelatedApps" in navigator && window.self === window.top) {
+      // Check if installed on Android Chrome but running in browser (only in top-level context)
+      try {
+        (navigator as any).getInstalledRelatedApps().then((relatedApps: any[]) => {
+          if (relatedApps.length > 0) {
+            setIsInstalled(true);
+          }
+        }).catch(console.error);
+      } catch (err) {
+        console.error("getInstalledRelatedApps error:", err);
+      }
     }
 
     return () => {
@@ -72,6 +89,10 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
       console.log("PWA Installed");
       setIsInstalled(true);
       setDeferredPrompt(null);
+      // Ask for notification permission after successful installation
+      if ("Notification" in window) {
+        Notification.requestPermission();
+      }
     };
     window.addEventListener("appinstalled", handleAppInstalledEvent);
     return () => {
@@ -105,16 +126,21 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
 
   // Trigger browser PWA setup
   const triggerNativePWAInstall = async () => {
+    if (isInstalled) {
+      handleClose();
+      return;
+    }
+    
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === "accepted") {
         setDeferredPrompt(null);
-        handleClose();
+        // Do NOT set isInstalled here manually. Let the appinstalled event handle it.
       }
     } else {
-      // Prompt is not available. Redirect the user to device-specific guides (Help view) rather than pretending it succeeded.
-      setCurrentView("help");
+      // Prompt is not available. Show a compatibility message instead of navigating to help.
+      alert(`Installation is not supported on this browser or the app is already installed.\n\nPlease check if your browser supports PWA installation or try using Chrome/Safari.`);
     }
   };
 
@@ -311,7 +337,7 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
                     }`}
                   >
                     {isInstalled ? (
-                      <><Check className="w-5 h-5" /> {"Installed Successfully"}</>
+                      <><Check className="w-5 h-5" /> {"Open Workplace Hub"}</>
                     ) : (
                       <><Smartphone className="w-5 h-5" /> {"Install on this Device"}</>
                     )}

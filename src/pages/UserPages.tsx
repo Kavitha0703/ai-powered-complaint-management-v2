@@ -24,6 +24,7 @@ import {
 import { SupportAttachment, DraftTicket, UserNotification, TicketComment, StatusHistoryEntry } from "../types.ts";
 import { MediaGallery } from "../components/MediaGallery.tsx";
 import DcmsCamera from "../components/DcmsCamera.tsx";
+import PWADiagnostics from "../components/PWADiagnostics.tsx";
 
 export const CATEGORIES = [
   'IT Support',
@@ -3620,6 +3621,7 @@ export function UserSettings() {
         </Card>
 
       </div>
+      <PWADiagnostics />
     </div>
   );
 }

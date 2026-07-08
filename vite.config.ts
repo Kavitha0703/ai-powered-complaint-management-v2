@@ -11,6 +11,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: "autoUpdate",
+        injectRegister: "auto",
         manifest: {
           name: "Workplace Hub",
           short_name: "Workplace Hub",
@@ -38,24 +39,6 @@ export default defineConfig(() => {
               sizes: "512x512",
               type: "image/png",
               purpose: "maskable"
-            },
-            {
-              src: "/logo.svg",
-              sizes: "512x512",
-              type: "image/svg+xml",
-              purpose: "any maskable"
-            },
-            {
-              src: "/logo-192.png",
-              sizes: "192x192",
-              type: "image/png",
-              purpose: "any"
-            },
-            {
-              src: "/logo-512.png",
-              sizes: "512x512",
-              type: "image/png",
-              purpose: "any maskable"
             }
           ]
         },
@@ -64,7 +47,10 @@ export default defineConfig(() => {
           type: "module"
         },
         workbox: {
-          maximumFileSizeToCacheInBytes: 6000000
+          maximumFileSizeToCacheInBytes: 6000000,
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: true
         }
       })
     ],

@@ -51,6 +51,7 @@ import {
   Legend,
 } from "recharts";
 import { motion, AnimatePresence } from "motion/react";
+import PWADiagnostics from "../components/PWADiagnostics.tsx";
 import {
   Sparkles,
   TrendingUp,
@@ -2651,6 +2652,7 @@ export function AdminSettings() {
           </CardContent>
         </Card>
       </div>
+      <PWADiagnostics />
     </div>
   );
 }
