@@ -389,31 +389,20 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
                             </div>
                           )}
 
-                          <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center">
-                            {!apkAvailable ? (
-                              <>
-                                <p className="text-sm text-slate-300 mb-4">
-                                  Android APK coming soon.
-                                </p>
-                                <button disabled className="w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl bg-slate-700 text-slate-400 cursor-not-allowed flex items-center justify-center gap-2">
-                                  Download APK (Coming Soon)
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <p className="text-sm text-slate-300 mb-4">
-                                  Download the native Android application.
-                                </p>
-                                <a 
-                                  href="/downloads/WorkplaceHub.apk"
-                                  download="WorkplaceHub.apk"
-                                  className="w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-2 cursor-pointer transition-colors"
-                                >
-                                  <Download className="w-5 h-5" /> Download Android APK
-                                </a>
-                              </>
-                            )}
-                          </div>
+                          {apkAvailable && (
+                            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center">
+                              <p className="text-sm text-slate-300 mb-4">
+                                Download the native Android application.
+                              </p>
+                              <a 
+                                href="/downloads/WorkplaceHub.apk"
+                                download="WorkplaceHub.apk"
+                                className="w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                              >
+                                <Download className="w-5 h-5" /> Download Android APK
+                              </a>
+                            </div>
+                          )}
                         </div>
                       )}
                       
