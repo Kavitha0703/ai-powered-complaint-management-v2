@@ -121,12 +121,6 @@ function InstallSuccessModal() {
     };
     window.addEventListener('appinstalled', handleInstall);
     
-    // Check if we need to show it from a previously saved state
-    if (localStorage.getItem('showInstallSuccess') === 'true') {
-      setShow(true);
-      localStorage.removeItem('showInstallSuccess');
-    }
-    
     return () => window.removeEventListener('appinstalled', handleInstall);
   }, []);
 

@@ -72,7 +72,6 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
       console.log("PWA Installed");
       setIsInstalled(true);
       setDeferredPrompt(null);
-      localStorage.setItem('showInstallSuccess', 'true');
     };
     window.addEventListener("appinstalled", handleAppInstalledEvent);
     return () => {

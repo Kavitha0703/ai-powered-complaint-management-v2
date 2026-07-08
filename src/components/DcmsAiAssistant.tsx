@@ -2056,15 +2056,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
               <Paperclip className="w-4 h-4" />
             </button>
 
-            {/* Smart AI Camera Button */}
-            <button
-              onClick={() => setAiCameraActive(true)}
-              disabled={loading}
-              title={"Capture intelligent snapshot using AI Camera"}
-              className="w-9 h-9 shrink-0 bg-white dark:bg-[#12192A] hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-blue-550 dark:text-blue-400 hover:text-blue-600 rounded-xl flex items-center justify-center cursor-pointer active:scale-95 transition-all shadow-2xs"
-            >
-              <Camera className="w-4 h-4" />
-            </button>
+
 
             {/* Voice Dictation Speech-to-Text Button */}
             <button
@@ -2339,15 +2331,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                   <Paperclip className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                 </button>
 
-                {/* Smart AI Camera */}
-                <button
-                  onClick={() => setAiCameraActive(true)}
-                  disabled={loading}
-                  title={"Capture live with AI Camera"}
-                  className="w-11 h-11 sm:w-8 sm:h-8 shrink-0 bg-slate-850 hover:bg-slate-800 border border-slate-800 text-blue-400 hover:text-white rounded-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 shadow-sm"
-                >
-                  <Camera className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                </button>
+
 
                 {/* Voice Typing */}
                 <button
