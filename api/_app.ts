@@ -92,6 +92,7 @@ async function callGeminiWithFallback(
   fallbackValue: any,
   timeoutMs: number = 15000
 ): Promise<{ text: string; [key: string]: any }> {
+  let lastError: any = null;
   // If the key is missing entirely, trigger fallback right away
   if (!process.env.GEMINI_API_KEY) {
     return { text: JSON.stringify({ ...fallbackValue, text: "Error: " + (lastError ? String(lastError.message || lastError) : "Unknown error") }) };
@@ -100,7 +101,6 @@ async function callGeminiWithFallback(
   // Multi-tier model array to maximize availability across different quotas
   // Dynamic models array
   const models = params.model ? [params.model, "gemini-2.5-flash", "gemini-3.1-pro-preview"] : ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
-  let lastError: any = null;
 
   for (const model of models) {
     try {
@@ -1360,7 +1360,7 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
     if (supabase) {
       const now = Date.now();
       if (intent === "user_query" && systemContext?.userProfile?.id) {
-        const fetchPromises = [
+        const fetchPromises: any[] = [
           supabase.from("tickets").select("id, issue_type, severity, description, status, created_at").eq("user_id", systemContext.userProfile.id).order("created_at", { ascending: false }).limit(10)
         ];
         
@@ -1380,7 +1380,7 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
         }
       } else if (intent === "admin_query" || intent === "admin_analytics") {
         const limit = intent === "admin_analytics" ? 100 : 20;
-        const fetchPromises = [
+        const fetchPromises: any[] = [
           supabase.from("tickets").select("id, issue_type, severity, description, status, created_at").order("created_at", { ascending: false }).limit(limit)
         ];
 
