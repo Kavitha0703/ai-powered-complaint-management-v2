@@ -392,7 +392,19 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
                             </div>
                           )}
 
-                          {apkAvailable && (
+                          {!apkAvailable ? (
+                            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center opacity-75">
+                              <p className="text-sm text-slate-300 mb-4">
+                                Android APK coming soon.
+                              </p>
+                              <button 
+                                disabled 
+                                className="w-full h-12 font-extrabold text-sm uppercase tracking-wider rounded-xl bg-slate-800 text-slate-500 cursor-not-allowed flex items-center justify-center gap-2 border border-slate-700/50"
+                              >
+                                <Download className="w-5 h-5" /> Download APK (Coming Soon)
+                              </button>
+                            </div>
+                          ) : (
                             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex flex-col items-center justify-center text-center">
                               <p className="text-sm text-slate-300 mb-4">
                                 Download the native Android application.
