@@ -1,8 +1,16 @@
 const fs = require('fs');
-let html = fs.readFileSync('index.html', 'utf-8');
+let code = fs.readFileSync('index.html', 'utf8');
 
-html = html.replace(/<link rel="icon" type="image\/png" href="\/logo-192\.png">/g, '<link rel="icon" sizes="16x16" href="/favicon-16x16.png">\n    <link rel="icon" sizes="32x32" href="/favicon-32x32.png">\n    <link rel="icon" sizes="48x48" href="/favicon-48x48.png">\n    <link rel="icon" type="image/x-icon" href="/favicon.ico">');
+const injection = `
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="apple-touch-icon" href="/logo-192.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/logo-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/logo-512.png" />
+`;
 
-html = html.replace(/<link rel="apple-touch-icon" href="\/logo-192\.png">/g, '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">\n    <link rel="manifest" href="/manifest.webmanifest">');
-
-fs.writeFileSync('index.html', html);
+if (!code.includes("manifest.webmanifest")) {
+  code = code.replace('<link rel="icon" type="image/svg+xml" href="/logo.svg" />', '<link rel="icon" type="image/svg+xml" href="/logo.svg" />' + injection);
+  fs.writeFileSync('index.html', code);
+  console.log("Patched index.html");
+}
