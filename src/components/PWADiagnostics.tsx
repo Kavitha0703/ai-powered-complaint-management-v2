@@ -26,7 +26,7 @@ export default function PWADiagnostics() {
           setSwRegistered(true);
           if (reg.active) setSwActive(true);
         }
-      });
+      }).catch(console.error);
     }
 
     // 3. BeforeInstallPrompt (we check if global flag was captured, though we cannot listen to it if it already fired)

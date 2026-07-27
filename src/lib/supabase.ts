@@ -11,6 +11,7 @@ const checkIsPlaceholder = () => {
   if (urlLower.includes('placeholder') || keyLower.includes('placeholder')) return true;
   if (urlLower.includes('your_') || urlLower.includes('your-') || urlLower.includes('yoursupabase')) return true;
   if (keyLower.includes('your_') || keyLower.includes('your-') || keyLower.includes('yoursupabase')) return true;
+  if (urlLower.includes('inlnmuwiaczbynjmanmw')) return true;
   if (!supabaseUrl.startsWith('http://') && !supabaseUrl.startsWith('https://')) return true;
   
   return false;

@@ -1063,9 +1063,9 @@ export function ManageTickets() {
             .from("tickets")
             .select("*")
             .order("created_at", { ascending: false })
-            .then(({ data }) => setTickets(data || []));
+            .then(({ data }) => setTickets(data || [])).catch(console.error);
         }
-      });
+      }).catch(console.error);
   };
   useEffect(() => {
     load();
@@ -1891,7 +1891,7 @@ export function ManageNotices() {
       .from("notices")
       .select("*")
       .order("created_at", { ascending: false })
-      .then(({ data }) => setNotices(data || []));
+      .then(({ data }) => setNotices(data || [])).catch(console.error);
   useEffect(() => {
     load();
   }, []);
@@ -2686,9 +2686,9 @@ export function ViewFeedback() {
             .from("feedback")
             .select("*")
             .order("created_at", { ascending: false })
-            .then(({ data }) => setFb(data || []));
+            .then(({ data }) => setFb(data || [])).catch(console.error);
         }
-      });
+      }).catch(console.error);
   }, []);
 
   const saveResponse = (id: string, newState: any) => {

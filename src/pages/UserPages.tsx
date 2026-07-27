@@ -106,10 +106,10 @@ export function UserDashboardStats() {
         });
         setRecent(data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 3));
       }
-    });
+    }).catch((err) => console.error("Unhandled tickets fetch error:", err));
 
     // Fetch notice broadcasts
-    supabase.from('notices').select('*').order('created_at', { ascending: false }).limit(2).then(({ data }) => setNotices(data || []));
+    supabase.from('notices').select('*').order('created_at', { ascending: false }).limit(2).then(({ data }) => setNotices(data || [])).catch(console.error);
   }, [user]);
 
   // Notifications bell triggers
@@ -2079,7 +2079,7 @@ export function MyTickets() {
         } else {
           setTickets(data || []);
         }
-      });
+      }).catch(console.error);
   };
 
   useEffect(() => {
@@ -2871,7 +2871,7 @@ export function Notices() {
     supabase.from('notices')
       .select('*')
       .order('created_at', { ascending: false })
-      .then(({ data }) => setRawNotices(data || []));
+      .then(({ data }) => setRawNotices(data || [])).catch(console.error);
   };
 
   useEffect(() => {
@@ -3239,7 +3239,7 @@ export function UserProfile() {
             resolved: data.filter(c => c.status === 'Resolved').length
           });
         }
-      });
+      }).catch(console.error);
     }
   }, [user]);
 
@@ -3644,7 +3644,7 @@ export function UserFeedback() {
       .select('*')
       .eq('user_id', user?.id)
       .order('created_at', { ascending: false })
-      .then(({ data }) => setPastFeedback(data || []));
+      .then(({ data }) => setPastFeedback(data || [])).catch(console.error);
       
     try {
       const fbResponses = JSON.parse(localStorage.getItem("dcms_feedback_replies_v1") || "{}");
