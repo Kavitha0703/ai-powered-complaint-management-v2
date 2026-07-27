@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
 const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+const supabase = (supabaseUrl && supabaseKey && !supabaseUrl.includes("inlnmuwiaczbynjmanmw")) ? createClient(supabaseUrl, supabaseKey) : null;
 
 import express from "express";
 import path from "path";
