@@ -24,28 +24,28 @@ export default defineConfig(() => {
           background_color: "#0f172a",
                     icons: [
             {
-              src: "/logo-192.png",
+              src: "/apple-touch-icon.png",
+              sizes: "180x180",
+              type: "image/png",
+              purpose: "any"
+            },
+            {
+              src: "/favicon-96x96.png",
+              sizes: "96x96",
+              type: "image/png",
+              purpose: "any"
+            },
+            {
+              src: "/web-app-manifest-192x192.png",
               sizes: "192x192",
               type: "image/png",
               purpose: "any"
             },
             {
-              src: "/logo-512.png",
+              src: "/web-app-manifest-512x512.png",
               sizes: "512x512",
               type: "image/png",
               purpose: "any"
-            },
-            {
-              src: "/logo-maskable-192.png",
-              sizes: "192x192",
-              type: "image/png",
-              purpose: "maskable"
-            },
-            {
-              src: "/logo-maskable-512.png",
-              sizes: "512x512",
-              type: "image/png",
-              purpose: "maskable"
             }
           ]
         },

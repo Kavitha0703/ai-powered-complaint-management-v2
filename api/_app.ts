@@ -1,3 +1,4 @@
+import AdmZip from "adm-zip";
 import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
 const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
@@ -22,6 +23,41 @@ let globalCache: any = {
   feedbackFetchedAt: 0
 };
 const app = express();
+
+
+app.get("/api/download-assets", async (req, res) => {
+  try {
+    const zip = new AdmZip();
+    const publicDir = path.join(process.cwd(), "public");
+    
+    // Add known branding assets to the zip
+    const assets = [
+      "apple-touch-icon.png",
+      "favicon-96x96.png",
+      "web-app-manifest-192x192.png",
+      "web-app-manifest-512x512.png",
+      "favicon.svg",
+      "favicon.ico"
+    ];
+    
+    for (const asset of assets) {
+      const assetPath = path.join(publicDir, asset);
+      if (existsSync(assetPath)) {
+        zip.addLocalFile(assetPath);
+      }
+    }
+    
+    const zipBuffer = zip.toBuffer();
+    res.set("Content-Type", "application/zip");
+    res.set("Content-Disposition", "attachment; filename=Workplace_Hub_Assets.zip");
+    res.set("Content-Length", zipBuffer.length.toString());
+    res.send(zipBuffer);
+  } catch (error) {
+    console.error("Error creating assets zip:", error);
+    res.status(500).json({ error: "Failed to create assets zip." });
+  }
+});
+
 const PORT = 3000;
 
 app.use(express.json({ limit: "50mb" }));

@@ -73,6 +73,7 @@ import {
   Megaphone,
   AlertOctagon,
   Calendar,
+  Download,
 } from "lucide-react";
 
 export function AdminStats() {
@@ -2632,14 +2633,17 @@ export function AdminSettings() {
         <Card className="md:col-span-3 border border-red-105 dark:border-red-955/30 bg-white dark:bg-[#0B1222] shadow-sm">
           <CardHeader className="pb-2 border-b border-red-100/50 dark:border-red-955/50">
             <CardTitle className="text-xs font-mono uppercase tracking-widest text-red-650 dark:text-red-404">
-              {"Access Management"}</CardTitle>
+              {"Access Management"}
+            </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <p className="text-xs font-bold text-slate-808 dark:text-slate-200">
-                {"Force Terminate All Operations Sessions"}</p>
+                {"Force Terminate All Operations Sessions"}
+              </p>
               <p className="text-[10px] text-slate-550 dark:text-slate-404 mt-0.5">
-                {"Instantly invalidates active JSON Web Tokens to reset                 credentials globally."}</p>
+                {"Instantly invalidates active JSON Web Tokens to reset                 credentials globally."}
+              </p>
             </div>
             <Button
               variant="outline"
@@ -2648,7 +2652,42 @@ export function AdminSettings() {
                 alert("Feature available in future enterprise update.")
               }
             >
-              {"Revoke Active Sessions"}</Button>
+              {"Revoke Active Sessions"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Aspect 5: Branding Assets */}
+        <Card className="md:col-span-3 border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#0B1222] shadow-sm">
+          <CardHeader className="pb-2 border-b border-slate-100 dark:border-slate-800/60">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">
+              {"Branding Assets"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold text-slate-808 dark:text-slate-200">
+                {"Download Application Assets"}
+              </p>
+              <p className="text-[10px] text-slate-550 dark:text-slate-404 mt-0.5">
+                {"Download the high-resolution logo and icon set for marketing or development."}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="text-xs font-bold border-slate-200 dark:border-slate-800 cursor-pointer"
+              onClick={() => {
+                const link = document.createElement("a");
+                link.href = "/api/download-assets";
+                link.download = "Workplace_Hub_Assets.zip";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+            >
+              <Download className="w-3.5 h-3.5 mr-2" />
+              {"Download Assets"}
+            </Button>
           </CardContent>
         </Card>
       </div>
