@@ -356,6 +356,17 @@ const mockSupabaseClient = {
 
     async resetPasswordForEmail(email: string) {
       return { data: {}, error: null };
+    },
+    async updateUser({ data }: any) {
+      const savedSession = localStorage.getItem("dcms_sim_session");
+      if (savedSession) {
+        const parsed = JSON.parse(savedSession);
+        const updatedUser = { ...parsed, user_metadata: { ...parsed.user_metadata, ...data } };
+        localStorage.setItem("dcms_sim_session", JSON.stringify(updatedUser));
+        this.listeners.forEach(l => l("USER_UPDATED", { user: updatedUser, access_token: "mock_token" }));
+        return { data: { user: updatedUser }, error: null };
+      }
+      return { data: { user: null }, error: new Error("Not logged in") };
     }
   },
 

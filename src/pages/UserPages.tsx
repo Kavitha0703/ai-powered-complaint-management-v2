@@ -1,3 +1,4 @@
+import { ProfileAvatarManager } from "../components/ProfileAvatarManager";
 import React, { useEffect, useState, useRef } from "react";
 
 import { useAuth } from "../lib/AuthContext.tsx";
@@ -3252,21 +3253,16 @@ export function UserProfile() {
 
       <Card className="border border-slate-100 dark:border-[#1E293B] shadow-lg bg-white dark:bg-[#0B1222] backdrop-blur-xl">
         <CardContent className="p-8 space-y-6">
-          <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 text-white flex items-center justify-center font-black text-3xl uppercase shadow-md shadow-blue-500/10">
-              {dbUser?.name?.[0] || 'U'}
+          <div className="w-full mb-8">
+              <ProfileAvatarManager>
+                <div className="flex justify-center md:justify-start gap-2 pt-3">
+                  <Badge className="bg-blue-600 text-white uppercase text-[9px] font-extrabold tracking-wider px-2 py-0.5">{"Business User Client"}</Badge>
+                  <Badge variant="outline" className="text-[9px] font-extrabold tracking-wider border-slate-200 dark:border-slate-800">{"SaaS Gateway Active"}</Badge>
+                </div>
+              </ProfileAvatarManager>
             </div>
-            <div className="text-center md:text-left space-y-1.5">
-              <h3 className="text-lg font-black text-slate-800 dark:text-white">{dbUser?.name || 'Helper Account'}</h3>
-              <p className="text-xs text-slate-450 dark:text-slate-400">{dbUser?.email || user?.email}</p>
-              <div className="flex justify-center md:justify-start gap-2 pt-1">
-                <Badge className="bg-blue-600 text-white uppercase text-[9px] font-extrabold tracking-wider px-2 py-0.5">{"Business User Client"}</Badge>
-                <Badge variant="outline" className="text-[9px] font-extrabold tracking-wider border-slate-200 dark:border-slate-800">{"SaaS Gateway Active"}</Badge>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50 dark:border-slate-850/50">
+            
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50 dark:border-slate-850/50">
             <div className="bg-slate-50/50 dark:bg-[#162033]/20 p-4 rounded-xl border border-slate-100 dark:border-slate-850/60">
               <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">{"Logged Tickets"}</span>
               <span className="text-2xl font-black text-slate-800 dark:text-white mt-1.5 block leading-none">{stats.total}</span>
@@ -3613,7 +3609,8 @@ export function UserSettings() {
           <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800/60">
             <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400">{"ABOUT"}</CardTitle>
           </CardHeader>
-          <CardContent className="pt-6 space-y-4 text-center">
+          <CardContent className="pt-6 space-y-4 text-center flex flex-col items-center">
+            <img src="/favicon.svg" alt="Workplace Hub" className="w-12 h-12 object-contain" />
             <div className="text-sm font-black text-slate-900 dark:text-white">{"Workplace Hub"}</div>
             <div className="text-xs text-slate-500">{"Version 4.1.0"}</div>
             <div className="text-xs text-blue-500 hover:underline cursor-pointer">{"Terms of Service"}</div>

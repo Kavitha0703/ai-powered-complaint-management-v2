@@ -912,9 +912,8 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#0B0F19] text-slate-800 dark:text-slate-100 selection:bg-blue-500 selection:text-white">
       {/* GLOSSY NAV BAR */}
       <nav className="sticky top-0 z-50 flex justify-between items-center px-6 py-4 bg-white/70 dark:bg-[#0B132B]/85 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center font-black text-white shadow-md shadow-blue-500/20">
-            {"D"}</div>
+        <div className="flex items-center gap-[14px]">
+          <img src="/favicon.svg" alt="Workplace Hub" className="w-[48px] h-[48px] md:w-[52px] md:h-[52px] object-contain shadow-[0_0_20px_rgba(0,180,255,0.25)] rounded-[12px] bg-[rgba(255,255,255,0.04)]" />
           <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
             {"Workplace Hub"}<span className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded-full ml-2 border border-blue-100 dark:border-blue-900/60 uppercase tracking-wider hidden sm:inline-block">{"Enterprise AI Platform"}</span>
           </h1>
@@ -1750,7 +1749,7 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
           <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-sm">{"D"}</div>
+                <img src="/favicon.svg" alt="Workplace Hub" className="w-8 h-8 object-contain" />
                 <h4 className="text-white font-black text-base">{"Workplace Hub SaaS"}</h4>
               </div>
               <p className="text-2xs leading-relaxed text-slate-400 font-medium">
@@ -1800,8 +1799,7 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
 
             {/* Icon & Title Header */}
             <div className="flex items-start gap-4 pr-8">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center font-black text-white text-xl shadow-lg shadow-blue-500/20 shrink-0">
-                {"W"}</div>
+              <img src="/favicon.svg" alt="Workplace Hub" className="w-12 h-12 object-contain" />
               <div className="text-left">
                 <h3 className="text-lg font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
                   {"Launch on Device / PWA"}</h3>

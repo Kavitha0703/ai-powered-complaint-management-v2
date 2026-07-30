@@ -1,3 +1,4 @@
+import { UserAvatar } from "./UserAvatar";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext.tsx";
@@ -1709,11 +1710,13 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                 className={`flex gap-3 w-full max-w-4xl mx-auto ${m.sender === "user" ? "flex-row-reverse" : "flex-row"}`}
               >
                 {/* Avatar */}
-                <div className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center font-bold text-xs shadow-sm ${
-                  m.sender === "user" ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700"
-                }`}>
-                  {m.sender === "user" ? (dbUser?.name?.[0]?.toUpperCase() || "U") : "🤖"}
-                </div>
+                {m.sender === "user" ? (
+                  <UserAvatar className="w-8 h-8 rounded-lg shrink-0" />
+                ) : (
+                  <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center font-bold text-xs shadow-sm bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700">
+                    {"🤖"}
+                  </div>
+                )}
 
                 {/* Bubble content */}
                 <div className={`space-y-2 p-4 rounded-2xl max-w-full ${
@@ -2169,9 +2172,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                   >
                     <div className={`flex gap-2.5 ${m.sender === "user" ? "flex-row-reverse" : ""}`}>
                       {m.sender === "user" ? (
-                        <div className="w-7 h-7 rounded-full bg-blue-650 font-black text-white flex items-center justify-center text-[10px] shadow-sm shrink-0">
-                          {dbUser?.name?.[0]?.toUpperCase() || "U"}
-                        </div>
+                        <UserAvatar className="w-7 h-7 rounded-full shrink-0 shadow-sm" />
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 shrink-0 border border-blue-400/20 relative">
                           <Sparkles className="w-3.5 h-3.5 animate-pulse text-white" />

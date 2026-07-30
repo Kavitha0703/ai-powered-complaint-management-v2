@@ -1,3 +1,4 @@
+import { ProfileAvatarManager } from "../components/ProfileAvatarManager";
 import React, { useEffect, useState } from "react";
 
 import { useAuth } from "../lib/AuthContext.tsx";
@@ -367,7 +368,7 @@ export function AdminStats() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
-        <div className="w-10 h-10 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+        <img src="/favicon.svg" alt="Workplace Hub" className="w-12 h-12 object-contain animate-pulse" />
         <p className="text-xs font-semibold text-slate-400 dark:text-slate-550 animate-pulse tracking-wide font-mono">
           {"COMPILING EMERGENCY DIRECTORY STATS..."}</p>
       </div>
@@ -2357,7 +2358,7 @@ export function AdminProfile() {
   if (!dbUser) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-        <div className="w-8 h-8 border-4 border-emerald-500/25 border-t-emerald-500 rounded-full animate-spin"></div>
+        <img src="/favicon.svg" alt="Workplace Hub" className="w-10 h-10 object-contain animate-pulse" />
         <p className="text-xs font-semibold text-slate-450 dark:text-slate-550 animate-pulse font-mono">
           {"LOADING PROFILE SERVICES..."}</p>
       </div>
@@ -2372,36 +2373,21 @@ export function AdminProfile() {
       <Card className="border-0 shadow-lg shadow-slate-200/50 dark:shadow-none bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl">
         <CardContent className="p-8">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-            <div className="flex-shrink-0">
-              <div className="w-32 h-32 rounded-full bg-slate-800 flex items-center justify-center text-5xl text-white font-bold border-4 border-slate-100 dark:border-slate-800 shadow-sm uppercase font-mono">
-                {dbUser?.name?.[0] || "A"}
-              </div>
-            </div>
-            <div className="flex-1 space-y-4 text-center md:text-left">
-              <div>
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-white">
-                  {dbUser?.name || "Administrator"}
-                </h3>
-                <p className="text-slate-500 dark:text-slate-404">
-                  {dbUser?.email || user?.email}
-                </p>
-              </div>
-              <div className="flex gap-2 justify-center md:justify-start">
-                <Badge className="bg-slate-800 dark:bg-slate-705 text-white">
-                  {"Role:"}{" "}
-                  {dbUser?.role === "admin" ? "System Administrator" : "Admin"}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="text-slate-505 dark:text-slate-404 border-slate-200 dark:border-slate-800"
-                >
-                  {"Joined:"}{" "}
-                  {new Date(
-                    dbUser?.created_at || Date.now(),
-                  ).toLocaleDateString("en-GB")}
-                </Badge>
-              </div>
-
+            <div className="flex-1 w-full">
+              <ProfileAvatarManager>
+                <div className="flex gap-2 justify-center md:justify-start mt-3">
+                  <Badge className="bg-slate-800 dark:bg-slate-705 text-white">
+                    {"Role:"} {dbUser?.role === "admin" ? "System Administrator" : "Admin"}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-slate-505 dark:text-slate-404 border-slate-200 dark:border-slate-800"
+                  >
+                    {"Joined:"} {new Date(dbUser?.created_at || Date.now()).toLocaleDateString("en-GB")}
+                  </Badge>
+                </div>
+              </ProfileAvatarManager>
+              
               <div className="grid grid-cols-2 gap-4 mt-6">
                 <div className="bg-white dark:bg-[#0B1222] p-4 rounded-xl border border-blue-100/40 dark:border-blue-900/40">
                   <p className="text-sm font-semibold text-blue-600 dark:text-blue-404 uppercase tracking-wider mb-1 font-mono">

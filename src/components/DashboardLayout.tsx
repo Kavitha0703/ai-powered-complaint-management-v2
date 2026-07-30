@@ -1,3 +1,4 @@
+import { UserAvatar } from "./UserAvatar";
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
@@ -238,9 +239,8 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
             <div className="flex flex-col h-full bg-white dark:bg-[#0B1222] text-slate-800 dark:text-slate-100">
               {/* Header Block */}
               <div className={`p-6 border-b border-slate-100 dark:border-[#1E293B] flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-2 overflow-hidden`}>
-                <div className="flex items-center gap-2.5 shrink-0">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-500 to-cyan-400 flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-blue-500/20 shrink-0">
-                    {"D"}</div>
+                <div className="flex items-center gap-[14px] shrink-0">
+                  <img src="/favicon.svg" alt="Workplace Hub" className="w-[48px] h-[48px] md:w-[56px] md:h-[56px] object-contain shadow-[0_0_20px_rgba(0,180,255,0.25)] rounded-[12px] bg-[rgba(255,255,255,0.04)]" />
                   {!isCollapsed && (
                     <h2 className="text-xl font-black tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent transition-opacity duration-300">
                       {"Workplace Hub"}</h2>
@@ -370,9 +370,9 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
                    onClick={() => setSidebarProfileMenuOpen(!sidebarProfileMenuOpen)}
                    className={`w-full flex items-center ${isCollapsed ? 'justify-center p-0' : 'px-2 py-2'} gap-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors cursor-pointer outline-none relative`}
                  >
-                   <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-indigo-950/40 border border-blue-200 dark:border-indigo-900/60 flex flex-shrink-0 items-center justify-center text-blue-600 dark:text-indigo-400 font-bold uppercase shadow-inner">
-                     {dbUser?.name?.[0] || 'U'}
-                     <span className="absolute bottom-1 right-2 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#020617]"></span>
+                   <div className="relative">
+                     <UserAvatar className="w-10 h-10 rounded-xl" />
+                     <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-[#0B1222]"></span>
                    </div>
                    {!isCollapsed && (
                      <div className="overflow-hidden min-w-0 flex-1 text-left">
@@ -522,9 +522,7 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                 className="flex items-center gap-2 pl-2 border-l border-slate-100 dark:border-slate-800 hover:opacity-80 transition-opacity"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center uppercase border border-blue-200">
-                  {dbUser?.name?.[0] || 'U'}
-                </div>
+                <UserAvatar className="w-8 h-8 rounded-full shadow-sm" />
                 <div className="hidden sm:block text-left text-xs">
                   <p className="font-extrabold text-slate-800 dark:text-slate-200 line-clamp-1">{dbUser?.name || 'Helper Account'}</p>
                   <p className="text-slate-400 uppercase tracking-widest text-[8px] font-extrabold">{dbUser?.role}</p>

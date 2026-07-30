@@ -126,8 +126,7 @@ export default function AuthPage({ isAdmin }: { isAdmin?: boolean }) {
         <div className="absolute bottom-[10%] right-[-10%] w-[350px] h-[350px] bg-cyan-500 rounded-full mix-blend-screen filter blur-[100px] opacity-20"></div>
 
         <div className="relative z-15 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center font-black text-white text-xs shadow-md shadow-blue-500/20">
-            {"D"}</div>
+          <img src="/favicon.svg" alt="Workplace Hub" className="w-10 h-10 object-contain" />
           <span className="text-sm font-black tracking-wider text-white uppercase">{"DCMS Portal"}</span>
         </div>
 
@@ -209,7 +208,8 @@ export default function AuthPage({ isAdmin }: { isAdmin?: boolean }) {
               {"Specify"}<code className="bg-red-950 px-1 rounded text-red-400 text-3xs">{"VITE_SUPABASE_URL"}</code> {"in your project environment to activate cloud integrations."}</div>
           )}
 
-          <div className="mb-8 text-center sm:text-left">
+          <div className="mb-8 text-center sm:text-left flex flex-col items-center sm:items-start gap-4">
+            <img src="/favicon.svg" alt="Workplace Hub" className="w-16 h-16 object-contain" />
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               {isAdmin ? "Administrator Gate" : "Welcome Back"}
             </h1>
