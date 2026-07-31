@@ -142,7 +142,7 @@ export function AdminStats() {
         const critical = tickets.filter(
           (c) => c.severity === "Critical" || c.severity === "Urgent",
         ).length;
-        const totalUsersCount = users ? users.length : 1;
+        const totalUsersCount = users ? users.length : 0;
 
         // Compute actual avg resolution time via localStorage status history
         let resolveDurations: number[] = [];
@@ -163,13 +163,7 @@ export function AdminStats() {
               const hrs = (resolvedTime - createdTime) / (1000 * 60 * 60);
               if (hrs > 0) resolveDurations.push(hrs);
             } else {
-              // deterministic mock duration based on ID so it feels organic
-              const strId = c.id.toString();
-              const parsedIdVal = strId.split("-").join("").charCodeAt(0) || 12;
-              const pseudoHrs = parseFloat(
-                ((parsedIdVal % 16) + 6.2).toFixed(1),
-              );
-              resolveDurations.push(pseudoHrs);
+              // Real data only: No history found, ignore duration.
             }
           }
         });
@@ -179,7 +173,7 @@ export function AdminStats() {
               resolveDurations.reduce((a, b) => a + b, 0) /
               resolveDurations.length
             ).toFixed(1)
-          : "14.8";
+          : "0.0";
 
         setMetrics({
           total,
@@ -2336,8 +2330,8 @@ export function AdminProfile() {
         const { data: tickets } = await supabase.from("tickets").select("id");
         const { data: notices } = await supabase.from("notices").select("id");
         setStats({
-          total_managed: tickets?.length || 124,
-          notices_posted: notices?.length || 12,
+          total_managed: tickets?.length || 0,
+          notices_posted: notices?.length || 0,
         });
       } catch (e) {
         console.error(
@@ -2345,8 +2339,8 @@ export function AdminProfile() {
           e,
         );
         setStats({
-          total_managed: 124,
-          notices_posted: 12,
+          total_managed: 0,
+          notices_posted: 0,
         });
       }
     }

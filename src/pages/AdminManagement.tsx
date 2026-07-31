@@ -6,6 +6,7 @@ import {
   HARDCODED_ADMINS, 
   AdminInvite 
 } from "../lib/AdminManagementHelper.ts";
+import { sendEmailViaGmail, EmailTemplates } from "../lib/GmailService.ts";
 import { 
   Shield, 
   ShieldAlert, 
@@ -48,6 +49,7 @@ export default function AdminManagement() {
 
   // Edit role modal state
   const [editingAdmin, setEditingAdmin] = useState<AdminInvite | null>(null);
+  const [deleteConfirmAdmin, setDeleteConfirmAdmin] = useState<{ id: string; email: string } | null>(null);
   const [editedRole, setEditedRole] = useState<'super_admin' | 'admin' | 'support_staff'>("admin");
   const [editedDepartment, setEditedDepartment] = useState("Customer Support");
 
@@ -61,7 +63,7 @@ export default function AdminManagement() {
   };
 
   // Check if current logged-in user is a super admin
-  const isSuperAdmin = dbUser?.sub_role === 'super_admin' || dbUser?.email === 'testdemo@admin.local' || dbUser?.email === 'nasikakavitha@gmail.com' || dbUser?.email === 'kalenhitsumi.dev@gmail.com';
+  const isSuperAdmin = dbUser?.sub_role === 'super_admin' || dbUser?.email === 'testdemo@admin.local' || dbUser?.email === 'nasikakavitha@gmail.com';
 
   if (!isSuperAdmin) {
     return (
@@ -111,8 +113,25 @@ export default function AdminManagement() {
     saveAdminInvites(updated);
     setInvites(updated);
 
+    // Dispatch Gmail Invitation
+    const inviteeName = emailToInvite.split("@")[0];
+    const roleLabel = newRole === "super_admin" ? "Super Admin" : newRole === "support_staff" ? "Support Staff" : "Administrator";
+    const emailPayload = EmailTemplates.adminInvite(
+      inviteeName,
+      emailToInvite,
+      roleLabel,
+      dbUser?.name || "Super Admin"
+    );
+
+    sendEmailViaGmail({
+      to: emailToInvite,
+      subject: emailPayload.subject,
+      bodyHtml: emailPayload.html,
+      category: "admin_invite"
+    }).catch(err => console.error("Gmail invitation dispatch error:", err));
+
     setNewEmail("");
-    setSuccessMsg(`🚀 Invitation sent successfully to ${emailToInvite}!`);
+    setSuccessMsg(`🚀 Invitation & Gmail sent successfully to ${emailToInvite}!`);
     setTimeout(() => setSuccessMsg(""), 4000);
   };
 
@@ -134,14 +153,19 @@ export default function AdminManagement() {
 
   // Remove admin
   const handleRemoveAdmin = (inviteId: string, email: string) => {
-    if (confirm(`Are you sure you want to permanently remove access for ${email}?`)) {
-      const currentInvites = getAdminInvites();
-      const updated = currentInvites.filter(i => i.id !== inviteId);
-      saveAdminInvites(updated);
-      setInvites(updated);
-      setSuccessMsg(`Removed administrator: ${email}`);
-      setTimeout(() => setSuccessMsg(""), 3000);
-    }
+    setDeleteConfirmAdmin({ id: inviteId, email });
+  };
+
+  const executeRemoveAdmin = () => {
+    if (!deleteConfirmAdmin) return;
+    const { id, email } = deleteConfirmAdmin;
+    const currentInvites = getAdminInvites();
+    const updated = currentInvites.filter(i => i.id !== id);
+    saveAdminInvites(updated);
+    setInvites(updated);
+    setSuccessMsg(`Removed administrator: ${email}`);
+    setTimeout(() => setSuccessMsg(""), 3000);
+    setDeleteConfirmAdmin(null);
   };
 
   // Reset password
@@ -572,6 +596,43 @@ export default function AdminManagement() {
                 className="bg-indigo-600 hover:bg-indigo-700 text-white text-2xs font-extrabold h-9 rounded-lg"
               >
                 {"Save Role Details"}</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmAdmin && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-2xs z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl relative text-center">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h4 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider mb-2">
+              {"Confirm Deletion"}
+            </h4>
+            <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+              {"Are you sure you want to permanently remove access for "}<br/>
+              <strong className="text-slate-800 dark:text-slate-200 font-bold">{deleteConfirmAdmin.email}</strong>?
+              <br/><br/>
+              {"This action cannot be undone."}
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setDeleteConfirmAdmin(null)}
+                className="text-xs font-extrabold h-9 rounded-lg px-4"
+              >
+                {"Cancel"}
+              </Button>
+              <Button 
+                size="sm"
+                onClick={executeRemoveAdmin}
+                className="bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold h-9 rounded-lg px-4"
+              >
+                {"Yes, Delete Admin"}
+              </Button>
             </div>
           </div>
         </div>

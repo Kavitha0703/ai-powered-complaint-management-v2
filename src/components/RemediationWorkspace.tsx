@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase.ts";
 import { useAuth } from "../lib/AuthContext.tsx";
+import { getAllActiveAdmins } from "../lib/AdminManagementHelper.ts";
 import { Button } from "../../components/ui/button.tsx";
 import { Textarea } from "../../components/ui/textarea.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select.tsx";
@@ -71,12 +72,15 @@ interface TicketActivity {
   time: string;
 }
 
-const AVAILABLE_ADMINS = [
-  { id: "Kavitha", name: "Kavitha", avatar: "👩‍💼", defaultRole: "Lead Investigator" },
-  { id: "Arun", name: "Arun", avatar: "👨‍💻", defaultRole: "Support Engineer" },
-  { id: "Priya", name: "Priya", avatar: "👩‍💻", defaultRole: "Support Engineer" },
-  { id: "Rahul", name: "Rahul", avatar: "👨‍💼", defaultRole: "Observer" }
-];
+const getAvailableAdminsList = () => {
+  const activeAdmins = getAllActiveAdmins();
+  return activeAdmins.map(a => ({
+    id: a.name,
+    name: a.name,
+    avatar: a.avatar || "👤",
+    defaultRole: a.role === 'super_admin' ? 'Super Admin' : a.role === 'support_staff' ? 'Support Staff' : 'Administrator'
+  }));
+};
 
 export function RemediationWorkspace({
   ticket,
@@ -88,6 +92,8 @@ export function RemediationWorkspace({
 }: RemediationWorkspaceProps) {
     
   const { dbUser } = useAuth();
+
+  const AVAILABLE_ADMINS = getAvailableAdminsList();
   
   // Current admin details
   const currentAdminName = dbUser?.name || "Kavitha";
@@ -193,23 +199,7 @@ export function RemediationWorkspace({
       const asMap = asSaved ? JSON.parse(asSaved) : {};
       let ticketAs = asMap[ticket.id];
 
-      if (!ticketAs || ticketAs.length === 0) {
-        const oldSaved = localStorage.getItem("dcms_ticket_assignments_v1");
-        const oldMap = oldSaved ? JSON.parse(oldSaved) : {};
-        const oldAssignee = oldMap[ticket.id] || "Kavitha";
-        
-        ticketAs = [{
-          id: "as_" + Date.now(),
-          ticket_id: ticket.id,
-          user_id: oldAssignee === "Unassigned" ? "Kavitha" : (oldAssignee === "Network Team" ? "Arun" : oldAssignee === "Software Team" ? "Priya" : oldAssignee),
-          user_name: oldAssignee === "Arun" ? "Arun" : oldAssignee === "Priya" ? "Priya" : oldAssignee === "Rahul" ? "Rahul" : "Kavitha",
-          role: "Lead Investigator",
-          assigned_by: "System",
-          created_at: new Date().toISOString()
-        }];
-        asMap[ticket.id] = ticketAs;
-        localStorage.setItem("dcms_ticket_assignments_v2", JSON.stringify(asMap));
-      }
+      if (!ticketAs || ticketAs.length === 0) { ticketAs = []; asMap[ticket.id] = ticketAs; localStorage.setItem("dcms_ticket_assignments_v2", JSON.stringify(asMap)); }
       setAssignments(ticketAs);
 
       // Load lead assignee
@@ -591,7 +581,7 @@ export function RemediationWorkspace({
     });
     localStorage.setItem("dcms_ticket_notifications_v1", JSON.stringify(notifList));
 
-    if (admin.id === "Arun" || admin.id === "Priya") {
+    if (admin.id !== currentAdminName) {
       setTimeout(() => {
         addTimelineActivity(`👨‍💻 ${admin.name} joined discussion`);
         simulateTeammateAction(admin.name, "assignment");
@@ -739,13 +729,9 @@ export function RemediationWorkspace({
         setTypingUser(null);
         let repl = "";
         if (type === "assignment") {
-          repl = name === "Arun" 
-            ? "Got it. Taking a look at the server logs and domain permissions right now." 
-            : "Received. I will trace the software stack and apply any necessary package updates.";
+          repl = `Received assignment. I am reviewing the system logs and ticket details for #${ticket.id.toString().substring(0, 8)}.`;
         } else {
-          repl = name === "Arun"
-            ? "Yes, looking at this ticket. I suspect a directory sync issue. Investigating."
-            : "Understood. The error stack trace indicates standard CORS blocking. I'll test it.";
+          repl = `Understood. I'm investigating the incident details now and will update the timeline shortly.`;
         }
 
         const teammateComment: TeamComment = {
@@ -849,10 +835,9 @@ export function RemediationWorkspace({
     saveAllComments(updated);
 
     const normalizedInput = commentInput.toLowerCase();
-    if (normalizedInput.includes("@arun") && activeSpeaker.name !== "Arun") {
-      simulateTeammateAction("Arun", "mention");
-    } else if (normalizedInput.includes("@priya") && activeSpeaker.name !== "Priya") {
-      simulateTeammateAction("Priya", "mention");
+    const mentioned = AVAILABLE_ADMINS.find(a => normalizedInput.includes(`@${a.name.toLowerCase()}`) && activeSpeaker.name !== a.name);
+    if (mentioned) {
+      simulateTeammateAction(mentioned.name, "mention");
     }
 
     setCommentInput('');
@@ -1452,7 +1437,7 @@ export function RemediationWorkspace({
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-505 uppercase tracking-wider">{"Stream:"}</span>
               <select
-                value={activeThreadId}
+                value={activeThreadId || ""}
                 onChange={(e) => setActiveThreadId(e.target.value)}
                 className="bg-white dark:bg-[#111A2E] border border-slate-200 dark:border-slate-800 rounded-lg text-[11px] font-bold py-1 px-1.5 text-slate-700 dark:text-slate-300 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer max-w-[150px]"
               >
@@ -1731,7 +1716,7 @@ export function RemediationWorkspace({
             <Input 
               value={commentInput}
               onChange={(e) => setCommentInput(e.target.value)}
-              placeholder={threads.find(t => t.id === activeThreadId)?.is_archived ? "🔒 This thread is archived and locked..." : "Private team dispatch... Tag teammate via @Arun / @Priya"}
+              placeholder={threads.find(t => t.id === activeThreadId)?.is_archived ? "🔒 This thread is archived and locked..." : "Private team dispatch... Tag teammate via @name"}
               disabled={threads.find(t => t.id === activeThreadId)?.is_archived}
               className="flex-1 h-10 text-xs bg-slate-50 dark:bg-[#111A2E] border-slate-200 dark:border-slate-800 rounded-xl font-medium focus-visible:ring-indigo-550/25 text-black dark:text-white disabled:opacity-60"
             />
@@ -1799,9 +1784,11 @@ export function RemediationWorkspace({
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-[#0B1222] border-slate-200 dark:border-slate-800">
                 <SelectItem value="Unassigned">{"Unassigned"}</SelectItem>
-                <SelectItem value="Kavitha">{"👩‍💼 Kavitha (Operations Supervisor)"}</SelectItem>
-                <SelectItem value="Arun">{"👨‍💻 Arun (Networking Engineer)"}</SelectItem>
-                <SelectItem value="Priya">{"👩‍💻 Priya (Software Stack Support)"}</SelectItem>
+                {AVAILABLE_ADMINS.map(adm => (
+                  <SelectItem key={adm.id} value={adm.name}>
+                    {`${adm.avatar} ${adm.name} (${adm.defaultRole})`}
+                  </SelectItem>
+                ))}
                 <SelectItem value="Network Team">{"🏢 Network Team Group"}</SelectItem>
                 <SelectItem value="Software Team">{"🏢 Software Team Group"}</SelectItem>
               </SelectContent>

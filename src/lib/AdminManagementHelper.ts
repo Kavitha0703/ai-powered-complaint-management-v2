@@ -32,16 +32,6 @@ export const HARDCODED_ADMINS = [
     is_online: true,
     last_active: "Today 04:28 AM",
     department: "System Administration"
-  },
-  {
-    id: "usr_kalen",
-    name: "Kalen",
-    email: "kalenhitsumi.dev@gmail.com",
-    role: "super_admin" as const,
-    status: "Active" as const,
-    is_online: false,
-    last_active: "Yesterday 05:12 PM",
-    department: "Legal & Compliance"
   }
 ];
 
@@ -49,26 +39,7 @@ export function getAdminInvites(): AdminInvite[] {
   const data = localStorage.getItem(INVITES_KEY);
   if (!data) {
     // Seed an initial pending invite so the user can easily see and test the workflow
-    const seed: AdminInvite[] = [
-      {
-        id: "inv_default_john",
-        email: "john@company.com",
-        role: "admin",
-        invited_by: "Kavitha",
-        status: "Pending",
-        created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-        department: "Customer Support"
-      },
-      {
-        id: "inv_default_staff",
-        email: "staff@company.com",
-        role: "support_staff",
-        invited_by: "Testadmin",
-        status: "Pending",
-        created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-        department: "IT & Infrastructure"
-      }
-    ];
+    const seed: AdminInvite[] = [];
     localStorage.setItem(INVITES_KEY, JSON.stringify(seed));
     return seed;
   }
@@ -77,6 +48,50 @@ export function getAdminInvites(): AdminInvite[] {
 
 export function saveAdminInvites(invites: AdminInvite[]) {
   localStorage.setItem(INVITES_KEY, JSON.stringify(invites));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("dcms_admin_invites_updated"));
+  }
+}
+
+export interface RegisteredAdmin {
+  id: string;
+  name: string;
+  email: string;
+  role: 'super_admin' | 'admin' | 'support_staff';
+  status: 'Active' | 'Pending' | 'Deactivated';
+  is_online: boolean;
+  last_active: string;
+  department: string;
+  avatar?: string;
+}
+
+export function getAllActiveAdmins(): RegisteredAdmin[] {
+  const invites = getAdminInvites();
+  const activeInvites: RegisteredAdmin[] = invites
+    .filter(i => i.status === "Active")
+    .map(i => ({
+      id: i.id || `usr_${i.email.split('@')[0]}`,
+      name: i.name || i.email.split('@')[0],
+      email: i.email,
+      role: i.role,
+      status: 'Active' as const,
+      is_online: true,
+      last_active: i.last_active || "Active now",
+      department: i.department || "Administration",
+      avatar: "👤"
+    }));
+
+  const hardcoded: RegisteredAdmin[] = HARDCODED_ADMINS.map(a => ({
+    ...a,
+    avatar: "👤"
+  }));
+
+  const map = new Map<string, RegisteredAdmin>();
+  [...hardcoded, ...activeInvites].forEach(admin => {
+    map.set(admin.email.toLowerCase(), admin);
+  });
+
+  return Array.from(map.values());
 }
 
 export function getAdminRoleByEmail(email: string): 'super_admin' | 'admin' | 'support_staff' | 'user' {

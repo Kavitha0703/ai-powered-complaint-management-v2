@@ -20,7 +20,7 @@ const checkIsPlaceholder = () => {
 const isPlaceholder = checkIsPlaceholder();
 
 // We list admin emails here to coordinate the fallback database authorization roles.
-const BACKEND_ADMIN_EMAILS = ['kalenhitsumi.dev@gmail.com', 'testdemo@admin.local', 'nasikakavitha@gmail.com'];
+const BACKEND_ADMIN_EMAILS = ['testdemo@admin.local', 'nasikakavitha@gmail.com'];
 
 class MockQueryBuilder {
   private tableName: string;
@@ -74,35 +74,7 @@ class MockQueryBuilder {
     
     if (data.length === 0) {
       if (this.tableName === 'notices') {
-        data = [
-          {
-            id: 'notice_101',
-            title: 'Scheduled System Maintenance: Workstation Cluster B-12',
-            message: 'Our IT Infrastructure operations staff will run updates on B-12 workstation routers this Sunday starting at 02:00 UTC. Expect short terminal disconnects.',
-            created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-            category: 'Maintenance',
-            importance: 'Featured',
-            is_urgent: false
-          },
-          {
-            id: 'notice_102',
-            title: 'Mandatory Remote Access Security Audit Protocols',
-            message: 'Pursuant to our quarterly workspace asset safety protocols, all employees connecting off-premises must use Cisco VPN integrated with Okta double identity parameters.',
-            created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-            category: 'Policy Change',
-            importance: 'Standard',
-            is_urgent: true
-          },
-          {
-            id: 'notice_103',
-            title: 'Employee Social Fund Raising & Sports Registration',
-            message: 'Registered employees and staff are invited to sign up for our upcoming Department football match. Registration forms are accessible at the HR Operations counter.',
-            created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
-            category: 'Company Event',
-            importance: 'Standard',
-            is_urgent: false
-          }
-        ];
+        data = [];
         localStorage.setItem(key, JSON.stringify(data));
       }
     }
@@ -145,32 +117,6 @@ class MockQueryBuilder {
         // Apply filters
         for (const filter of this.filters) {
           data = data.filter(filter);
-        }
-
-        // Auto-seeds one nice ticket so that user gets immediate visual data in 'My Tickets'
-        if (this.tableName === 'tickets' && data.length === 0) {
-          const sessionUser = JSON.parse(localStorage.getItem('dcms_sim_session') || 'null');
-          if (sessionUser) {
-            data = [
-              {
-                id: 't_seed_103',
-                user_id: sessionUser.id,
-                issue_type: 'IT Support',
-                severity: 'Medium',
-                status: 'Pending',
-                description: JSON.stringify({
-                  title: 'Office Workstation Keyboard Lag',
-                  description: 'Several keys on my assigned keyboard lag intermittently during operations. Reconnected USB hub but discrepancy persists. Replaced batteries without success.',
-                  anonymous: false
-                }),
-                created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
-                isViewedByAdmin: false
-              }
-            ];
-            const allTickets = JSON.parse(localStorage.getItem('dcms_sim_tickets') || '[]');
-            allTickets.push(...data);
-            localStorage.setItem('dcms_sim_tickets', JSON.stringify(allTickets));
-          }
         }
 
         // Simulate a LEFT JOIN with the simulated users table
@@ -370,6 +316,35 @@ const mockSupabaseClient = {
     }
   },
 
+  channel(name: string) {
+    const bc = new BroadcastChannel('dcms_channel_' + name);
+    let state = 'closed';
+    return {
+      on(event, config, callback) {
+        if (event === 'broadcast') {
+          bc.addEventListener('message', (e) => {
+            if (e.data.event === config.event) {
+              callback(e.data.payload);
+            }
+          });
+        }
+        return this;
+      },
+      subscribe(callback) {
+        state = 'joined';
+        if (callback) callback('SUBSCRIBED');
+        return this;
+      },
+      send(config) {
+        if (config.type === 'broadcast') {
+          bc.postMessage({ event: config.event, payload: config });
+        }
+      },
+      unsubscribe() {
+        bc.close();
+      }
+    };
+  },
   from(tableName: string) {
     return new MockQueryBuilder(tableName);
   }

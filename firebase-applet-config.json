@@ -5,5 +5,7 @@
   "authDomain": "quiet-alchemy-0lkqp.firebaseapp.com",
   "storageBucket": "quiet-alchemy-0lkqp.firebasestorage.app",
   "messagingSenderId": "766359129024",
-  "measurementId": ""
+  "measurementId": "",
+  "oAuthClientId": "766359129024-7s1egol8dv1cc9g6pkcigdd1l6bn28i5.apps.googleusercontent.com",
+  "recaptchaSiteKey": ""
 }

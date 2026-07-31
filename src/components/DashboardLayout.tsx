@@ -571,8 +571,8 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
         </header>
 
         {/* Content View wrapper -- Fluid Grid */}
-        <main className="flex-1 overflow-auto relative w-full">
-          <div className="p-6 lg:p-8 w-full max-w-7xl mx-auto flex flex-col items-center justify-start min-h-full">
+        <main className="flex-1 overflow-x-auto overflow-y-auto relative w-full">
+          <div className="p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto flex flex-col items-stretch justify-start min-h-full overflow-x-auto">
             {children}
           </div>
         </main>

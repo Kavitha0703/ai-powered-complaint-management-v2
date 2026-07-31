@@ -66,16 +66,7 @@ export default function AdminCommunicationCenter() {
     // 1. Seed users if not loaded or empty
     let simUsers = JSON.parse(localStorage.getItem("dcms_sim_users") || "[]");
     if (simUsers.length <= 1) {
-      simUsers = [
-        { id: "usr_kiki", name: "Kiki Employee", email: "kiki@workplacehub.com", department: "Operations" },
-        { id: "usr_john", name: "John Doe", email: "john@workplacehub.com", department: "IT" },
-        { id: "usr_sarah", name: "Sarah Jenkins", email: "sarah@workplacehub.com", department: "HR" },
-        { id: "usr_david", name: "David Chen", email: "david@workplacehub.com", department: "Finance" },
-        { id: "usr_marcus", name: "Marcus Vance", email: "marcus@workplacehub.com", department: "Operations" },
-        { id: "usr_clara", name: "Clara Oswald", email: "clara@workplacehub.com", department: "IT" },
-        { id: "usr_brian", name: "Brian Griffin", email: "brian@workplacehub.com", department: "Finance" },
-        { id: "usr_amy", name: "Amy Wong", email: "amy@workplacehub.com", department: "HR" },
-      ];
+      simUsers = [];
       localStorage.setItem("dcms_sim_users", JSON.stringify(simUsers));
     }
     setUsers(simUsers);
@@ -87,16 +78,7 @@ export default function AdminCommunicationCenter() {
     let simReceipts = JSON.parse(localStorage.getItem("dcms_sim_notice_reads") || "[]");
     if (simReceipts.length === 0) {
       // Seed some historic reads to make analytics beautiful on first mount
-      simReceipts = [
-        { id: "rc_1", notice_id: "notice_101", user_id: "usr_kiki", read_at: new Date(Date.now() - 3600000 * 2).toISOString() },
-        { id: "rc_2", notice_id: "notice_101", user_id: "usr_john", read_at: new Date(Date.now() - 3600000 * 1.5).toISOString() },
-        { id: "rc_3", notice_id: "notice_101", user_id: "usr_sarah", read_at: new Date(Date.now() - 3600000 * 2.8).toISOString() },
-        { id: "rc_4", notice_id: "notice_102", user_id: "usr_john", read_at: new Date(Date.now() - 3600000 * 5).toISOString() },
-        { id: "rc_5", notice_id: "notice_102", user_id: "usr_david", read_at: new Date(Date.now() - 3600000 * 4).toISOString() },
-        { id: "rc_6", notice_id: "notice_102", user_id: "usr_clara", read_at: new Date(Date.now() - 3600000 * 6).toISOString() },
-        { id: "rc_7", notice_id: "notice_103", user_id: "usr_sarah", read_at: new Date(Date.now() - 3600000 * 12).toISOString() },
-        { id: "rc_8", notice_id: "notice_103", user_id: "usr_amy", read_at: new Date(Date.now() - 3600000 * 10).toISOString() },
-      ];
+      simReceipts = [];
       localStorage.setItem("dcms_sim_notice_reads", JSON.stringify(simReceipts));
     }
     setReadReceipts(simReceipts);

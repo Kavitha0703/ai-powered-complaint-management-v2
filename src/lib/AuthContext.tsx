@@ -22,7 +22,7 @@ interface AuthContextType {
   updateAvatar: (url: string) => Promise<void>;
 }
 
-export const ADMIN_EMAILS = ['kalenhitsumi.dev@gmail.com', 'testdemo@admin.local', 'nasikakavitha@gmail.com'];
+export const ADMIN_EMAILS = ['testdemo@admin.local', 'nasikakavitha@gmail.com'];
 
 const AuthContext = createContext<AuthContextType>({
   user: null,

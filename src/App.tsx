@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import ProductTour from "./components/ProductTour.tsx";
 import AppInstallModal from "./components/AppInstallModal.tsx";
@@ -14,12 +14,26 @@ import AuthPage from "./pages/AuthPage.tsx";
 import DashboardLayout from "./components/DashboardLayout.tsx";
 import { UserDashboardStats, RegisterTicket, MyTickets, Notices, UserFeedback, UserProfile, UserSettings, DraftTickets, UserNotificationsView } from "./pages/UserPages.tsx";
 import { AdminStats, ManageTickets, ManageNotices, ViewFeedback, AdminProfile, AdminSettings } from "./pages/AdminPages.tsx";
-import AdminCommunicationCenter from "./pages/AdminCommunicationCenter.tsx";
-import AdminTeamChat from "./pages/AdminTeamChat.tsx";
-import AiAssistantPage from "./pages/AiAssistantPage.tsx";
-import HelpCenter from "./pages/HelpCenter.tsx";
-import AdminManagement from "./pages/AdminManagement.tsx";
-import { LayoutDashboard, FileText, Bell, MessageSquare, ClipboardList, Shield, User as UserIcon, Settings, Layers, Sparkles, BookOpen, Network, UserCog } from "lucide-react";
+import { LayoutDashboard, FileText, Bell, MessageSquare, ClipboardList, Shield, User as UserIcon, Settings, Layers, Sparkles, BookOpen, Network, UserCog, Mail } from "lucide-react";
+
+// Dynamic imports for code splitting & initial bundle optimization
+const AdminCommunicationCenter = lazy(() => import("./pages/AdminCommunicationCenter.tsx"));
+const AdminTeamChat = lazy(() => import("./pages/AdminTeamChat.tsx"));
+const AiAssistantPage = lazy(() => import("./pages/AiAssistantPage.tsx"));
+const HelpCenter = lazy(() => import("./pages/HelpCenter.tsx"));
+const AdminManagement = lazy(() => import("./pages/AdminManagement.tsx"));
+const MailCenter = lazy(() => import("./pages/MailCenter.tsx"));
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[400px] w-full p-8 text-slate-400">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-3 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+        <span className="text-xs font-semibold tracking-wide text-slate-400">Loading module...</span>
+      </div>
+    </div>
+  );
+}
 
 
 function UserPortal() {
@@ -50,9 +64,6 @@ function UserPortal() {
   return <DashboardLayout sidebarLinks={links}><Outlet /></DashboardLayout>;
 }
 
-import { MeetingProvider } from "./lib/MeetingContext.tsx";
-import MeetingOverlay from "./components/MeetingOverlay.tsx";
-
 function AdminPortal() {
     
   const { user, dbUser, loading } = useAuth();
@@ -80,18 +91,16 @@ function AdminPortal() {
     { label: "Announcements", path: "/admin/notices", icon: Bell },
     { label: "Team Chat", path: "/admin/team-chat", icon: MessageSquare },
     { label: "Communication Center", path: "/admin/communication-center", icon: Network },
+    { label: "Mail Center", path: "/admin/mail-center", icon: Mail },
     { label: "Admin Management", path: "/admin/management", icon: UserCog },
     { label: "View Feedback", path: "/admin/feedback", icon: FileText },
     { label: "Help Center", path: "/admin/help", icon: BookOpen },
   ];
 
   return (
-    <MeetingProvider>
       <DashboardLayout sidebarLinks={links}>
         <Outlet />
       </DashboardLayout>
-      <MeetingOverlay />
-    </MeetingProvider>
   );
 }
 
@@ -190,43 +199,46 @@ export default function App() {
           <AppInstallModal />
           <OnboardingWelcomeModal />
           <InstallSuccessModal />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/auth/user" element={<AuthRoute isAdmin={false} />} />
-          <Route path="/auth/admin" element={<AuthRoute isAdmin={true} />} />
-          
-          <Route path="/dashboard" element={<UserPortal />}>
-            <Route index element={<UserDashboardStats />} />
-            <Route path="register" element={<RegisterTicket />} />
-            <Route path="my-complaints" element={<MyTickets />} />
-            <Route path="my-tickets" element={<MyTickets />} />
-            <Route path="drafts" element={<DraftTickets />} />
-            <Route path="notices" element={<Notices />} />
-            <Route path="notifications" element={<UserNotificationsView />} />
-            <Route path="feedback" element={<UserFeedback />} />
-            <Route path="profile" element={<UserProfile />} />
-            <Route path="settings" element={<UserSettings />} />
-            <Route path="ai-assistant" element={<AiAssistantPage />} />
-            <Route path="help" element={<HelpCenter />} />
-          </Route>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/auth/user" element={<AuthRoute isAdmin={false} />} />
+            <Route path="/auth/admin" element={<AuthRoute isAdmin={true} />} />
+            
+            <Route path="/dashboard" element={<UserPortal />}>
+              <Route index element={<UserDashboardStats />} />
+              <Route path="register" element={<RegisterTicket />} />
+              <Route path="my-complaints" element={<MyTickets />} />
+              <Route path="my-tickets" element={<MyTickets />} />
+              <Route path="drafts" element={<DraftTickets />} />
+              <Route path="notices" element={<Notices />} />
+              <Route path="notifications" element={<UserNotificationsView />} />
+              <Route path="feedback" element={<UserFeedback />} />
+              <Route path="profile" element={<UserProfile />} />
+              <Route path="settings" element={<UserSettings />} />
+              <Route path="ai-assistant" element={<AiAssistantPage />} />
+              <Route path="help" element={<HelpCenter />} />
+            </Route>
 
-          <Route path="/admin" element={<AdminPortal />}>
-            <Route index element={<AdminStats />} />
-            <Route path="complaints" element={<ManageTickets />} />
-            <Route path="tickets" element={<ManageTickets />} />
-            <Route path="cases" element={<ManageTickets />} />
-            <Route path="notices" element={<ManageNotices />} />
-            <Route path="team-chat" element={<AdminTeamChat />} />
-            <Route path="communication-center" element={<AdminCommunicationCenter />} />
-            <Route path="management" element={<AdminManagement />} />
-            <Route path="feedback" element={<ViewFeedback />} />
-            <Route path="profile" element={<AdminProfile />} />
-            <Route path="settings" element={<AdminSettings />} />
-            <Route path="ai-assistant" element={<AiAssistantPage />} />
-            <Route path="help" element={<HelpCenter />} />
-          </Route>
+            <Route path="/admin" element={<AdminPortal />}>
+              <Route index element={<AdminStats />} />
+              <Route path="complaints" element={<ManageTickets />} />
+              <Route path="tickets" element={<ManageTickets />} />
+              <Route path="cases" element={<ManageTickets />} />
+              <Route path="notices" element={<ManageNotices />} />
+              <Route path="team-chat" element={<AdminTeamChat />} />
+              <Route path="communication-center" element={<AdminCommunicationCenter />} />
+              <Route path="mail-center" element={<MailCenter />} />
+              <Route path="management" element={<AdminManagement />} />
+              <Route path="feedback" element={<ViewFeedback />} />
+              <Route path="profile" element={<AdminProfile />} />
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="ai-assistant" element={<AiAssistantPage />} />
+              <Route path="help" element={<HelpCenter />} />
+            </Route>
 
-        </Routes>
+          </Routes>
+        </Suspense>
         </BrowserRouter>
       
     </AuthProvider>

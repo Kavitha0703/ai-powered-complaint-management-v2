@@ -1,34 +1,52 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../lib/AuthContext.tsx";
-import { useMeeting } from "../lib/MeetingContext.tsx";
-import { Button } from "../../components/ui/button.tsx";
-import { Input } from "../../components/ui/input.tsx";
-import { Textarea } from "../../components/ui/textarea.tsx";
-import {
-  Group,
-  Panel,
-  Separator
-} from "react-resizable-panels";
-import {
-  Users, Hash, MessageSquare, Send, Paperclip, Smile, Reply, Edit2,
-  Trash2, Search, Bell, Sparkles, Check, CheckCheck, CornerDownRight, X, Phone, Video,
-  Pin, MoreVertical, Plus, Trash, Edit, Shield, ArrowRight, Volume2, ShieldAlert,
-  Archive, FileText, CheckCircle2, Play, Pause, Mic, Square, Trash2 as TrashIcon, RotateCcw,
-  VolumeX, Menu, ChevronRight, ChevronLeft, PhoneOff, VideoOff, Monitor, Settings as SettingsIcon, Link2, Activity, CheckSquare, XCircle, ChevronDown, Minimize2, MicOff,
-  Camera
-} from "lucide-react";
-import { AudioVisualizer } from "../components/AudioVisualizer";
+
+
+
+
 import DcmsCamera from "../components/DcmsCamera.tsx";
+import {
+  Heart, HelpCircle, LayoutDashboard, MessageCircle, PlayCircle, Plus, Search, Send, Settings, Smile, Phone, Video, Mail,
+  X, AlertCircle, Camera, Check, ChevronDown, ChevronRight, Hash, LogOut, MoreHorizontal, MoreVertical,
+  Paperclip, Users, Volume2, VolumeX, Mic, MicOff, Server, Terminal, Share, MousePointer2, FileText, Image, ShieldAlert, Trash2, Trash, ArrowRight, Edit2, Pin, Sparkles, MessageSquare, Bell, Reply
+, RotateCcw, Menu, Archive, Edit, ChevronLeft, CheckSquare, CornerDownRight, Pause, Play, CheckCheck, Calendar as CalendarIcon} from "lucide-react";
+import { Group, Panel } from "react-resizable-panels";
+import { createGoogleMeet, googleSignIn } from "../lib/GoogleMeetHelper.ts";
+import { sendEmailViaGmail, EmailTemplates } from "../lib/GmailService.ts";
+import { getAllActiveAdmins } from "../lib/AdminManagementHelper.ts";
+import { GmailEmailCenterPanel } from "../components/GmailEmailCenterPanel.tsx";
+import { GoogleCalendarPanel } from "../components/GoogleCalendarPanel.tsx";
+import { Button } from "../../components/ui/button.tsx";
+import { Textarea } from "../../components/ui/textarea.tsx";
+import { Input } from "../../components/ui/input.tsx";
+
+
+export type HuddleParticipant = {
+  id: string;
+  name: string;
+  avatar: string;
+  role: string;
+  isMuted: boolean;
+  isSpeaking: boolean;
+  isCameraOn: boolean;
+};
+
+interface Teammate {
+  id: string;
+  name: string;
+  role: string;
+  avatar: string;
+  status: "online" | "in_call" | "away" | "offline";
+}
 
 interface ChatRoom {
+  is_archived?: boolean;
+  is_pinned?: boolean;
   id: string;
   name: string;
   description: string;
-  is_pinned?: boolean;
-  is_archived?: boolean; // NEW: Archive Channel support
   created_at: string;
-  created_by?: string;
-  deleted_by_user?: string[]; // list of user ids who deleted this room
+  created_by: string;
 }
 
 interface ChatMessage {
@@ -44,461 +62,186 @@ interface ChatMessage {
     sender_name: string;
     text: string;
   } | null;
-  reactions?: Record<string, string[]>; // emoji -> list of admin names
+  reactions?: Record<string, string[]>;
   attachments?: Array<{ name: string; url: string; type: string }>;
   is_edited?: boolean;
   is_pinned?: boolean;
-  deleted_for?: string[]; // list of user ids who deleted this message
+  deleted_for?: string[];
   message_status?: "sent" | "delivered" | "read";
-  is_voice_note?: boolean; // Voice memo support
-  voice_duration?: number; // duration in seconds
-  audio_url?: string; // real audio url blob
+  is_voice_note?: boolean;
+  voice_duration?: number;
+  audio_url?: string;
   call_summary?: {
+    title?: string;
+    meet_link?: string;
+    meet_status?: "Scheduled" | "Waiting" | "Live" | "Ended" | "Cancelled" | "Failed";
     type: "voice" | "video";
     duration: string;
     participants: string[];
+    joinedParticipants?: string[];
+    joinedParticipantEmails?: string[];
+    organizerId?: string;
+    organizerName?: string;
+    organizerEmail?: string;
+    createdAt?: string;
+    startedAt?: string;
+    endedAt?: string;
     screenShareUsed?: boolean;
     recordingNotes?: string;
     ticketNumber?: string;
     ticketTitle?: string;
-    description?: string;
-    discussionSummary?: string[];
-    recordingAvailable?: boolean;
-    transcriptSaved?: boolean;
-    screensShared?: number;
   };
-}
-
-interface Teammate {
-  id: string;
-  name: string;
-  role: string;
-  avatar: string;
-  status: "online" | "offline" | "away" | "in_call";
 }
 
 interface RecentCall {
   id: string;
   type: "voice" | "video";
-  timestamp: string;
   title: string;
   participants: string[];
   duration: string;
+  timestamp: string;
 }
 
 export default function AdminTeamChat() {
-    
-  const { dbUser } = useAuth();
-
-  const currentAdminName = dbUser?.name || "Kavitha";
+  const { user, dbUser } = useAuth();
+  
   const currentAdminId = dbUser?.id || "usr_kavitha";
-
-  // State
-  const [rooms, setRooms] = useState<ChatRoom[]>([]);
-  const [activeRoomId, setActiveRoomId] = useState<string>("ch_general");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-
-  // Layout & Resizing States
-  const [panelKey, setPanelKey] = useState<number>(0);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
-  const [mobileActiveTab, setMobileActiveTab] = useState<"channels" | "chat" | "users">("chat");
-  const [isArchivedSectionExpanded, setIsArchivedSectionExpanded] = useState<boolean>(false);
-
-  // Form inputs
-  const [commentInput, setCommentInput] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [globalSearch, setGlobalSearch] = useState<string>(""); // Left-side search channels
-  const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [editInput, setEditInput] = useState<string>("");
-  const [chatFiles, setChatFiles] = useState<Array<{ name: string; url: string; type: string }>>([]);
-  const [chatCameraActive, setChatCameraActive] = useState<boolean>(false);
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
-
-  // Mention Suggestions popup state
-  const [showMentionSuggestions, setShowMentionSuggestions] = useState<boolean>(false);
-  const [mentionFilter, setMentionFilter] = useState<string>("");
-
-  // Drag-and-Drop file overlay
-  const [isDraggingOverChat, setIsDraggingOverChat] = useState<boolean>(false);
-  const dragCounterRef = useRef<number>(0);
-
-  // Simulated Voice Note state
-  const [isRecordingVoice, setIsRecordingVoice] = useState<boolean>(false);
-  const [voiceSeconds, setVoiceSeconds] = useState<number>(0);
+  const currentAdminName = dbUser?.name || "Kavitha";
+  
+  const [meetings, setMeetings] = useState<RecentCall[]>([]);
+  const speakText = (text: string, voiceName?: string) => {
+    console.log("Speaking:", text);
+  };
+  const [audioLevel, setAudioLevel] = useState(1);
   const voiceTimerRef = useRef<any>(null);
-
-  // Playing state for voices
-  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
-  const [playingVoiceProg, setPlayingVoiceProg] = useState<number>(0);
   const playbackTimerRef = useRef<any>(null);
-  const [expandedCallDetailsMessageIds, setExpandedCallDetailsMessageIds] = useState<string[]>([]);
-
-  // RECENT CALL HISTORY SIDEBAR SECTION STATES
-  const [isRecentCallsCollapsed, setIsRecentCallsCollapsed] = useState<boolean>(false);
-  const [isFetchingRecentCalls, setIsFetchingRecentCalls] = useState<boolean>(true);
-  const [selectedCallDetail, setSelectedCallDetail] = useState<RecentCall | null>(null);
-
-  // Channel Unread statuses (simulated updates)
-  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({
-    "ch_infrastructure": 2,
-    "ch_triage_policy": 0
-  });
-
-  // UI Panels / Menus
+  const dragCounterRef = useRef<any>(null);
+  const recognitionRef = useRef<any>(null);
+  const channelsPanelRef = useRef<any>(null);
+  const [deletedForMeIds, setDeletedForMeIds] = useState<string[]>([]);
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [mentionFilter, setMentionFilter] = useState<string>("");
   const [isChannelsSidebarOpen, setIsChannelsSidebarOpen] = useState<boolean>(true);
   const [isChannelsSidebarCollapsed, setIsChannelsSidebarCollapsed] = useState<boolean>(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
-    return localStorage.getItem("dcms_chat_channels_collapsed") === "true";
-  });
-  const [showMembersPanel, setShowMembersPanel] = useState<boolean>(() => {
-    return localStorage.getItem("dcms_chat_show_members") !== "false";
-  });
-  const [showAiMenu, setShowAiMenu] = useState<boolean>(false);
-  const [activeMessageActionId, setActiveMessageActionId] = useState<string | null>(null);
-
-  // Batch Select Mode State
-  const [isSelectModeActive, setIsSelectModeActive] = useState<boolean>(false);
-  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
-  const [selectedTeammatesForCall, setSelectedTeammatesForCall] = useState<string[]>([]);
+  const [panelKey, setPanelKey] = useState<number>(0);
+  const [panelLayouts, setPanelLayouts] = useState<number[]>([20, 55, 25]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const [dropdownRoomId, setDropdownRoomId] = useState<string | null>(null);
+  const [isArchivedSectionExpanded, setIsArchivedSectionExpanded] = useState<boolean>(false);
+  const [currentUserStatus, setCurrentUserStatus] = useState<string>("online");
+  const [showStatusMenu, setShowStatusMenu] = useState<boolean>(false);
+  const [isDraggingOverChat, setIsDraggingOverChat] = useState<boolean>(false);
+  const [playingVoiceProg, setPlayingVoiceProg] = useState<number>(0);
+  const polishMode = null;
 
 
-
-  const [deletedForMeIds, setDeletedForMeIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem("dcms_chat_deleted_for_me");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const handleDeleteForMe = (msgId: string) => {
-    const updated = [...deletedForMeIds, msgId];
-    setDeletedForMeIds(updated);
-    localStorage.setItem("dcms_chat_deleted_for_me", JSON.stringify(updated));
-
-    // Also update main messages store in local storage to keep them in sync
-    const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
-    let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : [];
-    const updatedMsgs = allMessages.map(m => {
-      if (m.id === msgId) {
-        return { ...m, deleted_for: [...(m.deleted_for || []), currentAdminId] };
-      }
-      return m;
-    });
-    saveMessagesToStorage(updatedMsgs);
-  };
-
-  const channelsPanelRef = useRef<any>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
-  const [showNewChatPanel, setShowNewChatPanel] = useState<boolean>(false);
+  const [activeRoomId, setActiveRoomId] = useState<string | null>("ch_general");
+  
+  const [globalSearch, setGlobalSearch] = useState<string>("");
   const [customRoomName, setCustomRoomName] = useState<string>("");
   const [customRoomDesc, setCustomRoomDesc] = useState<string>("");
-  const [dropdownRoomId, setDropdownRoomId] = useState<string | null>(null);
-  const [forwardDialogMsg, setForwardDialogMsg] = useState<ChatMessage | null>(null);
-
-  // Admin user active status setting
-  const [currentUserStatus, setCurrentUserStatus] = useState<"online" | "offline" | "away">("online");
-  const [showStatusMenu, setShowStatusMenu] = useState<boolean>(false);
-
-  // Deletion Dialog State
-  const [deleteConfRoom, setDeleteConfRoom] = useState<ChatRoom | null>(null);
-  const [deleteConfMsg, setDeleteConfMsg] = useState<ChatMessage | null>(null);
+  const [deleteConfRoom, setDeleteConfRoom] = useState<string | null>(null);
+  const [deleteConfMsg, setDeleteConfMsg] = useState<string | null>(null);
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState<boolean>(false);
-
-  // AI improve loading indicators
-  const [loadingImprove, setLoadingImprove] = useState<boolean>(false);
-  const [aiStep, setAiStep] = useState<string | null>(null);
-  const [polishMode, setPolishMode] = useState<"professional" | "friendly" | "shorten" | "detailed">("professional");
-
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-
-  // Panel sizing persistence helper
-  const [panelLayouts, setPanelLayouts] = useState<Record<string, number>>(() => {
-    try {
-      const saved = localStorage.getItem("dcms-chat-panel-layout-map-v2");
-      return saved ? JSON.parse(saved) : {
-        "channels-panel": 25,
-        "chat-panel": 60,
-        "users-panel": 15
-      };
-    } catch {
-      return {
-        "channels-panel": 25,
-        "chat-panel": 50,
-        "users-panel": 25
-      };
-    }
-  });
-
-  // Teammates database structure
-  const [teammates, setTeammates] = useState<Teammate[]>([
-    { id: "usr_kavitha", name: "Kavitha", role: "Triage Supervisor", avatar: "👩‍💼", status: "online" },
-    { id: "usr_arun", name: "Arun", role: "Network Administrator", avatar: "👨‍💻", status: "online" },
-    { id: "usr_priya", name: "Priya", role: "Software Support", avatar: "👩‍💻", status: "online" },
-    { id: "usr_karthik", name: "Karthik", role: "Senior Database Architect", avatar: "👨", status: "in_call" },
-    { id: "usr_sarah", name: "Sarah", role: "Systems Security Specialist", avatar: "👩‍💻", status: "offline" },
-    { id: "usr_kiki", name: "Kiki Employee", role: "Support Desk", avatar: "👧", status: "offline" }
-  ]);
-
-  // CUSTOM CALL SELECTION DIALOGUE STATES
-  const [isNewCallDialogOpen, setIsNewCallDialogOpen] = useState<boolean>(false);
-  const [newCallType, setNewCallType] = useState<"voice" | "video">("voice");
-  const [newCallMode, setNewCallMode] = useState<"direct" | "multi" | "group">("multi");
-  const [selectedParticipantsForNewCall, setSelectedParticipantsForNewCall] = useState<string[]>([]);
-
-  // Synchronize dynamic user details to teammates array to avoid key and name representation conflicts
-  useEffect(() => {
-    setTeammates(prev => {
-      let changed = false;
-      const nextTeammates = prev.map(t => {
-        if (t.id === "usr_kavitha" || t.id === currentAdminId || t.name === "Kavitha" || t.name === currentAdminName) {
-          if (t.id !== currentAdminId || t.name !== currentAdminName) {
-            changed = true;
-            return {
-              ...t,
-              id: currentAdminId,
-              name: currentAdminName
-            };
-          }
-        }
-        return t;
-      });
-      return changed ? nextTeammates : prev;
-    });
-  }, [currentAdminId, currentAdminName]);
-
-  // Responsive device window detection
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Fetch recent calls with a simulated network delay
-  useEffect(() => {
-    const defaultRecentCalls: RecentCall[] = [
-      {
-        id: "call_def_1",
-        type: "video",
-        timestamp: "2 hours ago",
-        title: "Network Diagnostics Huddle",
-        participants: ["Kavitha", "Arun", "Priya"],
-        duration: "14:22"
-      },
-      {
-        id: "call_def_2",
-        type: "voice",
-        timestamp: "Today, 10:30 AM",
-        title: "System Outage Alignment",
-        participants: ["Kavitha", "Karthik"],
-        duration: "08:15"
-      },
-      {
-        id: "call_def_3",
-        type: "video",
-        timestamp: "Yesterday, 3:45 PM",
-        title: "Severity-1 Ticket Debrief",
-        participants: ["Kavitha", "Arun", "Karthik", "Sarah"],
-        duration: "34:10"
-      }
-    ];
-
-    setIsFetchingRecentCalls(true);
-    const timer = setTimeout(() => {
-      const stored = localStorage.getItem("dcms_recent_calls_v1");
-      if (stored) {
-        try {
-          setRecentCalls(JSON.parse(stored));
-        } catch (e) {
-          setRecentCalls(defaultRecentCalls);
-        }
-      } else {
-        setRecentCalls(defaultRecentCalls);
-        localStorage.setItem("dcms_recent_calls_v1", JSON.stringify(defaultRecentCalls));
-      }
-      setIsFetchingRecentCalls(false);
-    }, 550);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Sync current user status changes to teammates view
-  useEffect(() => {
-    setTeammates(prev => {
-      let changed = false;
-      const nextTeammates = prev.map(t => {
-        if (t.id === currentAdminId) {
-          if (t.status !== currentUserStatus) {
-            changed = true;
-            return { ...t, status: currentUserStatus };
-          }
-        }
-        return t;
-      });
-      return changed ? nextTeammates : prev;
-    });
-  }, [currentUserStatus, currentAdminId]);
-
-  // ACTIVE CALL SYSTEM STATE
-  interface HuddleParticipant {
-    id: string;
-    name: string;
-    role: string;
-    avatar: string;
-    isSpeaking: boolean;
-    isMuted: boolean;
-    isCameraOn: boolean;
-  }
-
-  interface HuddleTranscript {
-    senderName: string;
-    text: string;
-    time: string;
-  }
-
-  const {
-    activeCall, setActiveCall, startHuddleCall, endHuddleCall,
-    localCamStream, screenStream, userStream, audioLevel,
-    micPermission, camPermission, speechStatus, setSpeechStatus,
-    isVoicePlaybackMuted, setIsVoicePlaybackMuted, recentCalls, setRecentCalls,
-    requestMicrophone, requestCamera, requestScreenShare, stopScreenShare,
-    postHuddleNotes, speakText
-  } = useMeeting();
-
-  // Real Call simulation states & Voice feedback
-  const [callParticipants, setCallParticipants] = useState<HuddleParticipant[]>([]);
-  const [isAiTeammateModeActive, setIsAiTeammateModeActive] = useState<boolean>(true);
+  const [forwardDialogMsg, setForwardDialogMsg] = useState<ChatMessage | null>(null);
   const [busyCallTarget, setBusyCallTarget] = useState<Teammate | null>(null);
-  const recognitionRef = useRef<any>(null);
-
-  // Status system state variables
-  const [statusAvailable, setStatusAvailable] = useState<string>("Available");
-  const [statusBusy, setStatusBusy] = useState<string>("Busy");
-  const [statusOffline, setStatusOffline] = useState<string>("Offline");
-  const [statusAway, setStatusAway] = useState<string>("Away");
-
-  // Supporting states for Busy teammate call overlay
+  const [busySuccessMessage, setBusySuccessMessage] = useState<string>("");
   const [isLeavingMessage, setIsLeavingMessage] = useState<boolean>(false);
   const [stickyMessageText, setStickyMessageText] = useState<string>("");
   const [notifiedUsers, setNotifiedUsers] = useState<string[]>([]);
-  const [busySuccessMessage, setBusySuccessMessage] = useState<string | null>(null);
+  const [activeMessageActionId, setActiveMessageActionId] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
+  const [editInput, setEditInput] = useState<string>("");
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [showGmailCenter, setShowGmailCenter] = useState<boolean>(false);
+  const [showAiMenu, setShowAiMenu] = useState<boolean>(false);
+  const [loadingImprove, setLoadingImprove] = useState<boolean>(false);
+  const [aiStep, setAiStep] = useState<number>(0);
 
-  // Trigger immediate systems alerts when notified busy teammates return to Available status
-  useEffect(() => {
-    if (notifiedUsers.length === 0) return;
-    let anyTriggered = false;
-    let nextNotified = [...notifiedUsers];
-
-    notifiedUsers.forEach(userId => {
-      const target = teammates.find(t => t.id === userId);
-      if (target && target.status === "online") {
-        anyTriggered = true;
-        // Voice announce
-        speakText(`${target.name} is now ${statusAvailable}.`, "System Alert");
-        
-        // Remove from notification registry
-        nextNotified = nextNotified.filter(id => id !== userId);
-
-        // Inject alert message into active chat room
-        const alertText = `🔔 **Availability Alert**: @${target.name} has completed their previous call and is now **${statusAvailable}**!`;
-        handleSendMessage(undefined, alertText);
-      }
-    });
-
-    if (anyTriggered) {
-      setNotifiedUsers(nextNotified);
-    }
-  }, [teammates, notifiedUsers, statusAvailable]);
-
+  const handleDeleteForMe = (msgId: string) => {
+      setMessages(prev => prev.filter(m => m.id !== msgId));
+      setDeleteConfMsg(null);
+  };
   const submitStickyMessage = () => {
-    if (!stickyMessageText.trim() || !busyCallTarget) return;
-    const textToSend = `📥 [Left Note for ${busyCallTarget.name}]: ${stickyMessageText.trim()}`;
-    handleSendMessage(undefined, textToSend);
-
-    setBusySuccessMessage(`✅ Message successfully left for ${busyCallTarget.name}!`);
-    setStickyMessageText("");
-    setTimeout(() => {
-      setBusyCallTarget(null);
+      setBusySuccessMessage("Message left successfully.");
+      setTimeout(() => setBusySuccessMessage(""), 2000);
+      setStickyMessageText("");
       setIsLeavingMessage(false);
-      setBusySuccessMessage(null);
-    }, 2200);
   };
-
   const toggleNotificationRequest = () => {
-    if (!busyCallTarget) return;
-    const isAlreadyNotified = notifiedUsers.includes(busyCallTarget.id);
-    if (isAlreadyNotified) {
-      setNotifiedUsers(prev => prev.filter(id => id !== busyCallTarget.id));
-      setBusySuccessMessage(`Removed availability watch alert for ${busyCallTarget.name}.`);
-      setTimeout(() => setBusySuccessMessage(null), 1500);
-    } else {
-      setNotifiedUsers(prev => [...prev, busyCallTarget.id]);
-      setBusySuccessMessage(`🔔 Watch alert set! You will be notified with a system callout when ${busyCallTarget.name} becomes ${statusAvailable}.`);
-      setTimeout(() => {
-        setBusyCallTarget(null);
-        setBusySuccessMessage(null);
-      }, 3000);
-    }
+      if (!busyCallTarget) return;
+      setNotifiedUsers(prev => prev.includes(busyCallTarget.id) ? prev.filter(id => id !== busyCallTarget.id) : [...prev, busyCallTarget.id]);
   };
 
-  // Triggering call actions with support for 3 user call types (Direct, Multi-Select, Team Huddle)
-  const startCall = (
-    type: "voice" | "video",
-    mode: "direct" | "multi" | "group" = "group",
-    targetIds: string[] = []
-  ) => {
-    // 1. Filter out logged in admin from inputs to prevent duplicates
-    const uniqueTargetIds = targetIds.filter(id => id !== currentAdminId);
+  const statusAvailable = "Available";
+  const statusBusy = "Busy";
+  const statusAway = "Away";
+  const statusOffline = "Offline";
 
-    // 2. Busy check: Intercept calling busy teammates (i.e. status === "in_call")
-    const busyPeer = teammates.find(t => uniqueTargetIds.includes(t.id) && t.status === "in_call");
-    if (busyPeer) {
-      setBusyCallTarget(busyPeer);
-      return;
-    }
 
-    // 3. Force participant selection validation
-    if (mode !== "group" && uniqueTargetIds.length === 0) {
-      alert("Select at least one teammate");
-      return;
-    }
+  const [rooms, setRooms] = useState<ChatRoom[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  
+  const [showMembersPanel, setShowMembersPanel] = useState<boolean>(true);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [isSelectModeActive, setIsSelectModeActive] = useState<boolean>(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const [chatCameraActive, setChatCameraActive] = useState<boolean>(false);
+  const [chatFiles, setChatFiles] = useState<any[]>([]);
+  const [commentInput, setCommentInput] = useState<string>("");
+  const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [showMentionSuggestions, setShowMentionSuggestions] = useState<boolean>(false);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const [isMeetingsCollapsed, setIsMeetingsCollapsed] = useState<boolean>(false);
+  const [isFetchingMeetings, setIsFetchingMeetings] = useState<boolean>(true);
+  const [selectedCallDetail, setSelectedCallDetail] = useState<RecentCall | null>(null);
 
-    // 4. Build participants state automatically adding current admin
-    const currentAdminData = teammates.find(t => t.id === currentAdminId) || null;
-    const initialParticipants: HuddleParticipant[] = [
-      { id: currentAdminId, name: currentAdminName, role: currentAdminData ? currentAdminData.role : "Triage Supervisor", avatar: currentAdminData ? currentAdminData.avatar : "👩‍💼", isSpeaking: false, isMuted: false, isCameraOn: type === "video" }
-    ];
+  const loadActiveTeammatesFromDb = (): Teammate[] => {
+    const currentAdminName = user?.name || dbUser?.name || "Kavitha";
+    const currentAdminIdFallback = dbUser?.id || "usr_kavitha";
+    const currentEmail = (user?.email || dbUser?.email || "").toLowerCase();
 
-    uniqueTargetIds.forEach(tid => {
-      const match = teammates.find(t => t.id === tid);
-      if (match) {
-        initialParticipants.push({
-          id: match.id,
-          name: match.name,
-          role: match.role,
-          avatar: match.avatar,
-          isSpeaking: false,
-          isMuted: false,
-          isCameraOn: type === "video"
-        });
-      }
-    });
-
-    setCallParticipants(initialParticipants);
-    startHuddleCall(activeRoomId, type, initialParticipants, "#TKT-5486", "Database Outages & Level-2 Escalations Queue Spike");
+    const activeAdmins = getAllActiveAdmins();
+    return activeAdmins
+      .filter(a => a.id !== currentAdminIdFallback && a.email.toLowerCase() !== currentEmail && a.name !== currentAdminName)
+      .map(a => ({
+        id: a.id,
+        name: a.name,
+        role: a.role === 'super_admin' ? 'Super Admin' : a.role === 'support_staff' ? 'Support Staff' : 'Administrator',
+        avatar: a.avatar || "👤",
+        status: (a.is_online ? "online" : "offline") as "online" | "in_call" | "away" | "offline"
+      }));
   };
 
-  // Helper time formatter
-  const formatCallDuration = (secs: number) => {
-    const mins = Math.floor(secs / 60);
-    const rem = secs % 60;
-    return `${mins.toString().padStart(2, "0")}:${rem.toString().padStart(2, "0")}`;
-  };
+  const [teammates, setTeammates] = useState<Teammate[]>(loadActiveTeammatesFromDb);
+
+  useEffect(() => {
+    const handleAdminInvitesUpdated = () => {
+      setTeammates(loadActiveTeammatesFromDb());
+    };
+    window.addEventListener("dcms_admin_invites_updated", handleAdminInvitesUpdated);
+    return () => window.removeEventListener("dcms_admin_invites_updated", handleAdminInvitesUpdated);
+  }, [user, dbUser]);
+
+  const [isNewCallDialogOpen, setIsNewCallDialogOpen] = useState<boolean>(false);
+  const [isCalendarPanelOpen, setIsCalendarPanelOpen] = useState<boolean>(false);
+  const [joinMeetModalMsgId, setJoinMeetModalMsgId] = useState<string | null>(null);
+  const [joinUserEmailInput, setJoinUserEmailInput] = useState<string>("");
+  const [createHostEmailInput, setCreateHostEmailInput] = useState<string>("");
+  const [newCallType, setNewCallType] = useState<"voice" | "video">("voice");
+  const [newCallMode, setNewCallMode] = useState<"direct" | "multi" | "group">("group");
+  const [selectedParticipantsForNewCall, setSelectedParticipantsForNewCall] = useState<string[]>([]);
+  
+  const [expandedCallDetailsMessageIds, setExpandedCallDetailsMessageIds] = useState<string[]>([]);
+  const [selectedTeammatesForCall, setSelectedTeammatesForCall] = useState<string[]>([]);
+  const [mobileActiveTab, setMobileActiveTab] = useState<"chat" | "users">("chat");
+  const [showNewChatPanel, setShowNewChatPanel] = useState<boolean>(false);
+  const [isRecordingVoice, setIsRecordingVoice] = useState<boolean>(false);
+  const [voiceSeconds, setVoiceSeconds] = useState<number>(0);
 
   // Speaks live audio peak wave strings like "▂▅▇█" or "▂▃▅▇"
   const renderAudioVisualizer = (id: string, isSpeaking: boolean) => {
@@ -554,67 +297,86 @@ export default function AdminTeamChat() {
   const loadWorkspaceRooms = () => {
     const saved = localStorage.getItem("dcms_chat_rooms_v4");
     let loadedRooms: ChatRoom[] = saved ? JSON.parse(saved) : [];
-
     if (loadedRooms.length === 0) {
       loadedRooms = [
-        { id: "ch_general", name: "general-support-team", description: "Default board for public administrator collaboration", is_pinned: true, count: 0, created_at: new Date().toISOString() },
-        { id: "ch_tkt_548610", name: "ticket-548610", description: "Database locking incident", is_pinned: true, count: 0, created_at: new Date().toISOString() },
-        { id: "ch_tkt_548611", name: "ticket-548611", description: "Billing Gateway Error", is_pinned: true, count: 0, created_at: new Date().toISOString() },
-        { id: "ch_infrastructure", name: "infrastructure-incidents", description: "Critical network alerts, server downtime issues", is_pinned: false, created_at: new Date().toISOString() },
-        { id: "ch_db_issues", name: "database-issues", description: "Priority 1 DB Issues discussion", is_pinned: false, created_at: new Date().toISOString() },
-        { id: "ch_triage_policy", name: "triage-resolution-rules", description: "Corporate rules and ticketing guidelines", is_pinned: false, created_at: new Date().toISOString() }
-      ] as ChatRoom[];
+        { id: "ch_general", name: "General", description: "General discussion", created_at: new Date().toISOString(), created_by: "usr_kavitha" }
+      ];
       localStorage.setItem("dcms_chat_rooms_v4", JSON.stringify(loadedRooms));
     }
     setRooms(loadedRooms);
   };
 
-  // Load Messages
   const loadWorkspaceMessages = () => {
     const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
     let loadedMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : [];
+    
+    // Strict deduplication by message ID
+    const uniqueMsgMap = new Map<string, ChatMessage>();
+    loadedMessages.forEach(m => {
+      if (m && m.id) {
+        uniqueMsgMap.set(m.id, m);
+      }
+    });
+    loadedMessages = Array.from(uniqueMsgMap.values());
 
-    if (loadedMessages.length === 0) {
-      loadedMessages = [
-        {
-          id: "seedmsg_1",
-          room_id: "ch_general",
-          sender_id: "usr_arun",
-          sender_name: "Arun",
-          text: "Welcome, team! Here is our central operations support channel. We can communicate, coordinate and direct ticket issues through this live console. Feel free to @mention me or @Priya if anything comes up.",
-          created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-          time: "10:30 AM",
-          message_status: "read",
-          reactions: { "👍": ["Priya", "Kavitha"] }
-        },
-        {
-          id: "seedmsg_2",
-          room_id: "ch_general",
-          sender_id: "usr_priya",
-          sender_name: "Priya",
-          text: "Thanks, Arun. I'm actively monitoring software platform outages. Feel free to drop draft screenshot issues directly here.",
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          time: "11:15 AM",
-          message_status: "read",
-          reactions: { "🎉": ["Arun"] }
-        }
-      ];
-      localStorage.setItem("dcms_chat_messages_v4", JSON.stringify(loadedMessages));
-    }
-
-    // Filter messages for current room, that aren't deleted
     const filtered = loadedMessages.filter(m => m.room_id === activeRoomId && (!m.deleted_for || !m.deleted_for.includes(currentAdminId)));
     filtered.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-
-    // Automatically flag non-self messages inside this view room as read
     const readUpdated = filtered.map(m => {
       if (m.sender_id !== currentAdminId && m.message_status !== "read") {
         return { ...m, message_status: "read" as const };
       }
       return m;
     });
-
     setMessages(readUpdated);
+
+    // Sync and populate Meeting History state from all logged call messages
+    const callMessages = loadedMessages.filter(m => m.call_summary);
+    const callHistoryList: RecentCall[] = callMessages.map(m => {
+      const summary = m.call_summary!;
+      const title = summary.title || m.text.replace(/^Created a Google Meet: /, "").replace(/^Scheduled a Google Meet: /, "") || "Google Meet";
+      const timestamp = summary.createdAt || m.created_at || m.time;
+      const dateObj = new Date(timestamp);
+      const formattedTime = isNaN(dateObj.getTime()) ? (m.time || "Recently") : dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const durationText = summary.meet_status === "Ended" && summary.duration 
+        ? summary.duration 
+        : (summary.meet_status === "Live" ? "🟢 Live" : summary.meet_status === "Waiting" ? "🟡 Waiting" : summary.duration || "Google Meet");
+      
+      const participantsList = (summary.joinedParticipants && summary.joinedParticipants.length > 0)
+        ? summary.joinedParticipants
+        : (summary.participants && summary.participants.length > 0 ? summary.participants : [summary.organizerName || m.sender_name]);
+
+      return {
+        id: m.id,
+        type: summary.type || "video",
+        title: title,
+        participants: participantsList,
+        duration: durationText,
+        timestamp: formattedTime
+      };
+    });
+
+    const savedCalls = localStorage.getItem("dcms_recent_calls_v1");
+    let explicitCalls: RecentCall[] = savedCalls ? JSON.parse(savedCalls) : [];
+    
+    if (!savedCalls && callHistoryList.length === 0) {
+      explicitCalls = [
+        {
+          id: "call_demo_1",
+          type: "video",
+          title: "Sprint Sync & Workspace Architecture",
+          participants: ["Kavitha (nasikakavitha@gmail.com)", "Testadmin"],
+          duration: "24 mins",
+          timestamp: "Yesterday, 4:30 PM"
+        }
+      ];
+      localStorage.setItem("dcms_recent_calls_v1", JSON.stringify(explicitCalls));
+    }
+
+    const callsMap = new Map<string, RecentCall>();
+    explicitCalls.forEach(c => callsMap.set(c.id, c));
+    callHistoryList.forEach(c => callsMap.set(c.id, c));
+
+    setMeetings(Array.from(callsMap.values()));
     setTimeout(() => scrollToBottom(), 80);
   };
 
@@ -624,7 +386,15 @@ export default function AdminTeamChat() {
   };
 
   const saveMessagesToStorage = (updatedMessages: ChatMessage[]) => {
-    localStorage.setItem("dcms_chat_messages_v4", JSON.stringify(updatedMessages));
+    // Deduplicate messages by ID before persisting to storage
+    const uniqueMap = new Map<string, ChatMessage>();
+    updatedMessages.forEach(m => {
+      if (m && m.id) {
+        uniqueMap.set(m.id, m);
+      }
+    });
+    const deduplicated = Array.from(uniqueMap.values());
+    localStorage.setItem("dcms_chat_messages_v4", JSON.stringify(deduplicated));
     loadWorkspaceMessages();
     window.dispatchEvent(new CustomEvent("dcms_messages_updated"));
   };
@@ -733,16 +503,18 @@ export default function AdminTeamChat() {
 
     // Trigger simulated teammate replies based on tags/mentions or text search
     const normalized = finalTxt.toLowerCase();
-    if (normalized.includes("@arun")) {
-      simulateTeammateResponse("Arun", finalTxt);
-    } else if (normalized.includes("@priya")) {
-      simulateTeammateResponse("Priya", finalTxt);
-    } else if (Math.random() > 0.6) {
-      setTimeout(() => {
-        const repliers = ["Arun", "Priya"];
-        const chooser = repliers[Math.floor(Math.random() * repliers.length)];
-        simulateTeammateResponse(chooser, finalTxt);
-      }, 4500);
+    if (teammates.length > 0) {
+      const mentionedTeammate = teammates.find(t => normalized.includes(`@${t.name.toLowerCase().split(' ')[0]}`));
+      if (mentionedTeammate) {
+        simulateTeammateResponse(mentionedTeammate.name, finalTxt);
+      } else if (Math.random() > 0.6) {
+        setTimeout(() => {
+          const chooser = teammates[Math.floor(Math.random() * teammates.length)];
+          if (chooser) {
+            simulateTeammateResponse(chooser.name, finalTxt);
+          }
+        }, 4500);
+      }
     }
   };
 
@@ -750,53 +522,23 @@ export default function AdminTeamChat() {
   const getSimulatedResponse = (name: string, userMessage: string): string => {
     const msg = userMessage.toLowerCase();
     
-    if (name === "Arun") {
-      if (msg.includes("ticket") || msg.includes("548")) {
-        return "I'm checking ticket 548 now. The DB locking issue was flagged in yesterday's sync as well.";
-      }
-      if (msg.includes("database") || msg.includes("db") || msg.includes("lock")) {
-        return "The transaction pool is spiked at 95% utilization. I'm scaling the Postgres maximum connection pool limits in the Helm config.";
-      }
-      if (msg.includes("network") || msg.includes("latency") || msg.includes("dns") || msg.includes("ping")) {
-        return "Checking regional edge server pings. Latency is currently fluctuating, but the main cloud load balancer is healthy.";
-      }
-      if (msg.includes("restart") || msg.includes("reboot") || msg.includes("kill") || msg.includes("stop")) {
-        return "Understood. Safe termination triggered. Connection pool scaled to 45 connections. Let's monitor database thread stabilization.";
-      }
-      return `Ack'd! @${currentAdminName}, let me look into that network check right away. Let me know if you need backups.`;
+    if (msg.includes("ticket") || msg.includes("548")) {
+      return "I'm checking the issue now. The team flagged this in yesterday's system sync.";
     }
-    
-    if (name === "Priya") {
-      if (msg.includes("ticket") || msg.includes("548")) {
-        return "I found a related database incident from yesterday. It was caused by un-indexed query scans on the client complaints table.";
-      }
-      if (msg.includes("database") || msg.includes("db") || msg.includes("lock")) {
-        return "Yes, there's definitely a deadlock thread blocking the corporate client transactions query. Should we run a vacuum table?";
-      }
-      if (msg.includes("backup") || msg.includes("save") || msg.includes("export")) {
-        return "I can initiate a local database backup snapshot and save it directly into the Level 2 Escalations shared drive folder.";
-      }
-      if (msg.includes("policy") || msg.includes("rule") || msg.includes("sla")) {
-        return "The SLA response rules dictate we must resolve P1 database deadlock tickets within 30 minutes. We are on track.";
-      }
-      return "Got it! I am reviewing the draft ticket feedback and syncing with the database team. Keep me posted or drop me the audit logs.";
+    if (msg.includes("database") || msg.includes("db") || msg.includes("lock")) {
+      return "The connection pool utilization looks healthy. Monitoring database thread stabilization.";
     }
-    
-    if (name === "Karthik") {
-      if (msg.includes("ticket") || msg.includes("548") || msg.includes("database") || msg.includes("lock")) {
-        return "Database deadlock is verified. Karthik here - I'm running a transaction analyzer scan and locking down thread locks on the table.";
-      }
-      return `Karthik here. I am online and adjusting database connection pooling limits to match SLA specifications.`;
+    if (msg.includes("meet") || msg.includes("call") || msg.includes("sync")) {
+      return "Joining the Google Meet room now. Audio and video streams are online.";
     }
-    
-    return "Copy that! Standing by to assist on other active incident queues.";
+    return `Copy that @${currentAdminName}, monitoring operations and ready to assist!`;
   };
 
   const simulateTeammateResponse = (name: string, userMessage: string = "") => {
     setTimeout(() => {
-      setTypingUsers(prev => [...prev, name]);
+      setTypingUsers(prev => Array.isArray(prev) ? [...prev, name] : [name]);
       setTimeout(() => {
-        setTypingUsers(prev => prev.filter(u => u !== name));
+        setTypingUsers(prev => Array.isArray(prev) ? prev.filter(u => u !== name) : []);
         
         // Generate a context-aware simulation statement
         const responseText = getSimulatedResponse(name, userMessage);
@@ -970,6 +712,188 @@ export default function AdminTeamChat() {
   };
 
   // Quick reactions ticks
+  
+  // Active meeting detection helper
+  const getActiveMeetingForRoom = (roomId: string): ChatMessage | null => {
+    const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
+    const allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : messages;
+    const active = allMessages.find(m =>
+      m.room_id === roomId &&
+      m.call_summary &&
+      (m.call_summary.meet_status === "Waiting" || m.call_summary.meet_status === "Live" || m.call_summary.meet_status === "Scheduled")
+    );
+    return active || null;
+  };
+
+  const handleJoinGoogleMeet = (messageId: string) => {
+    const defaultEmail = user?.email || dbUser?.email || "nasikakavitha@gmail.com";
+    setJoinUserEmailInput(defaultEmail);
+    setJoinMeetModalMsgId(messageId);
+  };
+
+  const handleConfirmJoinGoogleMeet = (messageId: string, emailInput: string) => {
+    const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
+    let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : messages;
+
+    const target = allMessages.find(m => m.id === messageId);
+    if (!target || !target.call_summary) return;
+
+    const participantLabel = `${currentAdminName} (${emailInput})`;
+    const joined = target.call_summary.joinedParticipants || [];
+    const updatedJoined = Array.from(new Set([...joined, participantLabel]));
+
+    const joinedEmails = target.call_summary.joinedParticipantEmails || [];
+    const updatedJoinedEmails = Array.from(new Set([...joinedEmails, emailInput]));
+
+    const updated = allMessages.map(m => {
+      if (m.id === messageId && m.call_summary) {
+        return {
+          ...m,
+          call_summary: {
+            ...m.call_summary,
+            meet_status: "Live" as const,
+            startedAt: m.call_summary.startedAt || new Date().toISOString(),
+            joinedParticipants: updatedJoined,
+            joinedParticipantEmails: updatedJoinedEmails
+          }
+        };
+      }
+      return m;
+    });
+
+    saveMessagesToStorage(updated);
+    setJoinMeetModalMsgId(null);
+
+    if (target.call_summary.meet_link) {
+      window.open(target.call_summary.meet_link, "_blank");
+    }
+  };
+
+  const handleLeaveGoogleMeet = (messageId: string) => {
+    const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
+    let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : messages;
+
+    const updated = allMessages.map(m => {
+      if (m.id === messageId && m.call_summary) {
+        const joined = (m.call_summary.joinedParticipants || []).filter(p => !p.startsWith(currentAdminName));
+        const newStatus = joined.length === 0 ? ("Waiting" as const) : m.call_summary.meet_status;
+        return {
+          ...m,
+          call_summary: {
+            ...m.call_summary,
+            meet_status: newStatus,
+            joinedParticipants: joined
+          }
+        };
+      }
+      return m;
+    });
+
+    saveMessagesToStorage(updated);
+  };
+
+  const handleEndGoogleMeet = (messageId: string) => {
+    const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
+    let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : messages;
+
+    const updated = allMessages.map(m => {
+      if (m.id === messageId && m.call_summary) {
+        const end = new Date();
+        const start = new Date(m.call_summary.startedAt || m.call_summary.createdAt || m.created_at);
+        const diffMs = Math.max(0, end.getTime() - start.getTime());
+        const diffMins = Math.max(1, Math.round(diffMs / 60000));
+        const durationStr = diffMins >= 60 ? `${Math.floor(diffMins / 60)}h ${diffMins % 60}m` : `${diffMins} min`;
+
+        return {
+          ...m,
+          call_summary: {
+            ...m.call_summary,
+            meet_status: "Ended" as const,
+            endedAt: end.toISOString(),
+            duration: durationStr
+          }
+        };
+      }
+      return m;
+    });
+
+    saveMessagesToStorage(updated);
+  };
+
+  const handleCreateGoogleMeet = async (title: string, selectedParticipants: string[], hostEmail?: string) => {
+    const defaultEmail = user?.email || dbUser?.email || "nasikakavitha@gmail.com";
+    const finalHostEmail = hostEmail || createHostEmailInput || defaultEmail;
+
+    // Prevent duplicate meetings in the same channel
+    const activeMeeting = getActiveMeetingForRoom(activeRoomId);
+    if (activeMeeting) {
+      alert(`A Google Meet ("${activeMeeting.call_summary?.title || 'Team Sync'}") is already in progress in this channel. Please join or end the existing meeting before creating a new one.`);
+      setIsNewCallDialogOpen(false);
+      return;
+    }
+
+    try {
+      let meetLink = await createGoogleMeet(title);
+      if (!meetLink) {
+        const result = await googleSignIn();
+        if (result) {
+          meetLink = await createGoogleMeet(title);
+        }
+      }
+
+      if (meetLink) {
+        const now = new Date().toISOString();
+        const hostParticipantLabel = `${currentAdminName} (${finalHostEmail})`;
+        const newMsg: ChatMessage = {
+          id: "msg_" + Date.now(),
+          room_id: activeRoomId,
+          sender_id: currentAdminId,
+          sender_name: currentAdminName,
+          text: "Created a Google Meet: " + title,
+          created_at: now,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          call_summary: {
+            title: title,
+            type: "video" as "video",
+            duration: "Waiting for participants...",
+            participants: selectedParticipants,
+            joinedParticipants: [hostParticipantLabel],
+            joinedParticipantEmails: [finalHostEmail],
+            meet_link: meetLink,
+            meet_status: "Waiting" as const,
+            organizerId: currentAdminId,
+            organizerName: currentAdminName,
+            organizerEmail: finalHostEmail,
+            createdAt: now
+          }
+        };
+
+        const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
+        let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : messages;
+        saveMessagesToStorage([...allMessages, newMsg]);
+        setIsNewCallDialogOpen(false);
+
+        // Dispatch Gmail Invitation via Gmail API
+        const emailContent = EmailTemplates.meetingInvite(
+          title,
+          meetLink,
+          currentAdminName,
+          finalHostEmail,
+          new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " Today"
+        );
+        sendEmailViaGmail({
+          to: finalHostEmail,
+          subject: emailContent.subject,
+          bodyHtml: emailContent.html,
+          category: 'meeting_invite'
+        }).catch(err => console.error("Email send warning:", err));
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to create Google Meet");
+    }
+  };
+
   const handleToggleReaction = (msgId: string, emoji: string) => {
     const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
     let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : [];
@@ -1458,9 +1382,9 @@ export default function AdminTeamChat() {
   // Helper Custom drag-handle
   const CustomResizeHandle = () => {
     return (
-      <Separator className="group w-1.5 min-w-1.5 relative flex items-center justify-center bg-slate-100 hover:bg-indigo-500 dark:bg-[#111A2E] dark:hover:bg-indigo-600 transition-all duration-150 cursor-col-resize self-stretch select-none">
+      <div className="group w-1.5 min-w-1.5 relative flex items-center justify-center bg-slate-100 hover:bg-indigo-500 dark:bg-[#111A2E] dark:hover:bg-indigo-600 transition-all duration-150 cursor-col-resize self-stretch select-none">
         <div className="absolute top-1/2 -translate-y-1/2 w-[3px] h-8 bg-slate-300 dark:bg-slate-700 rounded-full opacity-60 group-hover:opacity-100 group-active:bg-indigo-300 transition-all" />
-      </Separator>
+      </div>
     );
   };
 
@@ -1472,6 +1396,9 @@ export default function AdminTeamChat() {
   return (
     <div className="w-full h-[calc(100vh-130px)] lg:h-[calc(100vh-150px)] min-h-[550px] flex flex-col justify-start overflow-hidden bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
       
+      {/* GOOGLE CALENDAR PANEL */}
+      <GoogleCalendarPanel isOpen={isCalendarPanelOpen} onClose={() => setIsCalendarPanelOpen(false)} />
+
       {/* RECENT CALL LOG DETAILS MODAL */}
       {selectedCallDetail && (
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in select-none">
@@ -1565,20 +1492,13 @@ export default function AdminTeamChat() {
                 type="button"
                 onClick={() => {
                   setSelectedCallDetail(null);
-                  setNewCallType(selectedCallDetail.type);
-                  setNewCallMode(selectedCallDetail.participants.length > 2 ? "multi" : "direct");
                   const peerNames = selectedCallDetail.participants.filter(name => name !== currentAdminName);
-                  const matchedIds = peerNames.map(name => {
-                    const found = teammates.find(t => t.name === name);
-                    return found ? found.id : null;
-                  }).filter((id): id is string => id !== null);
-                  setSelectedParticipantsForNewCall(matchedIds);
-                  setIsNewCallDialogOpen(true);
+                  handleCreateGoogleMeet(`Follow-up: ${selectedCallDetail.title}`, peerNames);
                 }}
                 className="flex-1 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1 border-none shadow-lg active:scale-95 duration-100"
               >
-                {selectedCallDetail.type === "video" ? <Video className="w-3.5 h-3.5" /> : <Phone className="w-3.5 h-3.5" />}
-                {"Re-connect Huddle"}</button>
+                <Video className="w-3.5 h-3.5" />
+                {"Create Google Meet"}</button>
               <button
                 type="button"
                 onClick={() => setSelectedCallDetail(null)}
@@ -1590,200 +1510,218 @@ export default function AdminTeamChat() {
         </div>
       )}
 
-      {/* GORGEOUS NEW CALL PARTICIPANT SELECTION DIALOG */}
+
+      {/* GOOGLE MEET CREATION DIALOG */}
       {isNewCallDialogOpen && (
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in select-none">
-          <div className="bg-[#0F172A] border border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 text-white space-y-5 animate-scale-up relative overflow-hidden">
+          <div className="bg-[#0F172A] border border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 text-white space-y-5 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-505/10 via-transparent to-transparent rounded-full pointer-events-none" />
             
             <div className="flex justify-between items-center pb-2 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                  <Phone className="w-4 h-4 text-indigo-400" />
+                  <Video className="w-4 h-4 text-indigo-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white leading-none">{"New Call Bridge"}</h3>
-                  <p className="text-[10px] text-slate-400">{"Select participants to connect instantly"}</p>
+                  <h3 className="text-sm font-bold text-white leading-none">{"Create Google Meet"}</h3>
+                  <p className="text-[10px] text-slate-400">{"Schedule a Google Meet with your team"}</p>
+                </div>
+              </div>
+              <button onClick={() => setIsNewCallDialogOpen(false)} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer border-none bg-transparent">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Google Workspace Integration Active Status */}
+              <div className="bg-emerald-950/40 border border-emerald-800/40 rounded-xl p-3 text-[11px] text-emerald-200/90 leading-relaxed flex gap-2.5 items-center">
+                <div className="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400 font-bold">
+                  ✓
+                </div>
+                <div>
+                  <strong className="text-emerald-300 font-bold block leading-tight">Google Workspace & Meet Connected</strong>
+                  <span className="text-[10px] text-slate-400">Project quiet-alchemy-0lkqp • Google Meet & Calendar API active</span>
+                </div>
+              </div>
+
+              {/* Check active meeting */}
+              {(() => {
+                const activeMeeting = getActiveMeetingForRoom(activeRoomId);
+                if (!activeMeeting) return null;
+                const isOrganizer = (activeMeeting.call_summary?.organizerId === currentAdminId || activeMeeting.sender_id === currentAdminId);
+                return (
+                  <div className="bg-indigo-950/60 border border-indigo-700/60 rounded-xl p-3 text-xs text-indigo-200 flex flex-col gap-2">
+                    <div className="flex items-center gap-2 font-bold text-indigo-300">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                      <span>Meeting Already Active in Channel</span>
+                    </div>
+                    <p className="text-[11px] text-indigo-200/80">
+                      "{activeMeeting.call_summary?.title || 'Team Sync'}" is currently {activeMeeting.call_summary?.meet_status === 'Live' ? '🟢 LIVE' : '🟡 Waiting for participants'}.
+                    </p>
+                    <div className="flex gap-2 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsNewCallDialogOpen(false);
+                          handleJoinGoogleMeet(activeMeeting.id);
+                        }}
+                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs cursor-pointer border-none"
+                      >
+                        Join Active Meeting
+                      </button>
+                      {isOrganizer && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleEndGoogleMeet(activeMeeting.id);
+                          }}
+                          className="px-3 py-1 bg-red-650 hover:bg-red-600 bg-red-600 text-white rounded-lg font-bold text-xs cursor-pointer border-none"
+                        >
+                          End Active Meeting
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">{"Host Google Email ID"}</label>
+                <input 
+                  type="email" 
+                  id="meet-host-email"
+                  placeholder="e.g., nasikakavitha@gmail.com" 
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 text-white" 
+                  defaultValue={user?.email || dbUser?.email || "nasikakavitha@gmail.com"}
+                />
+                <p className="text-[10px] text-slate-400 mt-1">{"The Google Account email address starting and hosting this meeting."}</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">{"Meeting Title"}</label>
+                <input 
+                  type="text" 
+                  id="meet-title"
+                  placeholder="e.g., Weekly Sync" 
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" 
+                  defaultValue="Workplace Hub Sync"
+                />
+              </div>
+              
+              <div>
+                 <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">{"Participants"}</label>
+                 <div className="flex flex-wrap gap-2">
+                    {teammates.filter(t => t.id !== currentAdminId).map(t => (
+                        <div key={t.id} className="flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-lg">
+                           <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                           <span className="text-xs">{t.name}</span>
+                        </div>
+                    ))}
+                 </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button 
+                 onClick={() => {
+                     const hostEmail = (document.getElementById('meet-host-email') as HTMLInputElement)?.value || user?.email || dbUser?.email || 'nasikakavitha@gmail.com';
+                     const title = (document.getElementById('meet-title') as HTMLInputElement)?.value || 'Team Sync';
+                     const participants = teammates.filter(t => t.id !== currentAdminId).map(t => t.name);
+                     handleCreateGoogleMeet(title, participants, hostEmail);
+                 }}
+                 className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl py-2.5 text-sm transition-colors border-none cursor-pointer flex items-center justify-center gap-2 shadow-lg"
+              >
+                 <Video className="w-4 h-4" />
+                 {"Generate Google Meet Link"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Join Google Meet Email Confirmation Modal */}
+      {joinMeetModalMsgId && (
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in select-none">
+          <div className="bg-[#0F172A] border border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 text-white space-y-5 relative overflow-hidden">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                  <Video className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white leading-none">Join Google Meet</h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Enter your Google Email ID to join the call</p>
                 </div>
               </div>
               <button
-                onClick={() => setIsNewCallDialogOpen(false)}
-                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                type="button"
+                onClick={() => setJoinMeetModalMsgId(null)}
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer border-none bg-transparent"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Step 1: Call Medium Selection */}
-            <div className="space-y-1.5 text-left">
-              <p className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">{"1. Select Media Type"}</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setNewCallType("voice")}
-                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    newCallType === "voice"
-                      ? "border-indigo-500 bg-indigo-500/10 text-white shadow-xl font-bold"
-                      : "border-slate-800 bg-slate-900/40 text-slate-400 hover:text-slate-205 hover:bg-slate-900/80"
-                  }`}
-                >
-                  <Phone className="w-5 h-5 text-indigo-400 animate-pulse" />
-                  <span className="text-xs">{"Audio Huddle"}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNewCallType("video")}
-                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    newCallType === "video"
-                      ? "border-rose-500 bg-rose-500/10 text-white shadow-xl font-bold"
-                      : "border-slate-800 bg-slate-900/40 text-slate-400 hover:text-slate-205 hover:bg-slate-900/80"
-                  }`}
-                >
-                  <Video className="w-5 h-5 text-rose-400 animate-pulse" />
-                  <span className="text-xs">{"Video War Room"}</span>
-                </button>
-              </div>
-            </div>
+            {(() => {
+              const targetMsg = messages.find(m => m.id === joinMeetModalMsgId);
+              if (!targetMsg || !targetMsg.call_summary) return null;
+              const summary = targetMsg.call_summary;
+              return (
+                <div className="space-y-4 text-left">
+                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-1.5">
+                    <span className="text-[10px] font-mono uppercase text-indigo-400 font-bold tracking-wider">Meeting Room</span>
+                    <p className="text-sm font-extrabold text-white">{summary.title || "Team Sync"}</p>
+                    {summary.organizerEmail && (
+                      <p className="text-[11px] text-slate-400">
+                        Host: <span className="text-slate-200 font-semibold">{summary.organizerName}</span> ({summary.organizerEmail})
+                      </p>
+                    )}
+                  </div>
 
-            {/* Step 2: Distribution Mode */}
-            <div className="space-y-1.5 text-left">
-              <p className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">{"2. Distribution Scope"}</p>
-              <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  { id: "direct", label: "Single Person" },
-                  { id: "multi", label: "Multiple People" },
-                  { id: "group", label: "Entire Team" }
-                ].map((modeOpt) => (
-                  <button
-                    key={modeOpt.id}
-                    type="button"
-                    onClick={() => {
-                      setNewCallMode(modeOpt.id as any);
-                      if (modeOpt.id === "group") {
-                        setSelectedParticipantsForNewCall(teammates.filter(t => t.id !== "usr_kavitha").map(t => t.id));
-                      } else {
-                        setSelectedParticipantsForNewCall([]);
-                      }
-                    }}
-                    className={`py-2 px-1 rounded-xl border flex flex-col items-center justify-center text-[10.5px] transition-all cursor-pointer ${
-                      newCallMode === modeOpt.id
-                        ? "border-indigo-500 bg-indigo-505/15 text-white font-bold"
-                        : "border-slate-850 bg-[#0F172A] text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <span>{modeOpt.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-slate-300 mb-1 block">Your Google / Email ID *</label>
+                    <input
+                      type="email"
+                      value={joinUserEmailInput}
+                      onChange={(e) => setJoinUserEmailInput(e.target.value)}
+                      placeholder="e.g., nasikakavitha@gmail.com"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Google Meet requires your email address to register attendance and connect to the meeting room.
+                    </p>
+                  </div>
 
-            {/* Step 3: Participant Checkboxes/Selectors */}
-            {newCallMode !== "group" && (
-              <div className="space-y-1.5 text-left">
-                <div className="flex justify-between items-center">
-                  <p className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">{"3. Select Contacts ("}{selectedParticipantsForNewCall.length})</p>
-                  {newCallMode === "multi" && (
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setJoinMeetModalMsgId(null)}
+                      className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-colors cursor-pointer border border-slate-700"
+                    >
+                      Cancel
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
-                        const allPeerIds = teammates.filter(t => t.id !== "usr_kavitha").map(t => t.id);
-                        setSelectedParticipantsForNewCall(
-                          selectedParticipantsForNewCall.length === allPeerIds.length ? [] : allPeerIds
-                        );
+                        if (!joinUserEmailInput || !joinUserEmailInput.includes("@")) {
+                          alert("Please enter a valid email address to join the Google Meet.");
+                          return;
+                        }
+                        handleConfirmJoinGoogleMeet(joinMeetModalMsgId, joinUserEmailInput);
                       }}
-                      className="text-[9px] hover:text-indigo-400 font-bold transition-all text-slate-400 hover:underline"
+                      className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer border-none flex items-center justify-center gap-1.5 shadow-lg"
                     >
-                      {"Toggle All"}</button>
-                  )}
+                      <Video className="w-4 h-4" />
+                      Join Google Meet
+                    </button>
+                  </div>
                 </div>
-                <div className="max-h-[160px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-slate-80s">
-                  {teammates.filter(t => t.id !== "usr_kavitha").map(t => {
-                    const isSelected = selectedParticipantsForNewCall.includes(t.id);
-                    const isUserBusy = t.status === "in_call";
-                    const isUserAway = t.status === "away";
-                    const isUserOffline = t.status === "offline";
-
-                    return (
-                      <div
-                        key={t.id}
-                        onClick={() => {
-                          if (newCallMode === "direct") {
-                            setSelectedParticipantsForNewCall([t.id]);
-                          } else {
-                            setSelectedParticipantsForNewCall(prev => 
-                              prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id]
-                            );
-                          }
-                        }}
-                        className={`p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                          isSelected
-                            ? "border-indigo-500/70 bg-indigo-500/5"
-                            : "border-slate-850 bg-slate-900/20 hover:border-slate-800 hover:bg-slate-900/40"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="relative">
-                            <span className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm select-none">
-                              {t.avatar}
-                            </span>
-                            <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-slate-900 ${
-                              isUserBusy ? "bg-rose-500 animate-pulse" : isUserAway ? "bg-amber-400" : isUserOffline ? "bg-slate-500" : "bg-emerald-500"
-                            }`} />
-                          </div>
-                          <div className="text-left min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-white truncate">{t.name}</span>
-                              {isUserBusy && (
-                                <span className="text-[7.5px] bg-rose-500/15 text-rose-400 font-extrabold px-1 rounded uppercase tracking-wider">{"Busy"}</span>
-                              )}
-                            </div>
-                            <span className="text-[10px] text-slate-400 truncate block leading-none mt-0.5">{t.role}</span>
-                          </div>
-                        </div>
-
-                        {/* Interactive toggle indicators */}
-                        {newCallMode === "direct" ? (
-                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                            isSelected ? "border-indigo-500 bg-indigo-500" : "border-slate-700"
-                          }`}>
-                            {isSelected && <Check className="w-2.5 h-2.5 text-white stroke-[3.5px]" />}
-                          </div>
-                        ) : (
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                            isSelected ? "border-indigo-500 bg-indigo-500" : "border-slate-705"
-                          }`}>
-                            {isSelected && <Check className="w-2.5 h-2.5 text-white stroke-[3.5px]" />}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div className="flex gap-2.5 pt-2">
-              <Button
-                variant="outline"
-                className="flex-1 border-slate-800 hover:bg-slate-900 h-9 text-xs font-bold text-slate-300"
-                onClick={() => setIsNewCallDialogOpen(false)}
-              >
-                {"Go Back"}</Button>
-              <Button
-                disabled={newCallMode !== "group" && selectedParticipantsForNewCall.length === 0}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-xs font-extrabold text-white h-9 cursor-pointer"
-                onClick={() => {
-                  startCall(newCallType, newCallMode, selectedParticipantsForNewCall);
-                  setIsNewCallDialogOpen(false);
-                }}
-              >
-                {"Dial Out Call"}</Button>
-            </div>
+              );
+            })()}
           </div>
         </div>
       )}
-      
+
       {/* Reset view control rail */}
       <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#070C15]/40 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-2">
@@ -1932,7 +1870,7 @@ export default function AdminTeamChat() {
                       <Search className="w-3.5 h-3.5 text-slate-405 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <Input
                         placeholder={"Search channels..."}
-                        value={globalSearch}
+                        value={globalSearch || ""}
                         onChange={e => setGlobalSearch(e.target.value)}
                         className="h-8 pl-8 text-[11px] bg-white dark:bg-slate-900 border-slate-205 dark:border-slate-800 text-slate-700 dark:text-white"
                       />
@@ -2050,19 +1988,17 @@ export default function AdminTeamChat() {
                       <div className="flex justify-between items-center px-1 mb-1">
                         <button
                           type="button"
-                          onClick={() => setIsRecentCallsCollapsed(!isRecentCallsCollapsed)}
+                          onClick={() => setIsMeetingsCollapsed(!isMeetingsCollapsed)}
                           className="flex items-center gap-1.5 text-[9px] uppercase font-mono tracking-wider font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-350 transition-colors cursor-pointer border-none bg-transparent"
                         >
-                          <span>{isRecentCallsCollapsed ? "▶" : "▼"} {"Recent Bridge Calls ("}{recentCalls.length})</span>
+                          <span>{isMeetingsCollapsed ? "▶" : "▼"} {"Meeting History ("}{meetings.length})</span>
                         </button>
-                        {recentCalls.length > 0 && !isRecentCallsCollapsed && (
+                        {meetings.length > 0 && !isMeetingsCollapsed && (
                           <button
                             type="button"
                             onClick={() => {
-                              if (confirm("Clear call history logs?")) {
-                                setRecentCalls([]);
-                                localStorage.setItem("dcms_recent_calls_v1", JSON.stringify([]));
-                              }
+                              setMeetings([]);
+                              localStorage.setItem("dcms_recent_calls_v1", JSON.stringify([]));
                             }}
                             className="text-[9px] text-slate-400 hover:text-red-500 hover:underline border-none bg-transparent cursor-pointer font-bold"
                             title={"Clear History Log"}
@@ -2071,9 +2007,9 @@ export default function AdminTeamChat() {
                         )}
                       </div>
 
-                      {!isRecentCallsCollapsed && (
+                      {!isMeetingsCollapsed && (
                         <div className="space-y-1.5 animate-fade-in max-h-[220px] overflow-y-auto pr-0.5 scrollbar-thin">
-                          {isFetchingRecentCalls ? (
+                          {isFetchingMeetings ? (
                             // Glowing pulse skeletons
                             <div className="space-y-1.5 p-1">
                               {[1, 2].map((i) => (
@@ -2086,11 +2022,11 @@ export default function AdminTeamChat() {
                                 </div>
                               ))}
                             </div>
-                          ) : recentCalls.length === 0 ? (
+                          ) : meetings.length === 0 ? (
                             <span className="text-[10.5px] text-slate-450 italic p-3 block text-center bg-slate-100/10 dark:bg-slate-900/5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 select-none">
                               {"No recent bridge calls logged"}</span>
                           ) : (
-                            recentCalls.map((call) => {
+                            meetings.map((call) => {
                               const isVideo = call.type === "video";
                               return (
                                 <div
@@ -2331,7 +2267,7 @@ export default function AdminTeamChat() {
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <Input
                       placeholder={"Search messages..."}
-                      value={searchQuery}
+                      value={searchQuery || ""}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-8 h-8 text-[11px] w-44 bg-slate-100/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 text-slate-705 dark:text-slate-200"
                     />
@@ -2354,29 +2290,78 @@ export default function AdminTeamChat() {
                     <span className="hidden sm:inline">{isSelectModeActive ? "Cancel Select" : "Batch Select"}</span>
                   </button>
 
+                  {/* Gmail Email Center Trigger Button */}
                   <button
-                    onClick={() => {
-                      setNewCallType("voice");
-                      setNewCallMode("multi");
-                      setSelectedParticipantsForNewCall([]);
-                      setIsNewCallDialogOpen(true);
-                    }}
-                    className={`cursor-pointer p-1.5 rounded-lg text-xs transition-colors ${activeCall && activeCall.type === "voice" ? "bg-emerald-600 text-white animate-pulse" : "text-slate-400 hover:text-indigo-500 hover:bg-slate-105 dark:hover:bg-slate-900"}`}
-                    title={"Start Live Voice Huddle / Audio Bridge"}
+                    onClick={() => setShowGmailCenter(true)}
+                    className="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-rose-600/90 hover:bg-rose-500 text-white shadow-sm border-none"
+                    title="Open Gmail Integration & Email Outbox Center"
                   >
-                    <Phone className="w-4 h-4" />
+                    <Mail className="w-3.5 h-3.5 text-white" />
+                    <span className="hidden sm:inline">Gmail Center</span>
                   </button>
+
+                  {/* Status-aware Header Meet button */}
+                  {(() => {
+                    const activeMeeting = getActiveMeetingForRoom(activeRoomId);
+                    if (!activeMeeting) {
+                      return (
+                        <button
+                          onClick={() => setIsNewCallDialogOpen(true)}
+                          className="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm border-none"
+                          title="Create Google Meet for this channel"
+                        >
+                          <Video className="w-3.5 h-3.5" />
+                          <span>Create Meet</span>
+                        </button>
+                      );
+                    }
+
+                    const status = activeMeeting.call_summary?.meet_status;
+                    if (status === "Waiting") {
+                      return (
+                        <button
+                          onClick={() => handleJoinGoogleMeet(activeMeeting.id)}
+                          className="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 animate-pulse"
+                          title="Google Meet is waiting for participants. Click to join."
+                        >
+                          <Video className="w-3.5 h-3.5 text-amber-400" />
+                          <span>🟡 Waiting to Join</span>
+                        </button>
+                      );
+                    }
+
+                    if (status === "Live") {
+                      const joinedCount = activeMeeting.call_summary?.joinedParticipants?.length || 1;
+                      return (
+                        <button
+                          onClick={() => handleJoinGoogleMeet(activeMeeting.id)}
+                          className="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                          title="Google Meet is currently live. Click to join."
+                        >
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                          <span>🟢 Live ({joinedCount})</span>
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <button
+                        onClick={() => setIsNewCallDialogOpen(true)}
+                        className="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm border-none"
+                      >
+                        <Video className="w-3.5 h-3.5" />
+                        <span>Create Meet</span>
+                      </button>
+                    );
+                  })()}
+
                   <button
-                    onClick={() => {
-                      setNewCallType("video");
-                      setNewCallMode("multi");
-                      setSelectedParticipantsForNewCall([]);
-                      setIsNewCallDialogOpen(true);
-                    }}
-                    className={`cursor-pointer p-1.5 rounded-lg text-xs transition-colors ${activeCall && activeCall.type === "video" ? "bg-indigo-600 text-white animate-pulse" : "text-slate-400 hover:text-indigo-500 hover:bg-slate-105 dark:hover:bg-slate-900"}`}
-                    title={"Start Live Video War Room"}
+                    onClick={() => setIsCalendarPanelOpen(true)}
+                    className="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-sm"
+                    title="View & Schedule Google Calendar Events"
                   >
-                    <Video className="w-4 h-4" />
+                    <CalendarIcon className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Calendar</span>
                   </button>
                   <button
                     onClick={() => {
@@ -2586,79 +2571,152 @@ export default function AdminTeamChat() {
                           {/* Message body text */}
                            {/* Rich Call Summary details Card */}
                            {m.call_summary && (
-                             <div className="mb-3 p-3.5 rounded-2xl bg-slate-905 border border-slate-800 shadow-xl max-w-sm flex flex-col gap-2.5 text-left text-xs animate-fade-in relative overflow-hidden text-white bg-slate-900">
-                               <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full pointer-events-none" />
-                               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                                 <div className="flex items-center gap-1.5 font-extrabold text-white text-[11px] tracking-wide uppercase">
-                                   {m.call_summary.type === 'video' ? (
-                                     <Video className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                                   ) : (
-                                     <Phone className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                                   )}
-                                   <span>{m.call_summary.type === 'video' ? '🎥 Video Meeting' : '📞 Team Call'} {"Summary"}</span>
+                             <div className="mb-3 p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl max-w-sm flex flex-col gap-3 text-left text-xs animate-fade-in relative overflow-hidden text-white">
+                               {/* Card Header */}
+                               <div className="flex items-center justify-between">
+                                 <div className="flex items-center gap-2.5">
+                                   <div className="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/30">
+                                     <Video className="w-4 h-4 text-indigo-400" />
+                                   </div>
+                                   <div>
+                                     <h4 className="font-bold text-sm text-white leading-tight">
+                                       {m.call_summary.title || m.text.replace("Created a Google Meet: ", "").replace("Scheduled a Google Meet: ", "") || "Google Meet"}
+                                     </h4>
+                                     <p className="text-[10px] text-slate-400 font-medium">
+                                       Created by <span className="text-slate-200 font-semibold">{m.call_summary.organizerName || m.sender_name}</span>
+                                     </p>
+                                   </div>
                                  </div>
-                                 <span className="text-[9.5px] bg-slate-850 text-slate-350 font-bold px-2 py-0.5 rounded-full">
-                                   {m.call_summary.duration}
+                               </div>
+
+                               {/* Status indicator row */}
+                               <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                                 {(() => {
+                                   const status = m.call_summary.meet_status || "Waiting";
+                                   if (status === "Waiting") {
+                                     return (
+                                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-amber-500/10 text-amber-300 border-amber-500/30 flex items-center gap-1.5">
+                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                         Waiting for participants...
+                                       </span>
+                                     );
+                                   }
+                                   if (status === "Live") {
+                                     const joinedCount = m.call_summary.joinedParticipants?.length || 1;
+                                     return (
+                                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-emerald-500/10 text-emerald-300 border-emerald-500/30 flex items-center gap-1.5">
+                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                         🟢 LIVE ({joinedCount} joined)
+                                       </span>
+                                     );
+                                   }
+                                   if (status === "Ended") {
+                                     return (
+                                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-slate-800 text-slate-400 border-slate-700">
+                                         ⚫ Meeting Ended ({m.call_summary.duration || "Ended"})
+                                       </span>
+                                     );
+                                   }
+                                   return (
+                                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-slate-800 text-slate-400 border-slate-700">
+                                       {status}
+                                     </span>
+                                   );
+                                 })()}
+
+                                 <span className="text-[10px] font-mono text-slate-400">
+                                   {m.call_summary.meet_status === "Ended" && m.call_summary.endedAt
+                                     ? `Duration: ${m.call_summary.duration}`
+                                     : m.time}
                                  </span>
                                </div>
-                               
-                               <div className="space-y-1">
-                                 <p className="text-[9px] text-slate-400 font-bold uppercase font-sans tracking-wide">{"Participants:"}</p>
-                                 <div className="flex flex-wrap gap-1">
-                                   {m.call_summary.participants.map((person, idx) => (
-                                     <span key={idx} className="bg-slate-850 text-slate-200 px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1 border border-slate-800/60">
-                                       <span className="w-1.5 h-1.5 rounded-full bg-indigo-550" />
-                                       {person}
-                                     </span>
-                                   ))}
-                                 </div>
-                               </div>
 
-                               <button
-                                 type="button"
-                                 onClick={() => {
-                                   setExpandedCallDetailsMessageIds(prev => 
-                                     prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]
-                                   );
-                                 }}
-                                 className="self-start text-[10.5px] text-indigo-400 hover:text-indigo-300 transition-colors font-bold underline bg-transparent border-none cursor-pointer flex items-center gap-1 mt-0.5"
-                               >
-                                 {expandedCallDetailsMessageIds.includes(m.id) ? 'Hide Call Details' : 'View Call Details'}
-                               </button>
-
-                               {expandedCallDetailsMessageIds.includes(m.id) && (
-                                 <div className="mt-1.5 pt-2 border-t border-slate-800 text-[10.5px] space-y-1.5 text-slate-300 bg-slate-950 p-2.5 rounded-xl border border-slate-850 animate-fade-in text-left">
-                                   <div className="flex justify-between items-center text-[10px]">
-                                     <span className="text-slate-450 uppercase font-mono">{"Screen Share:"}</span>
-                                     <span className="font-extrabold text-white">{m.call_summary.screenShareUsed ? 'Used' : 'Not Used'}</span>
-                                   </div>
-                                   <div className="flex justify-between items-center text-[10px]">
-                                     <span className="text-slate-450 uppercase font-mono">{"Recording Mode:"}</span>
-                                     <span className="font-extrabold text-white text-emerald-500">{"Not Enabled"}</span>
-                                   </div>
-                                   {m.call_summary.ticketNumber && (
-                                     <div className="p-1.5 bg-slate-900 rounded-lg space-y-0.5 border border-slate-800 border-dashed">
-                                       <div className="flex items-center gap-1 text-[9.5px]">
-                                         <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                         <span className="text-slate-400 capitalize font-bold">{"Related Ticket:"}</span>
-                                         <span className="text-indigo-400 font-extrabold">{m.call_summary.ticketNumber}</span>
-                                       </div>
-                                       <p className="text-[9.5px] italic text-slate-300 truncate">{m.call_summary.ticketTitle}</p>
-                                     </div>
-                                   )}
-                                   <div className="text-[9.5px] leading-relaxed text-slate-400 border-l-2 border-indigo-500 pl-1.5 mt-1.5">
-                                     <p className="font-bold tracking-wide uppercase text-indigo-400 text-[8px]">{"Audit Notes:"}</p>
-                                     <p>{m.call_summary.recordingNotes}</p>
-                                   </div>
+                               {/* Participant Badges */}
+                               {((m.call_summary.joinedParticipants && m.call_summary.joinedParticipants.length > 0) || m.call_summary.participants.length > 0) && (
+                                 <div className="flex flex-wrap gap-1 bg-slate-950/60 p-2 rounded-xl border border-slate-800/60">
+                                   <span className="text-[9.5px] font-bold text-slate-400 block w-full mb-0.5 uppercase tracking-wider">
+                                     {m.call_summary.meet_status === "Ended" ? "Meeting Attendance:" : "Participants:"}
+                                   </span>
+                                   {(m.call_summary.joinedParticipants && m.call_summary.joinedParticipants.length > 0 ? m.call_summary.joinedParticipants : m.call_summary.participants).map((person, idx) => {
+                                     const isJoined = m.call_summary?.joinedParticipants?.includes(person);
+                                     return (
+                                       <span
+                                         key={idx}
+                                         className={`px-2 py-0.5 rounded-md text-[10px] font-medium flex items-center gap-1 border ${
+                                           isJoined
+                                             ? "bg-emerald-950/40 text-emerald-300 border-emerald-800/50"
+                                             : "bg-slate-800 text-slate-300 border-slate-700/50"
+                                         }`}
+                                       >
+                                         {isJoined && <span className="w-1 h-1 rounded-full bg-emerald-400 shrink-0" />}
+                                         {person}
+                                       </span>
+                                     );
+                                   })}
                                  </div>
                                )}
+
+                               {/* Action Buttons */}
+                               <div className="flex items-center gap-2 pt-1 border-t border-slate-800/80">
+                                 {(m.call_summary.meet_status === "Waiting" || m.call_summary.meet_status === "Live") && (
+                                   <>
+                                     <button
+                                       type="button"
+                                       onClick={() => handleJoinGoogleMeet(m.id)}
+                                       className="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer border-none"
+                                     >
+                                       <Video className="w-3.5 h-3.5" />
+                                       Join Meeting
+                                     </button>
+
+                                     {m.call_summary.joinedParticipants?.includes(currentAdminName) && (
+                                       <button
+                                         type="button"
+                                         onClick={() => handleLeaveGoogleMeet(m.id)}
+                                         className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-colors border border-slate-700 cursor-pointer"
+                                       >
+                                         Leave
+                                       </button>
+                                     )}
+
+                                     {/* End Meeting button (ONLY visible to Organizer!) */}
+                                     {(m.call_summary.organizerId === currentAdminId || m.sender_id === currentAdminId) && (
+                                       <button
+                                         type="button"
+                                         onClick={() => handleEndGoogleMeet(m.id)}
+                                         className="px-3 py-2 bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 hover:border-transparent rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                         title="Only the meeting creator can end this meeting"
+                                       >
+                                         End Meeting
+                                       </button>
+                                     )}
+                                   </>
+                                 )}
+
+                                 {m.call_summary.meet_status === "Ended" && (
+                                   <div className="flex items-center justify-between w-full">
+                                     <span className="text-[10.5px] text-slate-400 italic">Meeting concluded</span>
+                                     <button
+                                       type="button"
+                                       onClick={() => {
+                                         const summaryText = `Google Meet: ${m.call_summary?.title || 'Sync'}\nOrganized by: ${m.call_summary?.organizerName || m.sender_name}\nDuration: ${m.call_summary?.duration}\nAttendees: ${(m.call_summary?.joinedParticipants || m.call_summary?.participants || []).join(', ')}`;
+                                         navigator.clipboard.writeText(summaryText);
+                                         alert("Meeting summary copied to clipboard!");
+                                       }}
+                                       className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-bold border border-slate-700 cursor-pointer"
+                                     >
+                                       Copy Summary
+                                     </button>
+                                   </div>
+                                 )}
+                               </div>
                              </div>
                            )}
 
                           {editingMessageId === m.id ? (
                             <div className="space-y-1.5 min-w-[240px]">
                               <Textarea
-                                value={editInput}
+                                value={editInput || ""}
                                 onChange={(e) => setEditInput(e.target.value)}
                                 className="text-xs bg-slate-50 dark:bg-slate-950 text-black dark:text-white p-2 border-slate-300 dark:border-slate-800 h-16 rounded-lg font-medium"
                               />
@@ -3035,7 +3093,7 @@ export default function AdminTeamChat() {
                       
                       {/* Multiline auto-wrapping Textarea box */}
                       <textarea
-                        value={commentInput}
+                        value={commentInput || ""}
                         onChange={(e) => {
                           setCommentInput(e.target.value);
                           handleInputChange(e as any);
@@ -3233,19 +3291,16 @@ export default function AdminTeamChat() {
                         </div>
                         <div className="flex gap-1 shrink-0">
                           <button
-                            onClick={() => startCall("voice", selectedTeammatesForCall.length > 1 ? "multi" : "direct", selectedTeammatesForCall)}
+                            onClick={() => {
+                                const title = "Team Sync";
+                                const participants = teammates.filter(t => selectedTeammatesForCall.includes(t.id)).map(t => t.name);
+                                handleCreateGoogleMeet(title, participants);
+                            }}
                             className="p-1 px-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-[9px] font-black flex items-center gap-1 cursor-pointer duration-100 border-none"
-                            title={"Start voice bridge with selected"}
-                          >
-                            <Phone className="w-2.5 h-2.5" />
-                            {"Voice"}</button>
-                          <button
-                            onClick={() => startCall("video", selectedTeammatesForCall.length > 1 ? "multi" : "direct", selectedTeammatesForCall)}
-                            className="p-1 px-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-[9px] font-black flex items-center gap-1 cursor-pointer duration-100 border-none"
-                            title={"Start video war-room with selected"}
+                            title={"Create Google Meet with selected"}
                           >
                             <Video className="w-2.5 h-2.5" />
-                            {"Video"}</button>
+                            {"Meet"}</button>
                           <button
                             onClick={() => setSelectedTeammatesForCall([])}
                             className="p-1 text-slate-400 hover:text-white rounded text-[9px] cursor-pointer border-none bg-transparent"
@@ -3306,18 +3361,13 @@ export default function AdminTeamChat() {
                           </div>
 
                           <div className="flex items-center gap-1 shrink-0 ml-1">
-                            {/* Fast Direct Call buttons (with WebRTC logic) */}
+                            {/* Fast Direct Call buttons */}
                             <button
-                              onClick={() => startCall("voice", "direct", [m.id])}
+                              onClick={() => {
+                                 handleCreateGoogleMeet("Quick Sync", [m.name]);
+                              }}
                               className="p-1 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-md transition-colors cursor-pointer border-none bg-transparent shrink-0"
-                              title={`Direct Audio Call to ${m.name}`}
-                            >
-                              <Phone className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => startCall("video", "direct", [m.id])}
-                              className="p-1 text-slate-400 hover:text-teal-400 hover:bg-teal-500/10 rounded-md transition-colors cursor-pointer border-none bg-transparent shrink-0"
-                              title={`Direct Video Call to ${m.name}`}
+                              title={`Create Google Meet with ${m.name}`}
                             >
                               <Video className="w-3 h-3" />
                             </button>
@@ -3382,7 +3432,7 @@ export default function AdminTeamChat() {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <Input
                   placeholder={"Search channels..."}
-                  value={globalSearch}
+                  value={globalSearch || ""}
                   onChange={e => setGlobalSearch(e.target.value)}
                   className="pl-9 h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 text-slate-700 dark:text-white"
                 />
@@ -3472,7 +3522,7 @@ export default function AdminTeamChat() {
               <div className="p-3.5 border-t border-slate-205 dark:border-slate-800 bg-white dark:bg-[#0B1222] shrink-0 select-none">
                 <form onSubmit={handleSendMessage} className="flex gap-1.5">
                   <Input
-                    value={commentInput}
+                    value={commentInput || ""}
                     onChange={e => setCommentInput(e.target.value)}
                     placeholder={"Type team chat message..."}
                     className="flex-1 h-9 text-xs bg-slate-50 dark:bg-[#111A2E]"
@@ -3543,7 +3593,7 @@ export default function AdminTeamChat() {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 block">{"Channel Name"}</label>
                 <Input
-                  value={customRoomName}
+                  value={customRoomName || ""}
                   onChange={e => setCustomRoomName(e.target.value)}
                   placeholder={"e.g. system-onboarding"}
                   className="h-9 text-xs bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
@@ -3553,7 +3603,7 @@ export default function AdminTeamChat() {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 block">{"Description (Optional)"}</label>
                 <Input
-                  value={customRoomDesc}
+                  value={customRoomDesc || ""}
                   onChange={e => setCustomRoomDesc(e.target.value)}
                   placeholder={"What is this discussion about?"}
                   className="h-9 text-xs bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
@@ -3734,7 +3784,7 @@ export default function AdminTeamChat() {
                 <label className="text-[10px] uppercase font-mono tracking-wider font-extrabold text-slate-405 block">
                   {"Compose Sticky Note:"}</label>
                 <textarea
-                  value={stickyMessageText}
+                  value={stickyMessageText || ""}
                   onChange={(e) => setStickyMessageText(e.target.value)}
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 min-h-[70px] outline-none"
                   placeholder={`${"Send direct note to "}${busyCallTarget.name}...`}
@@ -3808,6 +3858,15 @@ export default function AdminTeamChat() {
             setChatCameraActive(false);
           }}
         />
+      )}
+
+      {/* GMAIL EMAIL CENTER MODAL */}
+      {showGmailCenter && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
+          <div className="w-full max-w-4xl h-[85vh] max-h-[720px]">
+            <GmailEmailCenterPanel onClose={() => setShowGmailCenter(false)} />
+          </div>
+        </div>
       )}
 
     </div>

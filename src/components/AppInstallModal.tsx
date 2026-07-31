@@ -473,7 +473,15 @@ export default function AppInstallModal({ isOpen: propIsOpen, onClose: propOnClo
                   </div>
                   
                   <div className="bg-white p-4 rounded-3xl inline-block mx-auto border-4 border-slate-700 shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-transform hover:scale-105">
-                    <QRCode value={installUrl} size={250} level="H" style={{ maxWidth: '100%', width: '100%', height: 'auto' }} />
+                    <div className="relative flex items-center justify-center w-[250px] h-[250px] mx-auto">
+                      <QRCode value={installUrl} size={250} level="H" style={{ maxWidth: '100%', width: '100%', height: 'auto' }} />
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="bg-white p-1 rounded-full shadow-sm flex items-center justify-center w-[23%] h-[23%]">
+                          <img src="/apple-touch-icon.png" alt="Logo" className="w-full h-full rounded-full object-cover" />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-slate-900 font-bold text-xs mt-3 text-center">Scan to open Workplace Hub</p>
                   </div>
                   
                   <div className="space-y-4 pt-2">

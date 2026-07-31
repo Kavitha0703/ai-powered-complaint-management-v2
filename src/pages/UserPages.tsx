@@ -1002,11 +1002,6 @@ export function RegisterTicket() {
       }
       structuredParagraph += `\n${desc}`;
 
-      console.log('--- DB TRACE: PRE-INSERT ---');
-      console.log('AuthContext user object:', user);
-      console.log('Target user_id mapped to ticket:', user?.id);
-
-      console.log("CURRENT USER:", user);
       let response;
       if (editState?.editTicketId) {
         response = await supabase.from('tickets').update({

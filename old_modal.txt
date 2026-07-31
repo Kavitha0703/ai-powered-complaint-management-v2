@@ -1,0 +1,195 @@
+  1636	      {isNewCallDialogOpen && (
+  1637	        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in select-none">
+  1638	          <div className="bg-[#0F172A] border border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 text-white space-y-5 animate-scale-up relative overflow-hidden">
+  1639	            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-505/10 via-transparent to-transparent rounded-full pointer-events-none" />
+  1640	            
+  1641	            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+  1642	              <div className="flex items-center gap-2">
+  1643	                <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
+  1644	                  <Phone className="w-4 h-4 text-indigo-400" />
+  1645	                </div>
+  1646	                <div>
+  1647	                  <h3 className="text-sm font-bold text-white leading-none">{"New Call Bridge"}</h3>
+  1648	                  <p className="text-[10px] text-slate-400">{"Select participants to connect instantly"}</p>
+  1649	                </div>
+  1650	              </div>
+  1651	              <button
+  1652	                onClick={() => setIsNewCallDialogOpen(false)}
+  1653	                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+  1654	              >
+  1655	                <X className="w-4 h-4" />
+  1656	              </button>
+  1657	            </div>
+  1658	
+  1659	            {/* Step 1: Call Medium Selection */}
+  1660	            <div className="space-y-1.5 text-left">
+  1661	              <p className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">{"1. Select Media Type"}</p>
+  1662	              <div className="grid grid-cols-2 gap-2">
+  1663	                <button
+  1664	                  type="button"
+  1665	                  onClick={() => setNewCallType("voice")}
+  1666	                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+  1667	                    newCallType === "voice"
+  1668	                      ? "border-indigo-500 bg-indigo-500/10 text-white shadow-xl font-bold"
+  1669	                      : "border-slate-800 bg-slate-900/40 text-slate-400 hover:text-slate-205 hover:bg-slate-900/80"
+  1670	                  }`}
+  1671	                >
+  1672	                  <Phone className="w-5 h-5 text-indigo-400 animate-pulse" />
+  1673	                  <span className="text-xs">{"Audio Huddle"}</span>
+  1674	                </button>
+  1675	                <button
+  1676	                  type="button"
+  1677	                  onClick={() => setNewCallType("video")}
+  1678	                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+  1679	                    newCallType === "video"
+  1680	                      ? "border-rose-500 bg-rose-500/10 text-white shadow-xl font-bold"
+  1681	                      : "border-slate-800 bg-slate-900/40 text-slate-400 hover:text-slate-205 hover:bg-slate-900/80"
+  1682	                  }`}
+  1683	                >
+  1684	                  <Video className="w-5 h-5 text-rose-400 animate-pulse" />
+  1685	                  <span className="text-xs">{"Video War Room"}</span>
+  1686	                </button>
+  1687	              </div>
+  1688	            </div>
+  1689	
+  1690	            {/* Step 2: Distribution Mode */}
+  1691	            <div className="space-y-1.5 text-left">
+  1692	              <p className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">{"2. Distribution Scope"}</p>
+  1693	              <div className="grid grid-cols-3 gap-1.5">
+  1694	                {[
+  1695	                  { id: "direct", label: "Single Person" },
+  1696	                  { id: "multi", label: "Multiple People" },
+  1697	                  { id: "group", label: "Entire Team" }
+  1698	                ].map((modeOpt) => (
+  1699	                  <button
+  1700	                    key={modeOpt.id}
+  1701	                    type="button"
+  1702	                    onClick={() => {
+  1703	                      setNewCallMode(modeOpt.id as any);
+  1704	                      if (modeOpt.id === "group") {
+  1705	                        setSelectedParticipantsForNewCall(teammates.filter(t => t.id !== "usr_kavitha").map(t => t.id));
+  1706	                      } else {
+  1707	                        setSelectedParticipantsForNewCall([]);
+  1708	                      }
+  1709	                    }}
+  1710	                    className={`py-2 px-1 rounded-xl border flex flex-col items-center justify-center text-[10.5px] transition-all cursor-pointer ${
+  1711	                      newCallMode === modeOpt.id
+  1712	                        ? "border-indigo-500 bg-indigo-505/15 text-white font-bold"
+  1713	                        : "border-slate-850 bg-[#0F172A] text-slate-400 hover:text-slate-200"
+  1714	                    }`}
+  1715	                  >
+  1716	                    <span>{modeOpt.label}</span>
+  1717	                  </button>
+  1718	                ))}
+  1719	              </div>
+  1720	            </div>
+  1721	
+  1722	            {/* Step 3: Participant Checkboxes/Selectors */}
+  1723	            {newCallMode !== "group" && (
+  1724	              <div className="space-y-1.5 text-left">
+  1725	                <div className="flex justify-between items-center">
+  1726	                  <p className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">{"3. Select Contacts ("}{selectedParticipantsForNewCall.length})</p>
+  1727	                  {newCallMode === "multi" && (
+  1728	                    <button
+  1729	                      type="button"
+  1730	                      onClick={() => {
+  1731	                        const allPeerIds = teammates.filter(t => t.id !== "usr_kavitha").map(t => t.id);
+  1732	                        setSelectedParticipantsForNewCall(
+  1733	                          selectedParticipantsForNewCall.length === allPeerIds.length ? [] : allPeerIds
+  1734	                        );
+  1735	                      }}
+  1736	                      className="text-[9px] hover:text-indigo-400 font-bold transition-all text-slate-400 hover:underline"
+  1737	                    >
+  1738	                      {"Toggle All"}</button>
+  1739	                  )}
+  1740	                </div>
+  1741	                <div className="max-h-[160px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-slate-80s">
+  1742	                  {teammates.filter(t => t.id !== "usr_kavitha").map(t => {
+  1743	                    const isSelected = selectedParticipantsForNewCall.includes(t.id);
+  1744	                    const isUserBusy = t.status === "in_call";
+  1745	                    const isUserAway = t.status === "away";
+  1746	                    const isUserOffline = t.status === "offline";
+  1747	
+  1748	                    return (
+  1749	                      <div
+  1750	                        key={t.id}
+  1751	                        onClick={() => {
+  1752	                          if (newCallMode === "direct") {
+  1753	                            setSelectedParticipantsForNewCall([t.id]);
+  1754	                          } else {
+  1755	                            setSelectedParticipantsForNewCall(prev => 
+  1756	                              prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id]
+  1757	                            );
+  1758	                          }
+  1759	                        }}
+  1760	                        className={`p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+  1761	                          isSelected
+  1762	                            ? "border-indigo-500/70 bg-indigo-500/5"
+  1763	                            : "border-slate-850 bg-slate-900/20 hover:border-slate-800 hover:bg-slate-900/40"
+  1764	                        }`}
+  1765	                      >
+  1766	                        <div className="flex items-center gap-2.5 min-w-0">
+  1767	                          <div className="relative">
+  1768	                            <span className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm select-none">
+  1769	                              {t.avatar}
+  1770	                            </span>
+  1771	                            <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-slate-900 ${
+  1772	                              isUserBusy ? "bg-rose-500 animate-pulse" : isUserAway ? "bg-amber-400" : isUserOffline ? "bg-slate-500" : "bg-emerald-500"
+  1773	                            }`} />
+  1774	                          </div>
+  1775	                          <div className="text-left min-w-0">
+  1776	                            <div className="flex items-center gap-1.5">
+  1777	                              <span className="text-xs font-bold text-white truncate">{t.name}</span>
+  1778	                              {isUserBusy && (
+  1779	                                <span className="text-[7.5px] bg-rose-500/15 text-rose-400 font-extrabold px-1 rounded uppercase tracking-wider">{"Busy"}</span>
+  1780	                              )}
+  1781	                            </div>
+  1782	                            <span className="text-[10px] text-slate-400 truncate block leading-none mt-0.5">{t.role}</span>
+  1783	                          </div>
+  1784	                        </div>
+  1785	
+  1786	                        {/* Interactive toggle indicators */}
+  1787	                        {newCallMode === "direct" ? (
+  1788	                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+  1789	                            isSelected ? "border-indigo-500 bg-indigo-500" : "border-slate-700"
+  1790	                          }`}>
+  1791	                            {isSelected && <Check className="w-2.5 h-2.5 text-white stroke-[3.5px]" />}
+  1792	                          </div>
+  1793	                        ) : (
+  1794	                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+  1795	                            isSelected ? "border-indigo-500 bg-indigo-500" : "border-slate-705"
+  1796	                          }`}>
+  1797	                            {isSelected && <Check className="w-2.5 h-2.5 text-white stroke-[3.5px]" />}
+  1798	                          </div>
+  1799	                        )}
+  1800	                      </div>
+  1801	                    );
+  1802	                  })}
+  1803	                </div>
+  1804	              </div>
+  1805	            )}
+  1806	
+  1807	            {/* Action buttons */}
+  1808	            <div className="flex gap-2.5 pt-2">
+  1809	              <Button
+  1810	                variant="outline"
+  1811	                className="flex-1 border-slate-800 hover:bg-slate-900 h-9 text-xs font-bold text-slate-300"
+  1812	                onClick={() => setIsNewCallDialogOpen(false)}
+  1813	              >
+  1814	                {"Go Back"}</Button>
+  1815	              <Button
+  1816	                disabled={newCallMode !== "group" && selectedParticipantsForNewCall.length === 0}
+  1817	                className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-xs font-extrabold text-white h-9 cursor-pointer"
+  1818	                onClick={() => {
+  1819	                  startCall(newCallType, newCallMode, selectedParticipantsForNewCall);
+  1820	                  setIsNewCallDialogOpen(false);
+  1821	                }}
+  1822	              >
+  1823	                {"Dial Out Call"}</Button>
+  1824	            </div>
+  1825	          </div>
+  1826	        </div>
+  1827	      )}
+  1828	      
+  1829	      {/* Reset view control rail */}
+  1830	      <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#070C15]/40 flex justify-between items-center shrink-0">
