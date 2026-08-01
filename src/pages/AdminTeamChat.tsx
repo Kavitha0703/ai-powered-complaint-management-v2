@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../lib/AuthContext.tsx";
+import { supabase } from "../lib/supabase.ts";
 
 
 
@@ -272,10 +273,46 @@ export default function AdminTeamChat() {
 
 
 
-  // Initial Load: seed rooms & messages
+  // Fetch meetings from Supabase database
+  const fetchMeetingsFromSupabase = async () => {
+    setIsFetchingMeetings(true);
+    try {
+      const { data, error } = await supabase
+        .from("meetings")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        const fetchedList: RecentCall[] = data.map((m: any) => ({
+          id: m.id || `mtg_${Math.random().toString(36).substring(2, 9)}`,
+          type: m.type || "video",
+          title: m.title || "Meeting",
+          participants: Array.isArray(m.participants) ? m.participants : (m.host ? [m.host] : []),
+          duration: m.status === "Ended" ? (m.duration || "14 mins") : (m.status === "Live" ? "🟢 Live" : "Scheduled"),
+          timestamp: m.startedAt ? new Date(m.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (m.createdAt || m.created_at || "Recently")
+        }));
+
+        setMeetings(prev => {
+          const map = new Map<string, RecentCall>();
+          fetchedList.forEach(item => map.set(item.id, item));
+          prev.forEach(item => {
+            if (!map.has(item.id)) map.set(item.id, item);
+          });
+          return Array.from(map.values());
+        });
+      }
+    } catch (err) {
+      console.warn("Could not query meetings from Supabase:", err);
+    } finally {
+      setIsFetchingMeetings(false);
+    }
+  };
+
+  // Initial Load: seed rooms, messages & meetings from database
   useEffect(() => {
     loadWorkspaceRooms();
     loadWorkspaceMessages();
+    fetchMeetingsFromSupabase();
   }, []);
 
   // Update messages feed when active room switches
@@ -357,26 +394,32 @@ export default function AdminTeamChat() {
 
     const savedCalls = localStorage.getItem("dcms_recent_calls_v1");
     let explicitCalls: RecentCall[] = savedCalls ? JSON.parse(savedCalls) : [];
-    
-    if (!savedCalls && callHistoryList.length === 0) {
-      explicitCalls = [
-        {
-          id: "call_demo_1",
-          type: "video",
-          title: "Sprint Sync & Workspace Architecture",
-          participants: ["Kavitha (nasikakavitha@gmail.com)", "Testadmin"],
-          duration: "24 mins",
-          timestamp: "Yesterday, 4:30 PM"
-        }
-      ];
-      localStorage.setItem("dcms_recent_calls_v1", JSON.stringify(explicitCalls));
-    }
 
     const callsMap = new Map<string, RecentCall>();
     explicitCalls.forEach(c => callsMap.set(c.id, c));
     callHistoryList.forEach(c => callsMap.set(c.id, c));
 
+    const savedMeetingsV2 = localStorage.getItem("dcms_meetings_v2");
+    if (savedMeetingsV2) {
+      try {
+        const parsedV2: any[] = JSON.parse(savedMeetingsV2);
+        parsedV2.forEach(m => {
+          if (m && m.id && !callsMap.has(m.id)) {
+            callsMap.set(m.id, {
+              id: m.id,
+              type: m.type || "video",
+              title: m.title || "Team Sync",
+              participants: m.participants || [],
+              duration: m.status === "Ended" ? (m.duration || "15 mins") : (m.status === "Live" ? "🟢 Live" : "Scheduled"),
+              timestamp: m.startTime ? new Date(m.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Recently"
+            });
+          }
+        });
+      } catch (e) {}
+    }
+
     setMeetings(Array.from(callsMap.values()));
+    setIsFetchingMeetings(false);
     setTimeout(() => scrollToBottom(), 80);
   };
 
@@ -2273,45 +2316,37 @@ export default function AdminTeamChat() {
                     />
                   </div>
                   
-                  {/* Select Mode Toggle */}
-                  <button
-                    onClick={() => {
-                      setIsSelectModeActive(!isSelectModeActive);
-                      setSelectedMessageIds([]); // reset when togling
-                    }}
-                    className={`cursor-pointer p-1.5 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1.5 border ${
-                      isSelectModeActive
-                        ? "bg-indigo-600 border-indigo-500 text-white"
-                        : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-500"
-                    }`}
-                    title={"Batch Message Selection Mode"}
-                  >
-                    <CheckSquare className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{isSelectModeActive ? "Cancel Select" : "Batch Select"}</span>
-                  </button>
-
-                  {/* Gmail Email Center Trigger Button */}
+                  {/* Gmail Button */}
                   <button
                     onClick={() => setShowGmailCenter(true)}
-                    className="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-rose-600/90 hover:bg-rose-500 text-white shadow-sm border-none"
-                    title="Open Gmail Integration & Email Outbox Center"
+                    className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-sm"
+                    title="Gmail"
                   >
-                    <Mail className="w-3.5 h-3.5 text-white" />
-                    <span className="hidden sm:inline">Gmail Center</span>
+                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                      <path fill="#EA4335" d="M12 13.5L3 7.5V18c0 1.1.9 2 2 2h2V10.5l5 3.5 5-3.5V20h2c1.1 0 2-.9 2-2V7.5l-9 6z" />
+                      <path fill="#4285F4" d="M19 4h-2l-5 3.5L7 4H5c-1.1 0-2 .9-2 2v1.5l9 6 9-6V6c0-1.1-.9-2-2-2z" />
+                      <path fill="#FBBC04" d="M3 6v1.5l9 6V10.5L7 7 3 6z" />
+                      <path fill="#34A853" d="M21 6l-4 1-5 3.5v3l9-6V6z" />
+                    </svg>
                   </button>
 
-                  {/* Status-aware Header Meet button */}
+                  {/* Google Meet Button */}
                   {(() => {
                     const activeMeeting = getActiveMeetingForRoom(activeRoomId);
                     if (!activeMeeting) {
                       return (
                         <button
                           onClick={() => setIsNewCallDialogOpen(true)}
-                          className="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm border-none"
-                          title="Create Google Meet for this channel"
+                          className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-sm"
+                          title="Google Meet"
                         >
-                          <Video className="w-3.5 h-3.5" />
-                          <span>Create Meet</span>
+                          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                            <path fill="#00875A" d="M15 12l4.5-3.6a1 1 0 0 1 1.5.8v5.6a1 1 0 0 1-1.5.8L15 12z"/>
+                            <rect fill="#00A86B" x="3" y="6" width="11" height="12" rx="2"/>
+                            <path fill="#4285F4" d="M3 8a2 2 0 0 1 2-2h4v12H5a2 2 0 0 1-2-2V8z"/>
+                            <path fill="#EA4335" d="M3 16a2 2 0 0 0 2 2h4v-3H3v1z"/>
+                            <path fill="#FFBA00" d="M3 8a2 2 0 0 1 2-2h4v3H3V8z"/>
+                          </svg>
                         </button>
                       );
                     }
@@ -2321,25 +2356,36 @@ export default function AdminTeamChat() {
                       return (
                         <button
                           onClick={() => handleJoinGoogleMeet(activeMeeting.id)}
-                          className="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 animate-pulse"
-                          title="Google Meet is waiting for participants. Click to join."
+                          className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-amber-500/10 border border-amber-500/50 hover:bg-amber-500/20 animate-pulse relative shadow-sm"
+                          title="Google Meet (Waiting to Join)"
                         >
-                          <Video className="w-3.5 h-3.5 text-amber-400" />
-                          <span>🟡 Waiting to Join</span>
+                          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                            <path fill="#00875A" d="M15 12l4.5-3.6a1 1 0 0 1 1.5.8v5.6a1 1 0 0 1-1.5.8L15 12z"/>
+                            <rect fill="#00A86B" x="3" y="6" width="11" height="12" rx="2"/>
+                            <path fill="#4285F4" d="M3 8a2 2 0 0 1 2-2h4v12H5a2 2 0 0 1-2-2V8z"/>
+                            <path fill="#EA4335" d="M3 16a2 2 0 0 0 2 2h4v-3H3v1z"/>
+                            <path fill="#FFBA00" d="M3 8a2 2 0 0 1 2-2h4v3H3V8z"/>
+                          </svg>
+                          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-slate-900" />
                         </button>
                       );
                     }
 
                     if (status === "Live") {
-                      const joinedCount = activeMeeting.call_summary?.joinedParticipants?.length || 1;
                       return (
                         <button
                           onClick={() => handleJoinGoogleMeet(activeMeeting.id)}
-                          className="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
-                          title="Google Meet is currently live. Click to join."
+                          className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-emerald-500/10 border border-emerald-500/50 hover:bg-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.3)] relative"
+                          title="Google Meet (Live Call)"
                         >
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                          <span>🟢 Live ({joinedCount})</span>
+                          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                            <path fill="#00875A" d="M15 12l4.5-3.6a1 1 0 0 1 1.5.8v5.6a1 1 0 0 1-1.5.8L15 12z"/>
+                            <rect fill="#00A86B" x="3" y="6" width="11" height="12" rx="2"/>
+                            <path fill="#4285F4" d="M3 8a2 2 0 0 1 2-2h4v12H5a2 2 0 0 1-2-2V8z"/>
+                            <path fill="#EA4335" d="M3 16a2 2 0 0 0 2 2h4v-3H3v1z"/>
+                            <path fill="#FFBA00" d="M3 8a2 2 0 0 1 2-2h4v3H3V8z"/>
+                          </svg>
+                          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-slate-900 animate-ping" />
                         </button>
                       );
                     }
@@ -2347,21 +2393,32 @@ export default function AdminTeamChat() {
                     return (
                       <button
                         onClick={() => setIsNewCallDialogOpen(true)}
-                        className="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm border-none"
+                        className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-sm"
+                        title="Google Meet"
                       >
-                        <Video className="w-3.5 h-3.5" />
-                        <span>Create Meet</span>
+                        <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                          <path fill="#00875A" d="M15 12l4.5-3.6a1 1 0 0 1 1.5.8v5.6a1 1 0 0 1-1.5.8L15 12z"/>
+                          <rect fill="#00A86B" x="3" y="6" width="11" height="12" rx="2"/>
+                          <path fill="#4285F4" d="M3 8a2 2 0 0 1 2-2h4v12H5a2 2 0 0 1-2-2V8z"/>
+                          <path fill="#EA4335" d="M3 16a2 2 0 0 0 2 2h4v-3H3v1z"/>
+                          <path fill="#FFBA00" d="M3 8a2 2 0 0 1 2-2h4v3H3V8z"/>
+                        </svg>
                       </button>
                     );
                   })()}
 
+                  {/* Google Calendar Button */}
                   <button
                     onClick={() => setIsCalendarPanelOpen(true)}
-                    className="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-sm"
-                    title="View & Schedule Google Calendar Events"
+                    className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-sm"
+                    title="Google Calendar"
                   >
-                    <CalendarIcon className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Calendar</span>
+                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                      <rect x="3" y="4" width="18" height="17" rx="3" fill="#FFFFFF" stroke="#4285F4" strokeWidth="2" />
+                      <path d="M3 7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v3H3V7z" fill="#4285F4" />
+                      <path d="M18 4v3M6 4v3" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
+                      <text x="12" y="18" textAnchor="middle" fill="#4285F4" fontSize="8" fontWeight="bold" fontFamily="sans-serif">31</text>
+                    </svg>
                   </button>
                   <button
                     onClick={() => {

@@ -23,6 +23,9 @@ const AiAssistantPage = lazy(() => import("./pages/AiAssistantPage.tsx"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter.tsx"));
 const AdminManagement = lazy(() => import("./pages/AdminManagement.tsx"));
 const MailCenter = lazy(() => import("./pages/MailCenter.tsx"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy.tsx"));
+const Terms = lazy(() => import("./pages/Terms.tsx"));
+const About = lazy(() => import("./pages/About.tsx"));
 
 function PageLoader() {
   return (
@@ -75,7 +78,7 @@ function AdminPortal() {
         <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
            <Shield className="w-16 h-16 text-red-500 mb-4" />
            <h1 className="text-3xl font-bold text-slate-800">{"Access Denied"}</h1>
-           <p className="text-slate-600 mt-2">{"Only authorized administrator accounts can access this portal."}</p>
+           <p className="text-slate-600 mt-2 text-center max-w-md">{"This Google account is not authorized as an administrator. Please contact your system administrator."}</p>
            <a href="/dashboard" className="mt-6 text-primary-600 hover:underline">{"Return to Dashboard"}</a>
         </div>
      );
@@ -202,6 +205,10 @@ export default function App() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<About />} />
             <Route path="/auth/user" element={<AuthRoute isAdmin={false} />} />
             <Route path="/auth/admin" element={<AuthRoute isAdmin={true} />} />
             

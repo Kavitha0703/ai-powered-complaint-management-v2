@@ -25,7 +25,11 @@ import {
   CheckCircle2,
   Clock,
   Send,
-  Building
+  Building,
+  Copy,
+  ExternalLink,
+  RotateCcw,
+  Check
 } from "lucide-react";
 import { Button } from "../../components/ui/button.tsx";
 import { Input } from "../../components/ui/input.tsx";
@@ -76,8 +80,11 @@ export default function AdminManagement() {
     );
   }
 
+  // State for copied link notification
+  const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
+
   // Handle send invitation
-  const handleInvite = (e: React.FormEvent) => {
+  const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     const emailToInvite = newEmail.trim().toLowerCase();
     
@@ -99,6 +106,10 @@ export default function AdminManagement() {
       return;
     }
 
+    const token = "tok_" + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const inviteUrl = `${window.location.origin}/auth?mode=register&token=${token}&email=${encodeURIComponent(emailToInvite)}`;
+
     const newInvite: AdminInvite = {
       id: "inv_" + Math.random().toString(36).substring(2, 9),
       email: emailToInvite,
@@ -106,33 +117,124 @@ export default function AdminManagement() {
       department: newDepartment,
       invited_by: dbUser?.name || "Super Admin",
       status: "Pending",
+      delivery_status: "Sending",
+      token,
+      inviteUrl,
+      expires_at: expiresAt,
       created_at: new Date().toISOString()
     };
 
-    const updated = [newInvite, ...currentInvites];
+    let updated = [newInvite, ...currentInvites];
     saveAdminInvites(updated);
     setInvites(updated);
 
-    // Dispatch Gmail Invitation
+    // Dispatch Gmail / Outbound Invitation
     const inviteeName = emailToInvite.split("@")[0];
     const roleLabel = newRole === "super_admin" ? "Super Admin" : newRole === "support_staff" ? "Support Staff" : "Administrator";
     const emailPayload = EmailTemplates.adminInvite(
       inviteeName,
       emailToInvite,
       roleLabel,
-      dbUser?.name || "Super Admin"
+      dbUser?.name || "Super Admin",
+      inviteUrl,
+      expiresAt
     );
 
-    sendEmailViaGmail({
-      to: emailToInvite,
-      subject: emailPayload.subject,
-      bodyHtml: emailPayload.html,
-      category: "admin_invite"
-    }).catch(err => console.error("Gmail invitation dispatch error:", err));
-
     setNewEmail("");
-    setSuccessMsg(`🚀 Invitation & Gmail sent successfully to ${emailToInvite}!`);
-    setTimeout(() => setSuccessMsg(""), 4000);
+
+    try {
+      const res = await sendEmailViaGmail({
+        to: emailToInvite,
+        subject: emailPayload.subject,
+        bodyHtml: emailPayload.html,
+        category: "admin_invite"
+      });
+
+      const finalStatus = res.success ? "Sent" : "Failed";
+      const refreshed = getAdminInvites().map(i => i.id === newInvite.id ? { ...i, delivery_status: finalStatus as any } : i);
+      saveAdminInvites(refreshed);
+      setInvites(refreshed);
+
+      if (res.success) {
+        setSuccessMsg(`🚀 Invitation email dispatched to ${emailToInvite}! Link generated.`);
+      } else {
+        setErrorMsg(`⚠️ Invitation saved but email sending returned: ${res.error || 'Unknown error'}`);
+      }
+    } catch (err: any) {
+      console.error("Gmail invitation dispatch error:", err);
+      const refreshed = getAdminInvites().map(i => i.id === newInvite.id ? { ...i, delivery_status: "Failed" as const } : i);
+      saveAdminInvites(refreshed);
+      setInvites(refreshed);
+      setErrorMsg(`⚠️ Invitation recorded, but email dispatch failed: ${err.message || err}`);
+    }
+
+    setTimeout(() => { setErrorMsg(""); setSuccessMsg(""); }, 5000);
+  };
+
+  // Resend invitation email
+  const handleResendInvite = async (invite: AdminInvite) => {
+    const currentInvites = getAdminInvites();
+    const token = invite.token || ("tok_" + Math.random().toString(36).substring(2, 10) + Date.now().toString(36));
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const inviteUrl = invite.inviteUrl || `${window.location.origin}/auth?mode=register&token=${token}&email=${encodeURIComponent(invite.email)}`;
+
+    const updating = currentInvites.map(i => i.id === invite.id ? {
+      ...i,
+      delivery_status: "Sending" as const,
+      token,
+      inviteUrl,
+      expires_at: expiresAt
+    } : i);
+    saveAdminInvites(updating);
+    setInvites(updating);
+
+    const inviteeName = invite.email.split("@")[0];
+    const roleLabel = invite.role === "super_admin" ? "Super Admin" : invite.role === "support_staff" ? "Support Staff" : "Administrator";
+    const emailPayload = EmailTemplates.adminInvite(
+      inviteeName,
+      invite.email,
+      roleLabel,
+      dbUser?.name || "Super Admin",
+      inviteUrl,
+      expiresAt
+    );
+
+    try {
+      const res = await sendEmailViaGmail({
+        to: invite.email,
+        subject: `[RESEND] ${emailPayload.subject}`,
+        bodyHtml: emailPayload.html,
+        category: "admin_invite"
+      });
+
+      const finalStatus = res.success ? "Sent" : "Failed";
+      const refreshed = getAdminInvites().map(i => i.id === invite.id ? { ...i, delivery_status: finalStatus as any } : i);
+      saveAdminInvites(refreshed);
+      setInvites(refreshed);
+
+      if (res.success) {
+        setSuccessMsg(`🔄 Invitation email re-sent successfully to ${invite.email}!`);
+      } else {
+        setErrorMsg(`⚠️ Resend failed: ${res.error || 'Unknown error'}`);
+      }
+    } catch (err: any) {
+      const refreshed = getAdminInvites().map(i => i.id === invite.id ? { ...i, delivery_status: "Failed" as const } : i);
+      saveAdminInvites(refreshed);
+      setInvites(refreshed);
+      setErrorMsg(`⚠️ Email dispatch error: ${err.message || err}`);
+    }
+
+    setTimeout(() => { setErrorMsg(""); setSuccessMsg(""); }, 4000);
+  };
+
+  // Copy registration link
+  const handleCopyInviteLink = (invite: AdminInvite) => {
+    const token = invite.token || ("tok_" + Math.random().toString(36).substring(2, 10));
+    const url = invite.inviteUrl || `${window.location.origin}/auth?mode=register&token=${token}&email=${encodeURIComponent(invite.email)}`;
+    navigator.clipboard.writeText(url);
+    setCopiedInviteId(invite.id);
+    setSuccessMsg(`📋 Invitation link copied to clipboard!`);
+    setTimeout(() => { setCopiedInviteId(null); setSuccessMsg(""); }, 3000);
   };
 
   // Toggle active/deactive status
@@ -207,10 +309,15 @@ export default function AdminManagement() {
       role: a.role,
       invited_by: "System Initialization",
       status: a.status,
+      delivery_status: "Registered" as const,
+      token: undefined,
+      inviteUrl: undefined,
+      expires_at: undefined,
       is_online: a.is_online,
       last_active: a.last_active,
       is_built_in: true,
-      department: a.department || "System Administration"
+      department: a.department || "System Administration",
+      rawInvite: null
     })),
     ...invites.map(i => ({
       id: i.id,
@@ -219,10 +326,15 @@ export default function AdminManagement() {
       role: i.role,
       invited_by: i.invited_by,
       status: i.status,
+      delivery_status: i.delivery_status || (i.status === "Active" ? "Registered" : "Sent"),
+      token: i.token,
+      inviteUrl: i.inviteUrl,
+      expires_at: i.expires_at,
       is_online: i.status === "Active" ? Math.random() > 0.4 : false, // mock active dynamic onliners
       last_active: i.last_active || new Date(i.created_at).toLocaleDateString() + " " + new Date(i.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
       is_built_in: false,
-      department: i.department || "Customer Support"
+      department: i.department || "Customer Support",
+      rawInvite: i
     }))
   ];
 
@@ -432,8 +544,31 @@ export default function AdminManagement() {
                               {"Built-in"}</span>
                           )}
                           {admin.status === "Pending" && (
-                            <span className="bg-slate-200/60 dark:bg-slate-800 text-[9px] font-black text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-pulse">
-                              {"Pending Invite"}</span>
+                            <>
+                              <span className="bg-amber-500/10 border border-amber-500/20 text-[9px] font-black text-amber-500 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+                                {"Awaiting Registration"}
+                              </span>
+                              {admin.delivery_status === "Sending" && (
+                                <span className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1 animate-pulse">
+                                  <RefreshCw className="w-2.5 h-2.5 animate-spin" /> {"Email Sending..."}
+                                </span>
+                              )}
+                              {(admin.delivery_status === "Sent" || admin.delivery_status === "Delivered") && (
+                                <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                  <Check className="w-2.5 h-2.5" /> {"Email Sent"}
+                                </span>
+                              )}
+                              {admin.delivery_status === "Failed" && (
+                                <span className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                  <BadgeAlert className="w-2.5 h-2.5" /> {"Delivery Failed"}
+                                </span>
+                              )}
+                              {admin.delivery_status === "Registered" && (
+                                <span className="bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[9px] font-black px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                  <CheckCircle2 className="w-2.5 h-2.5" /> {"Registered"}
+                                </span>
+                              )}
+                            </>
                           )}
                           {admin.status === "Deactivated" && (
                             <span className="bg-red-500/10 border border-red-500/20 text-[9.5px] font-black text-red-500 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
@@ -470,6 +605,31 @@ export default function AdminManagement() {
                     {/* Right: Actions Controls */}
                     <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto w-full sm:w-auto border-t sm:border-t-0 border-slate-100 dark:border-slate-800 pt-3 sm:pt-0">
                       
+                      {/* Pending Invite Actions: Copy Link & Resend Email */}
+                      {admin.status === "Pending" && (
+                        <div className="flex items-center gap-1.5 mr-2">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyInviteLink(admin.rawInvite || (admin as any))}
+                            className="px-2.5 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                            title={"Copy Registration Link"}
+                          >
+                            {copiedInviteId === admin.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedInviteId === admin.id ? "Copied!" : "Copy Link"}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleResendInvite(admin.rawInvite || (admin as any))}
+                            className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                            title={"Resend Invitation Email via Gmail"}
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>{"Resend Email"}</span>
+                          </button>
+                        </div>
+                      )}
+
                       {/* Invite status / Reset Password option */}
                       {admin.status !== "Pending" && (
                         <button

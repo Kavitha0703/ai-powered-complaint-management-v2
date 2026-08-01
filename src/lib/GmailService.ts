@@ -51,176 +51,7 @@ const GMAIL_AUTH_KEY = "gmail_auth_status";
 const GMAIL_EMAIL_KEY = "gmail_user_email";
 const GMAIL_LOG_STORAGE_KEY = "dcms_sent_emails_log_v1";
 
-const SEED_EMAILS: SentEmailRecord[] = [
-  {
-    id: "mail_1001",
-    threadId: "th_882194",
-    messageId: "<inv-1001@workplacehub.internal>",
-    conversationId: "conv_inv_1001",
-    to: "testadmin@admin.local",
-    recipientName: "Testadmin",
-    recipientRole: "Admin",
-    senderEmail: "nasikakavitha@gmail.com",
-    senderName: "Kavitha",
-    senderRole: "Super Admin",
-    subject: "Invitation to join Workplace Hub as Admin",
-    bodyHtml: `<div style="padding:16px;">Hello Testadmin, you have been invited to join Workplace Hub as Admin.</div>`,
-    preview: "Hello Testadmin, you have been invited to join Workplace Hub as Admin...",
-    category: "admin_invite",
-    module: "Admin Invitation",
-    type: "Invitation",
-    status: "Delivered",
-    sentAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    createdAt: new Date(Date.now() - 3600000 * 2.1).toISOString(),
-    deliveredAt: new Date(Date.now() - 3600000 * 1.9).toISOString(),
-    openedAt: new Date(Date.now() - 3600000 * 1.5).toISOString(),
-    lastUpdated: new Date(Date.now() - 3600000 * 1.5).toISOString(),
-    attachments: [{ name: "Admin_Guide.pdf", size: "1.2 MB", type: "application/pdf" }],
-    attachmentCount: 1,
-    ipAddress: "192.168.1.102",
-    device: "MacBook Pro",
-    browser: "Chrome 126",
-    aiGenerated: true,
-    aiSummary: "Security admin onboarding invite sent to testadmin@admin.local with role privileges.",
-    aiSuggestedReply: "Thank you, I have completed administrative onboarding.",
-    aiSpamScore: 0,
-    aiPriority: "High"
-  },
-  {
-    id: "mail_1002",
-    threadId: "th_882195",
-    messageId: "<meet-1002@workplacehub.internal>",
-    conversationId: "conv_meet_1002",
-    to: "testadmin@admin.local",
-    recipientName: "Testadmin",
-    recipientRole: "Admin",
-    senderEmail: "nasikakavitha@gmail.com",
-    senderName: "Kavitha",
-    senderRole: "Super Admin",
-    subject: "Google Meet Invitation: Sprint Sync & Workspace Architecture",
-    bodyHtml: `<div style="padding:16px;">Sprint sync conference scheduled for today at 4:30 PM.</div>`,
-    preview: "Sprint sync conference scheduled for today at 4:30 PM...",
-    category: "meeting_invite",
-    module: "Meeting Invite",
-    type: "Reminder",
-    status: "Opened",
-    sentAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    createdAt: new Date(Date.now() - 3600000 * 5.1).toISOString(),
-    deliveredAt: new Date(Date.now() - 3600000 * 4.9).toISOString(),
-    openedAt: new Date(Date.now() - 3600000 * 4.2).toISOString(),
-    lastUpdated: new Date(Date.now() - 3600000 * 4.2).toISOString(),
-    attachments: [{ name: "Meeting_Agenda.ics", size: "14 KB", type: "text/calendar" }],
-    attachmentCount: 1,
-    ipAddress: "192.168.1.102",
-    device: "MacBook Pro",
-    browser: "Chrome 126",
-    aiGenerated: true,
-    aiSummary: "Google Meet calendar invite dispatch with active room link.",
-    aiSuggestedReply: "Confirmed! Joining via Google Meet at 4:30 PM.",
-    aiSpamScore: 0,
-    aiPriority: "Medium"
-  },
-  {
-    id: "mail_1003",
-    threadId: "th_882196",
-    messageId: "<ticket-1003@workplacehub.internal>",
-    conversationId: "conv_ticket_1003",
-    to: "user.support@enterprise.com",
-    recipientName: "Support Team",
-    recipientRole: "User",
-    senderEmail: "nasikakavitha@gmail.com",
-    senderName: "Kavitha",
-    senderRole: "Super Admin",
-    subject: "Ticket #548 Update: Database connection pool lock resolved",
-    bodyHtml: `<div style="padding:16px;">Ticket #548 has been updated to Status: Resolved by Kavitha.</div>`,
-    preview: "Ticket #548 has been updated to Status: Resolved by Kavitha...",
-    category: "ticket_update",
-    module: "Ticket",
-    type: "Notification",
-    status: "Delivered",
-    sentAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-    createdAt: new Date(Date.now() - 3600000 * 12.1).toISOString(),
-    deliveredAt: new Date(Date.now() - 3600000 * 11.9).toISOString(),
-    openedAt: new Date(Date.now() - 3600000 * 10.0).toISOString(),
-    lastUpdated: new Date(Date.now() - 3600000 * 10.0).toISOString(),
-    attachments: [],
-    attachmentCount: 0,
-    ipAddress: "192.168.1.102",
-    device: "MacBook Pro",
-    browser: "Chrome 126",
-    aiGenerated: false,
-    aiSummary: "Automated ticket resolution notice sent to subscriber.",
-    aiSuggestedReply: "Thank you for the quick resolution!",
-    aiSpamScore: 1,
-    aiPriority: "Medium"
-  },
-  {
-    id: "mail_1004",
-    threadId: "th_882197",
-    messageId: "<notice-1004@workplacehub.internal>",
-    conversationId: "conv_notice_1004",
-    to: "all.staff@company.org",
-    recipientName: "All Staff",
-    recipientRole: "User",
-    senderEmail: "nasikakavitha@gmail.com",
-    senderName: "Kavitha",
-    senderRole: "Super Admin",
-    subject: "[Workplace Hub Announcement] Q3 Infrastructure Maintenance Window",
-    bodyHtml: `<div style="padding:16px;">Scheduled maintenance window on Friday night 11:00 PM EST.</div>`,
-    preview: "Scheduled maintenance window on Friday night 11:00 PM EST...",
-    category: "announcement",
-    module: "Announcement",
-    type: "Notification",
-    status: "Sent",
-    sentAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-    createdAt: new Date(Date.now() - 3600000 * 24.1).toISOString(),
-    deliveredAt: new Date(Date.now() - 3600000 * 23.8).toISOString(),
-    openedAt: new Date(Date.now() - 3600000 * 20.0).toISOString(),
-    lastUpdated: new Date(Date.now() - 3600000 * 20.0).toISOString(),
-    attachments: [{ name: "Maintenance_Plan.pdf", size: "450 KB", type: "application/pdf" }],
-    attachmentCount: 1,
-    ipAddress: "192.168.1.102",
-    device: "MacBook Pro",
-    browser: "Chrome 126",
-    aiGenerated: true,
-    aiSummary: "Broadcast system announcement regarding planned server downtime.",
-    aiSuggestedReply: "Acknowledged.",
-    aiSpamScore: 0,
-    aiPriority: "High"
-  },
-  {
-    id: "mail_1005",
-    threadId: "th_882198",
-    messageId: "<reset-1005@workplacehub.internal>",
-    conversationId: "conv_reset_1005",
-    to: "security.audit@company.org",
-    recipientName: "Security Audit Team",
-    recipientRole: "Super Admin",
-    senderEmail: "nasikakavitha@gmail.com",
-    senderName: "Kavitha",
-    senderRole: "Super Admin",
-    subject: "Security Audit Log Backup & Credentials Verification",
-    bodyHtml: `<div style="padding:16px;">Security credentials verification digest report.</div>`,
-    preview: "Security credentials verification digest report...",
-    category: "password_reset",
-    module: "Password Reset",
-    type: "Password Reset",
-    status: "Draft",
-    sentAt: new Date(Date.now() - 3600000 * 30).toISOString(),
-    createdAt: new Date(Date.now() - 3600000 * 30).toISOString(),
-    lastUpdated: new Date(Date.now() - 3600000 * 30).toISOString(),
-    attachments: [],
-    attachmentCount: 0,
-    ipAddress: "192.168.1.102",
-    device: "MacBook Pro",
-    browser: "Chrome 126",
-    aiGenerated: false,
-    aiSummary: "Draft audit log summary pending manual confirmation.",
-    aiSuggestedReply: "Review draft before release.",
-    aiSpamScore: 0,
-    aiPriority: "Low"
-  }
-];
+const SEED_EMAILS: SentEmailRecord[] = [];
 
 export function isGmailAuthenticated(): boolean {
   return localStorage.getItem(GMAIL_AUTH_KEY) === "true";
@@ -336,6 +167,34 @@ export async function sendEmailViaGmail(params: SendEmailParams): Promise<{ succ
     bodyHtml
   ].join('\r\n');
 
+  // Attempt real outbound email dispatch via backend /api/send-email endpoint (Resend/SMTP)
+  try {
+    const apiRes = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, subject, bodyHtml, fromName: 'Workplace Hub' })
+    });
+    if (apiRes.ok) {
+      const apiData = await apiRes.json();
+      if (apiData.delivered) {
+        const record: SentEmailRecord = {
+          id: apiData.id || recordId,
+          to,
+          subject,
+          bodyHtml,
+          category,
+          sentAt,
+          senderEmail,
+          status: 'sent'
+        };
+        saveEmailToLog(record);
+        return { success: true, messageId: apiData.id };
+      }
+    }
+  } catch (err) {
+    console.warn("Backend email route dispatch error:", err);
+  }
+
   // If OAuth accessToken is provided, attempt direct REST call to Gmail API
   if (accessToken) {
     try {
@@ -386,7 +245,7 @@ export async function sendEmailViaGmail(params: SendEmailParams): Promise<{ succ
 
 // Templates builder for Workplace Hub Enterprise Email Notifications
 export const EmailTemplates = {
-  adminInvite: (inviteeName: string, inviteeEmail: string, role: string, inviterName: string) => ({
+  adminInvite: (inviteeName: string, inviteeEmail: string, role: string, inviterName: string, inviteUrl?: string, expiresAt?: string) => ({
     subject: `Invitation to join Workplace Hub as ${role}`,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background-color: #0f172a; border-radius: 16px; color: #f8fafc; border: 1px solid #334155;">
@@ -394,7 +253,7 @@ export const EmailTemplates = {
           <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #4f46e5); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px;">W</div>
           <div>
             <h2 style="margin: 0; font-size: 18px; color: #ffffff;">Workplace Hub Enterprise</h2>
-            <p style="margin: 0; font-size: 12px; color: #94a3b8;">Administrator Invitation</p>
+            <p style="margin: 0; font-size: 12px; color: #94a3b8;">Administrator Security Invitation</p>
           </div>
         </div>
         <p style="font-size: 15px; color: #cbd5e1; line-height: 1.6;">Hello <strong>${inviteeName}</strong>,</p>
@@ -405,11 +264,15 @@ export const EmailTemplates = {
           <div style="font-size: 12px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">Invitation Details</div>
           <div style="font-size: 14px; color: #f8fafc; margin-top: 6px;">Email: <strong>${inviteeEmail}</strong></div>
           <div style="font-size: 14px; color: #f8fafc; margin-top: 4px;">Assigned Role: <strong>${role}</strong></div>
+          ${expiresAt ? `<div style="font-size: 12px; color: #cbd5e1; margin-top: 4px;">Expires: <strong>${new Date(expiresAt).toLocaleDateString()} ${new Date(expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></div>` : ''}
         </div>
         <div style="text-align: center; margin: 32px 0;">
-          <a href="${window.location.origin}" style="background-color: #4f46e5; color: #ffffff; padding: 12px 28px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block;">Accept Admin Invitation</a>
+          <a href="${inviteUrl || window.location.origin}" style="background-color: #4f46e5; color: #ffffff; padding: 12px 28px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block;">Accept & Complete Registration</a>
         </div>
-        <p style="font-size: 12px; color: #64748b; text-align: center; margin-top: 24px;">This security invitation link is valid for 7 days. Powered by Google Workspace Integration.</p>
+        ${inviteUrl ? `<div style="font-size: 11px; color: #94a3b8; background-color: #0b1329; padding: 10px; border-radius: 8px; word-break: break-all; margin-top: 16px;">
+          Direct Link: <a href="${inviteUrl}" style="color: #818cf8;">${inviteUrl}</a>
+        </div>` : ''}
+        <p style="font-size: 12px; color: #64748b; text-align: center; margin-top: 24px;">This security invitation token is valid for 7 days. Powered by Workplace Hub Enterprise Email Service.</p>
       </div>
     `
   }),

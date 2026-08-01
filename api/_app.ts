@@ -13,6 +13,10 @@ import mammoth from "mammoth";
 import fs from "fs/promises";
 import { existsSync } from "fs";
 
+import gmailRouter from "../server/routes/gmail.js";
+import calendarRouter from "../server/routes/calendar.js";
+import meetRouter from "../server/routes/meet.js";
+
 dotenv.config();
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -23,6 +27,13 @@ let globalCache: any = {
   feedbackFetchedAt: 0
 };
 const app = express();
+
+app.use(express.json({ limit: "50mb" }));
+
+// Mount phase routes
+app.use("/api", gmailRouter);
+app.use("/api/calendar", calendarRouter);
+app.use("/api/meet", meetRouter);
 
 
 app.get("/api/download-assets", async (req, res) => {
@@ -61,6 +72,147 @@ app.get("/api/download-assets", async (req, res) => {
 const PORT = 3000;
 
 app.use(express.json({ limit: "50mb" }));
+
+app.post("/api/send-email", async (req, res) => {
+  try {
+    const { to, subject, bodyHtml, fromName } = req.body;
+    if (!to || !subject || !bodyHtml) {
+      return res.status(400).json({ 
+        success: false, 
+        delivered: false, 
+        error: "Missing required fields: to, subject, bodyHtml" 
+      });
+    }
+
+    const resendApiKey = process.env.RESEND_API_KEY;
+    console.log("[/api/send-email] Outbound email dispatch triggered for recipient:", to);
+    console.log("[/api/send-email] RESEND_API_KEY present:", Boolean(resendApiKey));
+
+    if (!resendApiKey) {
+      console.warn("[/api/send-email] Warning: RESEND_API_KEY environment variable is not configured on server.");
+      return res.status(400).json({
+        success: false,
+        delivered: false,
+        reason: "NO_API_KEY",
+        error: "No RESEND_API_KEY environment variable set on server. Please configure RESEND_API_KEY in server environment settings."
+      });
+    }
+
+    const resendResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        from: `${fromName || 'Workplace Hub'} <onboarding@resend.dev>`,
+        to: Array.isArray(to) ? to : [to],
+        subject: subject,
+        html: bodyHtml
+      })
+    });
+
+    console.log("[/api/send-email] Resend HTTP Response Status:", resendResponse.status, resendResponse.statusText);
+
+    // Verify explicitly that resendResponse.ok is true before returning success
+    if (resendResponse.ok) {
+      const data = await resendResponse.json();
+      console.log("[/api/send-email] Resend confirmed email acceptance with Message ID:", data.id);
+      return res.status(200).json({ 
+        success: true, 
+        delivered: true, 
+        id: data.id,
+        provider: "Resend",
+        message: "Email accepted by Resend provider." 
+      });
+    } else {
+      let parsedError: string;
+      try {
+        const errJson = await resendResponse.json();
+        parsedError = errJson.message || errJson.error || JSON.stringify(errJson);
+      } catch {
+        parsedError = await resendResponse.text();
+      }
+
+      console.error("[/api/send-email] Resend API rejected dispatch request:", resendResponse.status, parsedError);
+
+      return res.status(400).json({ 
+        success: false, 
+        delivered: false, 
+        statusCode: resendResponse.status,
+        error: `Resend API Error (${resendResponse.status}): ${parsedError}` 
+      });
+    }
+  } catch (err: any) {
+    console.error("[/api/send-email] Server exception during email dispatch:", err);
+    return res.status(500).json({ 
+      success: false, 
+      delivered: false, 
+      error: `Internal Server Error: ${err.message || String(err)}` 
+    });
+  }
+});
+
+app.all("/api/test-email", async (req, res) => {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const isLoaded = Boolean(resendApiKey && resendApiKey.startsWith("re_"));
+  const targetEmail = req.query.to || req.body?.to || "nasikakavitha@gmail.com";
+
+  if (!resendApiKey) {
+    return res.status(200).json({
+      status: "NO_API_KEY",
+      keyLoaded: false,
+      message: "RESEND_API_KEY is not set. Add RESEND_API_KEY to your environment variables in AI Studio Secrets settings."
+    });
+  }
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        from: "Workplace Hub <onboarding@resend.dev>",
+        to: [targetEmail],
+        subject: "🎉 Workplace Hub Email Test",
+        html: `
+          <div style="font-family: sans-serif; padding: 24px; background: #0f172a; color: #f8fafc; border-radius: 12px;">
+            <h2 style="color: #818cf8; margin-top: 0;">Congratulations!</h2>
+            <p>Your Workplace Hub outbound email integration via Resend is working correctly.</p>
+            <p style="font-size: 13px; color: #94a3b8;">Sent to: <strong>${targetEmail}</strong></p>
+            <p style="font-size: 12px; color: #64748b;">Timestamp: ${new Date().toISOString()}</p>
+          </div>
+        `
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return res.json({
+        status: "SUCCESS",
+        keyLoaded: isLoaded,
+        id: data.id,
+        to: targetEmail,
+        message: `Email dispatched successfully! Check inbox for ${targetEmail}.`
+      });
+    } else {
+      const errText = await response.text();
+      return res.status(400).json({
+        status: "FAILED",
+        keyLoaded: isLoaded,
+        error: errText
+      });
+    }
+  } catch (err: any) {
+    return res.status(500).json({
+      status: "ERROR",
+      keyLoaded: isLoaded,
+      error: err.message || String(err)
+    });
+  }
+});
 
 // Lazy-initialize Gemini client
 let aiInstance: GoogleGenAI | null = null;

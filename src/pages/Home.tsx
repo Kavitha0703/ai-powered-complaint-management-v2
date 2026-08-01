@@ -925,6 +925,7 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
           <button onClick={() => scrollToSection('features')} className="hover:text-blue-600 active:scale-95 transition-all text-slate-700 dark:text-slate-300">{"Features"}</button>
           <button onClick={() => scrollToSection('ai-triage')} className="hover:text-blue-600 active:scale-95 transition-all text-slate-700 dark:text-slate-300">{"AI Sandbox"}</button>
           <button onClick={() => scrollToSection('faq')} className="hover:text-blue-600 active:scale-95 transition-all text-slate-700 dark:text-slate-300">{"Support"}</button>
+          <Link to="/about" className="hover:text-blue-600 active:scale-95 transition-all text-slate-700 dark:text-slate-300">{"About"}</Link>
         </div>
 
         {/* Desktop Actions (>1024px) */}
@@ -1746,17 +1747,17 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
 
         {/* FOOTER */}
         <footer className="bg-[#050A18] text-slate-400 py-16 px-6 border-t border-slate-900">
-          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-6">
                 <img src="/favicon.svg" alt="Workplace Hub" className="w-8 h-8 object-contain" />
-                <h4 className="text-white font-black text-base">{"Workplace Hub SaaS"}</h4>
+                <h4 className="text-white font-black text-base">{"Workplace Hub"}</h4>
               </div>
               <p className="text-2xs leading-relaxed text-slate-400 font-medium">
                 {"Premium 2026 digital ticket handling, support chat coordination, automated incident triage classification, and SLA compliance monitoring."}</p>
-              <div className="mt-6 text-2xs space-y-2 font-semibold">
-                <p><span className="text-slate-350">{"Service Desk Support Email:"}</span> {"tech@dcms.com"}</p>
-                <p><span className="text-slate-350">{"Academic Certification Project:"}</span> {"Portfolio Demonstration Purpose"}</p>
+              <div className="mt-6 text-2xs space-y-1.5 font-semibold">
+                <p><span className="text-slate-400">{"Support Email:"}</span> <a href="mailto:nasikakavitha@gmail.com" className="text-blue-400 hover:underline">nasikakavitha@gmail.com</a></p>
+                <p><span className="text-slate-400">{"Platform:"}</span> {"Digital Complaint Management System (DCMS)"}</p>
               </div>
             </div>
             <div className="md:ml-auto">
@@ -1769,6 +1770,15 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
               </ul>
             </div>
             <div className="md:ml-auto">
+              <h5 className="text-xs font-black text-white uppercase tracking-wider mb-6">{"Trust & Legal"}</h5>
+              <ul className="space-y-3 text-2xs font-extrabold">
+                <li><Link to="/privacy" className="hover:text-white transition-colors text-slate-300">{"Privacy Policy"}</Link></li>
+                <li><Link to="/terms" className="hover:text-white transition-colors text-slate-300">{"Terms & Conditions"}</Link></li>
+                <li><Link to="/about" className="hover:text-white transition-colors text-slate-300">{"About Platform"}</Link></li>
+                <li><Link to="/contact" className="hover:text-white transition-colors text-slate-300">{"Contact Support"}</Link></li>
+              </ul>
+            </div>
+            <div className="md:ml-auto">
               <h5 className="text-xs font-black text-white uppercase tracking-wider mb-6">{"Application Ports"}</h5>
               <ul className="space-y-3 text-2xs font-extrabold">
                 <li><Link to="/auth/user" className="hover:text-white transition-colors text-blue-400">{"User Client gateway →"}</Link></li>
@@ -1777,8 +1787,14 @@ Confidence Rating: ${sandboxResponse.confidence || 0}%
             </div>
           </div>
           <div className="max-w-6xl mx-auto border-t border-slate-800/60 pt-8 flex flex-col md:flex-row justify-between items-center text-3xs font-extrabold text-[#64748B]">
-            <p>{"© 2026 Digital Workplace Operations Platform (Workplace Hub). All rights reserved."}</p>
-            <p className="mt-2 md:mt-0">{"Built to exceed internship and SaaS design benchmarks."}</p>
+            <p>{"© 2026 Workplace Hub (Digital Complaint Management System). All rights reserved."}</p>
+            <div className="flex gap-4 mt-2 md:mt-0 text-slate-400">
+              <Link to="/privacy" className="hover:text-white transition-colors">{"Privacy Policy"}</Link>
+              <span>•</span>
+              <Link to="/terms" className="hover:text-white transition-colors">{"Terms & Conditions"}</Link>
+              <span>•</span>
+              <Link to="/about" className="hover:text-white transition-colors">{"About"}</Link>
+            </div>
           </div>
         </footer>
       </main>

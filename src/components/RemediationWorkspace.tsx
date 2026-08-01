@@ -720,34 +720,8 @@ export function RemediationWorkspace({
     }
   };
 
-  // Smart Teammate Response Simulation for Mentions & Assignments
-  const simulateTeammateAction = (name: string, type: "mention" | "assignment") => {
-    setTimeout(() => {
-      setTypingUser(name);
-      
-      setTimeout(() => {
-        setTypingUser(null);
-        let repl = "";
-        if (type === "assignment") {
-          repl = `Received assignment. I am reviewing the system logs and ticket details for #${ticket.id.toString().substring(0, 8)}.`;
-        } else {
-          repl = `Understood. I'm investigating the incident details now and will update the timeline shortly.`;
-        }
-
-        const teammateComment: TeamComment = {
-          id: "sim_" + Date.now(),
-          ticket_id: ticket.id,
-          sender_id: `usr_${name.toLowerCase()}`,
-          sender_name: name,
-          text: repl,
-          created_at: new Date().toISOString(),
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-
-        const updated = [...comments, teammateComment];
-        saveAllComments(updated);
-      }, 2500);
-    }, 1500);
+  const simulateTeammateAction = (_name: string, _type: "mention" | "assignment") => {
+    // Disabled simulation in production
   };
 
   // Polish / Improve Response with AI (Instant, mode-based triggers)

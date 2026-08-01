@@ -239,6 +239,30 @@ const mockSupabaseClient = {
       } } } };
     },
 
+    async getUser() {
+      const savedSession = localStorage.getItem('dcms_sim_session');
+      if (savedSession) {
+        const parsed = JSON.parse(savedSession);
+        return { data: { user: parsed }, error: null };
+      }
+      return { data: { user: null }, error: null };
+    },
+
+    async signInWithOAuth(options: any) {
+      const provider = options?.provider || 'google';
+      const userObj = {
+        id: 'usr_google_' + Math.random().toString(36).substring(2, 8),
+        email: 'nasikakavitha@gmail.com',
+        user_metadata: { name: 'Google User', full_name: 'Google User' },
+        role: 'admin',
+        app_metadata: { provider }
+      };
+
+      localStorage.setItem('dcms_sim_session', JSON.stringify(userObj));
+      this.listeners.forEach((l: any) => l('SIGNED_IN', { user: userObj, access_token: 'mock_google_oauth_token' }));
+      return { data: { provider, url: `${window.location.origin}?oauth=${provider}_simulated` }, error: null };
+    },
+
     async signInWithPassword({ email, password }: any) {
       const cleanEmail = email.trim().toLowerCase();
       const name = cleanEmail.split('@')[0];

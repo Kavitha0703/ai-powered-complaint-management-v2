@@ -5,6 +5,10 @@ export interface AdminInvite {
   invited_by: string;
   status: 'Pending' | 'Active' | 'Deactivated';
   created_at: string;
+  token?: string;
+  inviteUrl?: string;
+  expires_at?: string;
+  delivery_status?: 'Pending' | 'Sending' | 'Sent' | 'Delivered' | 'Failed' | 'Registered' | 'Expired';
   name?: string;
   last_active?: string;
   department?: string;
