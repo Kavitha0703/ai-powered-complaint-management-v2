@@ -8,7 +8,7 @@ import {
 import { 
   SentEmailRecord, getSentEmailsLog, saveEmailToLog, sendEmailViaGmail, 
   EmailTemplates, isGmailAuthenticated, gmailSignIn, EmailStatus, EmailModule, EmailType, RecipientRole 
-} from "../lib/GmailService.ts";
+} from "../lib/google/index.ts";
 import { useAuth } from "../lib/AuthContext.tsx";
 import { Button } from "../../components/ui/button.tsx";
 import { Input } from "../../components/ui/input.tsx";

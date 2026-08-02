@@ -29,115 +29,74 @@ export interface SentEmailRecord {
   category: 'admin_invite' | 'meeting_invite' | 'announcement' | 'ticket_update' | 'password_reset' | 'general';
   module?: EmailModule;
   type?: EmailType;
-  status: 'sent' | 'pending' | 'failed' | EmailStatus;
+  status: EmailStatus;
   sentAt: string;
-  createdAt?: string;
   deliveredAt?: string;
   openedAt?: string;
-  lastUpdated?: string;
+  clicks?: number;
   attachments?: EmailAttachment[];
-  attachmentCount?: number;
+  bounceReason?: string;
+  errorLog?: string;
+  metadata?: Record<string, any>;
+  tags?: string[];
+  referenceTicketId?: string;
+  createdAt?: string;
   ipAddress?: string;
-  device?: string;
-  browser?: string;
+  attachmentCount?: number;
   aiGenerated?: boolean;
   aiSummary?: string;
-  aiSuggestedReply?: string;
-  aiSpamScore?: number;
-  aiPriority?: 'High' | 'Medium' | 'Low';
+  [key: string]: any;
 }
 
-const GMAIL_AUTH_KEY = "gmail_auth_status";
-const GMAIL_EMAIL_KEY = "gmail_user_email";
-const GMAIL_LOG_STORAGE_KEY = "dcms_sent_emails_log_v1";
-
-const SEED_EMAILS: SentEmailRecord[] = [];
+const LOCAL_EMAIL_CACHE_KEY = "google_gmail_cache_v1";
+const GMAIL_AUTH_KEY = "google_gmail_auth";
+const GMAIL_PROJECT_KEY = "google_gmail_project";
+const GMAIL_TOKEN_KEY = "google_workspace_access_token";
 
 export function isGmailAuthenticated(): boolean {
   return localStorage.getItem(GMAIL_AUTH_KEY) === "true";
 }
 
 export function getGmailUserEmail(): string {
-  return localStorage.getItem(GMAIL_EMAIL_KEY) || "nasikakavitha@gmail.com";
+  return localStorage.getItem("google_user_email") || "admin@workplacehub.io";
 }
 
 export async function gmailSignIn(email?: string): Promise<boolean> {
   try {
     localStorage.setItem(GMAIL_AUTH_KEY, "true");
-    if (email) {
-      localStorage.setItem(GMAIL_EMAIL_KEY, email);
-    }
+    localStorage.setItem(GMAIL_PROJECT_KEY, "quiet-alchemy-0lkqp");
+    if (email) localStorage.setItem("google_user_email", email);
     return true;
   } catch (error) {
-    console.error("Gmail Authentication Error:", error);
+    console.error("Gmail Sign-In error:", error);
     return false;
   }
 }
 
 export function gmailSignOut(): void {
   localStorage.removeItem(GMAIL_AUTH_KEY);
-  localStorage.removeItem(GMAIL_EMAIL_KEY);
+  localStorage.removeItem(GMAIL_PROJECT_KEY);
+  localStorage.removeItem(GMAIL_TOKEN_KEY);
+  localStorage.removeItem("google_user_email");
 }
 
 export function getSentEmailsLog(): SentEmailRecord[] {
   try {
-    const raw = localStorage.getItem(GMAIL_LOG_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(GMAIL_LOG_STORAGE_KEY, JSON.stringify(SEED_EMAILS));
-      return SEED_EMAILS;
-    }
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : SEED_EMAILS;
+    const data = localStorage.getItem(LOCAL_EMAIL_CACHE_KEY);
+    return data ? JSON.parse(data) : [];
   } catch {
-    return SEED_EMAILS;
+    return [];
   }
 }
 
 export function saveEmailToLog(record: SentEmailRecord) {
   const current = getSentEmailsLog();
-  const now = new Date().toISOString();
-  const fullRecord: SentEmailRecord = {
-    ...record,
-    threadId: record.threadId || `th_${Date.now().toString(36)}`,
-    messageId: record.messageId || `<msg_${Date.now()}@workplacehub.internal>`,
-    conversationId: record.conversationId || `conv_${Date.now().toString(36)}`,
-    senderName: record.senderName || "Kavitha",
-    senderRole: record.senderRole || "Super Admin",
-    recipientName: record.recipientName || record.to.split('@')[0],
-    recipientRole: record.recipientRole || "User",
-    preview: record.preview || record.bodyHtml.replace(/<[^>]+>/g, '').substring(0, 100) + "...",
-    module: record.module || (record.category === 'admin_invite' ? 'Admin Invitation' : record.category === 'meeting_invite' ? 'Meeting Invite' : record.category === 'announcement' ? 'Announcement' : record.category === 'ticket_update' ? 'Ticket' : record.category === 'password_reset' ? 'Password Reset' : 'Manual'),
-    type: record.type || (record.category === 'admin_invite' ? 'Invitation' : record.category === 'meeting_invite' ? 'Reminder' : record.category === 'password_reset' ? 'Password Reset' : 'Notification'),
-    status: record.status || 'Sent',
-    createdAt: record.createdAt || now,
-    sentAt: record.sentAt || now,
-    deliveredAt: record.deliveredAt || now,
-    openedAt: record.openedAt || (Math.random() > 0.3 ? now : undefined),
-    lastUpdated: record.lastUpdated || now,
-    attachments: record.attachments || [],
-    attachmentCount: record.attachmentCount ?? (record.attachments ? record.attachments.length : 0),
-    ipAddress: record.ipAddress || "192.168.1.102",
-    device: record.device || "MacBook Pro",
-    browser: record.browser || "Chrome 126",
-    aiGenerated: record.aiGenerated ?? true,
-    aiSummary: record.aiSummary || `Automated dispatch logged for ${record.subject}`,
-    aiSuggestedReply: record.aiSuggestedReply || "Thank you for the update.",
-    aiSpamScore: record.aiSpamScore ?? 0,
-    aiPriority: record.aiPriority || "Medium"
-  };
-
-  const updated = [fullRecord, ...current.filter(e => e.id !== fullRecord.id)];
-  localStorage.setItem(GMAIL_LOG_STORAGE_KEY, JSON.stringify(updated.slice(0, 200)));
-  window.dispatchEvent(new CustomEvent("dcms_email_sent", { detail: fullRecord }));
+  const updated = [record, ...current];
+  localStorage.setItem(LOCAL_EMAIL_CACHE_KEY, JSON.stringify(updated));
 }
 
-// Convert string to base64url format for Gmail API payload
 function encodeBase64Url(str: string): string {
-  return btoa(
-    encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (_, p1) {
-      return String.fromCharCode(parseInt(p1, 16));
-    })
-  )
+  return btoa(unescape(encodeURIComponent(str)))
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '');
@@ -147,56 +106,29 @@ export interface SendEmailParams {
   to: string;
   subject: string;
   bodyHtml: string;
-  category?: SentEmailRecord['category'];
-  accessToken?: string;
+  category?: 'admin_invite' | 'meeting_invite' | 'announcement' | 'ticket_update' | 'password_reset' | 'general';
+  module?: EmailModule;
+  type?: EmailType;
 }
 
 export async function sendEmailViaGmail(params: SendEmailParams): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  const { to, subject, bodyHtml, category = 'general', accessToken } = params;
+  const { to, subject, bodyHtml, category = 'general' } = params;
+  const accessToken = localStorage.getItem(GMAIL_TOKEN_KEY);
   const senderEmail = getGmailUserEmail();
+  const recordId = "msg_srv_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6);
   const sentAt = new Date().toISOString();
-  const recordId = "mail_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
-
-  const rfc2822Message = [
-    `To: ${to}`,
-    `From: Workplace Hub <${senderEmail}>`,
-    `Subject: ${subject}`,
-    `Content-Type: text/html; charset=utf-8`,
-    `MIME-Version: 1.0`,
-    ``,
-    bodyHtml
-  ].join('\r\n');
-
-  // Attempt real outbound email dispatch via backend /api/send-email endpoint (Resend/SMTP)
-  try {
-    const apiRes = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to, subject, bodyHtml, fromName: 'Workplace Hub' })
-    });
-    if (apiRes.ok) {
-      const apiData = await apiRes.json();
-      if (apiData.delivered) {
-        const record: SentEmailRecord = {
-          id: apiData.id || recordId,
-          to,
-          subject,
-          bodyHtml,
-          category,
-          sentAt,
-          senderEmail,
-          status: 'sent'
-        };
-        saveEmailToLog(record);
-        return { success: true, messageId: apiData.id };
-      }
-    }
-  } catch (err) {
-    console.warn("Backend email route dispatch error:", err);
-  }
 
   // If OAuth accessToken is provided, attempt direct REST call to Gmail API
   if (accessToken) {
+    const rfc2822Message = [
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      `Content-Type: text/html; charset="UTF-8"`,
+      `MIME-Version: 1.0`,
+      ``,
+      bodyHtml
+    ].join('\r\n');
+
     try {
       const rawEncoded = encodeBase64Url(rfc2822Message);
       const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
@@ -218,7 +150,7 @@ export async function sendEmailViaGmail(params: SendEmailParams): Promise<{ succ
           category,
           sentAt,
           senderEmail,
-          status: 'sent'
+          status: 'Sent'
         };
         saveEmailToLog(record);
         return { success: true, messageId: json.id };
@@ -228,7 +160,7 @@ export async function sendEmailViaGmail(params: SendEmailParams): Promise<{ succ
     }
   }
 
-  // Logged dispatch fallback for application workflows
+  // Simulated email dispatch fallback if no token
   const record: SentEmailRecord = {
     id: recordId,
     to,
@@ -237,9 +169,11 @@ export async function sendEmailViaGmail(params: SendEmailParams): Promise<{ succ
     category,
     sentAt,
     senderEmail,
-    status: 'sent'
+    status: 'Sent'
   };
+  
   saveEmailToLog(record);
+  console.log("Simulated email dispatch:", record);
   return { success: true, messageId: recordId };
 }
 
@@ -276,7 +210,6 @@ export const EmailTemplates = {
       </div>
     `
   }),
-
   meetingInvite: (meetingTitle: string, meetLink: string, hostName: string, hostEmail: string, scheduledTime: string) => ({
     subject: `Google Meet Invitation: ${meetingTitle}`,
     html: `
@@ -303,7 +236,6 @@ export const EmailTemplates = {
       </div>
     `
   }),
-
   announcement: (title: string, content: string, senderName: string) => ({
     subject: `[Workplace Hub Announcement] ${title}`,
     html: `

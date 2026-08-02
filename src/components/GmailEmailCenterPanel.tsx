@@ -12,7 +12,7 @@ import {
   getGmailUserEmail, 
   SentEmailRecord, 
   EmailTemplates 
-} from "../lib/GmailService.ts";
+} from "../lib/google/index.ts";
 
 export function GmailEmailCenterPanel({ onClose }: { onClose?: () => void }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(isGmailAuthenticated());

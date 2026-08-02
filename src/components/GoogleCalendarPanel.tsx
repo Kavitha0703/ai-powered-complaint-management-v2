@@ -22,7 +22,7 @@ import {
   isGoogleCalendarAuthenticated,
   googleCalendarSignIn,
   googleCalendarSignOut,
-} from "../lib/GoogleCalendarHelper";
+} from "../lib/google/index.ts";
 
 interface GoogleCalendarPanelProps {
   onClose?: () => void;

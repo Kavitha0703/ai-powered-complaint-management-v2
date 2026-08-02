@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabase.ts";
+import { supabase } from "../supabase.ts";
 
 export interface GoogleUserSession {
   user: any;
@@ -8,25 +8,20 @@ export interface GoogleUserSession {
 
 export async function signInWithGoogle(opts?: { isAdmin?: boolean }): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
+    // Ensure any stale session is cleared before initiating a fresh OAuth flow
+    console.log("NEW GOOGLE LOGIN CODE - VERSION 2");
+    alert("New Google Login Code Running");
+    await supabase.auth.signOut();
+
     const redirectPath = opts?.isAdmin ? "/admin" : "/dashboard";
     const targetRedirectUrl = `${window.location.origin}${redirectPath}`;
-
-    if (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes("placeholder")) {
-      console.warn("Supabase URL not configured. Simulating Google OAuth session.");
-      return { 
-        success: true, 
-        data: { url: `${targetRedirectUrl}?oauth=google_simulated` } 
-      };
-    }
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: targetRedirectUrl,
-        scopes: "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
         queryParams: {
-          access_type: "offline",
-          prompt: "select_account consent",
+          prompt: "select_account",
         },
       },
     });
@@ -48,6 +43,8 @@ export async function signInWithGoogle(opts?: { isAdmin?: boolean }): Promise<{ 
 
 export async function signOutGoogle(): Promise<boolean> {
   try {
+    console.log("NEW GOOGLE LOGIN CODE - VERSION 2");
+    alert("New Google Login Code Running");
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Google SignOut error:", error);
     return true;

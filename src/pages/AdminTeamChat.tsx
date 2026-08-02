@@ -12,8 +12,8 @@ import {
   Paperclip, Users, Volume2, VolumeX, Mic, MicOff, Server, Terminal, Share, MousePointer2, FileText, Image, ShieldAlert, Trash2, Trash, ArrowRight, Edit2, Pin, Sparkles, MessageSquare, Bell, Reply
 , RotateCcw, Menu, Archive, Edit, ChevronLeft, CheckSquare, CornerDownRight, Pause, Play, CheckCheck, Calendar as CalendarIcon} from "lucide-react";
 import { Group, Panel } from "react-resizable-panels";
-import { createGoogleMeet, googleSignIn } from "../lib/GoogleMeetHelper.ts";
-import { sendEmailViaGmail, EmailTemplates } from "../lib/GmailService.ts";
+import { createGoogleMeet, googleSignIn } from "../lib/google/index.ts";
+import { sendEmailViaGmail, EmailTemplates } from "../lib/google/index.ts";
 import { getAllActiveAdmins } from "../lib/AdminManagementHelper.ts";
 import { GmailEmailCenterPanel } from "../components/GmailEmailCenterPanel.tsx";
 import { GoogleCalendarPanel } from "../components/GoogleCalendarPanel.tsx";

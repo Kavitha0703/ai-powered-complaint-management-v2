@@ -7,7 +7,7 @@ import { Input } from "../../components/ui/input.tsx";
 import { useAuth, ADMIN_EMAILS } from "../lib/AuthContext.tsx";
 import { Shield, User, Mail, Lock, ArrowLeft, Sparkles, CheckCircle2, Ticket, ChevronRight, HelpCircle } from "lucide-react";
 import { isEmailAdmin, getAdminInvites, saveAdminInvites } from "../lib/AdminManagementHelper.ts";
-import { signInWithGoogle } from "../services/googleAuth.ts";
+import { signInWithGoogle } from "../lib/google/index.ts";
 
 export default function AuthPage({ isAdmin }: { isAdmin?: boolean }) {
     

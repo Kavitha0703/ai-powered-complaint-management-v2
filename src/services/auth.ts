@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabase.ts";
-import { signInWithGoogle, signOutGoogle, getGoogleProfile } from "./googleAuth.ts";
+import { signInWithGoogle, signOutGoogle, getGoogleProfile } from "../lib/google/index.ts";
 
 export const AuthService = {
   // Email Password Sign In

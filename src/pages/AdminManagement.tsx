@@ -6,7 +6,7 @@ import {
   HARDCODED_ADMINS, 
   AdminInvite 
 } from "../lib/AdminManagementHelper.ts";
-import { sendEmailViaGmail, EmailTemplates } from "../lib/GmailService.ts";
+import { sendEmailViaGmail, EmailTemplates } from "../lib/google/index.ts";
 import { 
   Shield, 
   ShieldAlert, 
