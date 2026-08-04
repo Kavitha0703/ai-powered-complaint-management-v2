@@ -18,9 +18,10 @@ export async function signInWithGoogle(opts?: { isAdmin?: boolean }): Promise<{ 
       provider: "google",
       options: {
         redirectTo: targetRedirectUrl,
-        scopes: "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar",
+        scopes: "openid email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar",
         queryParams: {
-          prompt: "select_account",
+          prompt: "consent",
+          access_type: "offline",
         },
       },
     });
