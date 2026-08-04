@@ -1,23 +1,5 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/lib/AuthContext.tsx', 'utf8');
-
-code = code.replace(
-  /const payload = \{[\s\S]*?avatar_url: avatar_url\n\s*\};/,
-  `const payload = {
-        id: u.id,
-        email: email,
-        name: full_name,
-        role: role
-     };`
-);
-
-code = code.replace(
-  /setUser\(session\?.user \?\? null\);/g,
-  `if (session?.provider_token) {
-        localStorage.setItem("google_workspace_access_token", session.provider_token);
-        localStorage.setItem("google_gmail_auth", "true");
-      }
-      setUser(session?.user ?? null);`
-);
-
-fs.writeFileSync('src/lib/AuthContext.tsx', code);
+let code = fs.readFileSync('src/lib/google/auth.ts', 'utf8');
+code = code.replace(/console\.log\("NEW GOOGLE LOGIN CODE - VERSION 2"\);\n\s*alert\("New Google Login Code Running"\);\n\s*/g, '');
+code = code.replace(/scopes: ".*?"/, 'scopes: "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar"');
+fs.writeFileSync('src/lib/google/auth.ts', code);

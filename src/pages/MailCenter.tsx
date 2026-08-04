@@ -321,34 +321,25 @@ export default function MailCenter() {
     }
     setIsSending(true);
 
-    const record: SentEmailRecord = {
-      id: "mail_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
+    
+    const result = await sendEmailViaGmail({
       to: composeTo.trim(),
-      recipientName: composeName.trim() || composeTo.split('@')[0],
-      recipientRole: composeRole,
-      senderEmail: dbUser?.email || "nasikakavitha@gmail.com",
-      senderName: dbUser?.name || "Kavitha",
-      senderRole: "Super Admin",
       subject: composeSubject.trim(),
       bodyHtml: composeBody || `<div style="padding:16px;">${composeSubject}</div>`,
       category: composeModule === 'Admin Invitation' ? 'admin_invite' : composeModule === 'Meeting Invite' ? 'meeting_invite' : composeModule === 'Announcement' ? 'announcement' : composeModule === 'Ticket' ? 'ticket_update' : composeModule === 'Password Reset' ? 'password_reset' : 'general',
       module: composeModule,
-      type: composeModule === 'Admin Invitation' ? 'Invitation' : composeModule === 'Password Reset' ? 'Password Reset' : 'Notification',
-      status: composeScheduledDate ? 'Queued' : 'Delivered',
-      sentAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      deliveredAt: composeScheduledDate ? undefined : new Date().toISOString(),
-      attachments: composeAttachments,
-      attachmentCount: composeAttachments.length,
-      aiGenerated: true,
-      aiSummary: `Dispatch composed via Mail Center for ${composeSubject}`,
-      aiPriority: "High"
-    };
+      type: composeModule === 'Admin Invitation' ? 'Invitation' : composeModule === 'Password Reset' ? 'Password Reset' : 'Notification'
+    });
 
-    saveEmailToLog(record);
+    if (!result.success) {
+      alert("Failed to send email: " + result.error);
+      setIsSending(false);
+      return;
+    }
 
     // Reset Compose Form
     setIsSending(false);
+
     setComposeTo("");
     setComposeName("");
     setComposeSubject("");

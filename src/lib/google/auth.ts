@@ -9,8 +9,6 @@ export interface GoogleUserSession {
 export async function signInWithGoogle(opts?: { isAdmin?: boolean }): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     // Ensure any stale session is cleared before initiating a fresh OAuth flow
-    console.log("NEW GOOGLE LOGIN CODE - VERSION 2");
-    alert("New Google Login Code Running");
     await supabase.auth.signOut();
 
     const redirectPath = opts?.isAdmin ? "/admin" : "/dashboard";
@@ -44,8 +42,6 @@ export async function signInWithGoogle(opts?: { isAdmin?: boolean }): Promise<{ 
 
 export async function signOutGoogle(): Promise<boolean> {
   try {
-    console.log("NEW GOOGLE LOGIN CODE - VERSION 2");
-    alert("New Google Login Code Running");
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Google SignOut error:", error);
     return true;
