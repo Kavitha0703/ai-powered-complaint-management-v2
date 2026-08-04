@@ -42,6 +42,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     console.log("[AuthContext] Fetching initial session via getSession()"); supabase.auth.getSession().then(({ data: { session } }) => { console.log("[AuthContext] getSession() returned:", session ? "Session exists for " + session.user?.email : "No session");
+      if (session?.provider_token) {
+        localStorage.setItem("google_workspace_access_token", session.provider_token);
+        localStorage.setItem("google_gmail_auth", "true");
+      }
       setUser(session?.user ?? null);
       if (session?.user) {
          syncUser(session.user);
@@ -51,6 +55,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }).catch(console.error);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { console.log("[AuthContext] onAuthStateChange triggered - Event: " + _event + ", Session:", session ? "Exists for " + session.user?.email : "None");
+      if (session?.provider_token) {
+        localStorage.setItem("google_workspace_access_token", session.provider_token);
+        localStorage.setItem("google_gmail_auth", "true");
+      }
       setUser(session?.user ?? null);
       if (session?.user) {
          syncUser(session.user);
