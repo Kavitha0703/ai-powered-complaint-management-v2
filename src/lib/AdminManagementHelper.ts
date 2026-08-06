@@ -16,28 +16,7 @@ export interface AdminInvite {
 
 const INVITES_KEY = "dcms_admin_invites_v1";
 
-export const HARDCODED_ADMINS = [
-  {
-    id: "usr_kavitha",
-    name: "Kavitha",
-    email: "nasikakavitha@gmail.com",
-    role: "super_admin" as const,
-    status: "Active" as const,
-    is_online: true,
-    last_active: "Today 10:35 AM",
-    department: "Security Operations"
-  },
-  {
-    id: "usr_testadmin",
-    name: "Testadmin",
-    email: "testdemo@admin.local",
-    role: "super_admin" as const,
-    status: "Active" as const,
-    is_online: true,
-    last_active: "Today 04:28 AM",
-    department: "System Administration"
-  }
-];
+export const HARDCODED_ADMINS: any[] = [];
 
 export function getAdminInvites(): AdminInvite[] {
   const data = localStorage.getItem(INVITES_KEY);

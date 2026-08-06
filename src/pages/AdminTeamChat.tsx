@@ -10,7 +10,7 @@ import {
   Heart, HelpCircle, LayoutDashboard, MessageCircle, PlayCircle, Plus, Search, Send, Settings, Smile, Phone, Video, Mail,
   X, AlertCircle, Camera, Check, ChevronDown, ChevronRight, Hash, LogOut, MoreHorizontal, MoreVertical,
   Paperclip, Users, Volume2, VolumeX, Mic, MicOff, Server, Terminal, Share, MousePointer2, FileText, Image, ShieldAlert, Trash2, Trash, ArrowRight, Edit2, Pin, Sparkles, MessageSquare, Bell, Reply
-, RotateCcw, Menu, Archive, Edit, ChevronLeft, CheckSquare, CornerDownRight, Pause, Play, CheckCheck, Calendar as CalendarIcon} from "lucide-react";
+, RotateCcw, Menu, Archive, Edit, ChevronLeft, CheckSquare, CornerDownRight, Pause, Play, CheckCheck, Calendar as CalendarIcon, Calendar, Link2} from "lucide-react";
 import { Group, Panel } from "react-resizable-panels";
 import { createGoogleMeet, googleSignIn } from "../lib/google/index.ts";
 import { sendEmailViaGmail, EmailTemplates } from "../lib/google/index.ts";
@@ -137,7 +137,7 @@ export default function AdminTeamChat() {
   const polishMode = null;
 
 
-  const [activeRoomId, setActiveRoomId] = useState<string | null>("ch_general");
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   
   const [globalSearch, setGlobalSearch] = useState<string>("");
   const [customRoomName, setCustomRoomName] = useState<string>("");
@@ -334,13 +334,13 @@ export default function AdminTeamChat() {
   const loadWorkspaceRooms = () => {
     const saved = localStorage.getItem("dcms_chat_rooms_v4");
     let loadedRooms: ChatRoom[] = saved ? JSON.parse(saved) : [];
-    if (loadedRooms.length === 0) {
-      loadedRooms = [
-        { id: "ch_general", name: "General", description: "General discussion", created_at: new Date().toISOString(), created_by: "usr_kavitha" }
-      ];
-      localStorage.setItem("dcms_chat_rooms_v4", JSON.stringify(loadedRooms));
-    }
     setRooms(loadedRooms);
+    
+    setActiveRoomId(prev => {
+        if (!prev && loadedRooms.length > 0) return loadedRooms[0].id;
+        if (prev && !loadedRooms.find(r => r.id === prev)) return loadedRooms.length > 0 ? loadedRooms[0].id : null;
+        return prev;
+    });
   };
 
   const loadWorkspaceMessages = () => {
@@ -544,79 +544,10 @@ export default function AdminTeamChat() {
 
     }, 600);
 
-    // Trigger simulated teammate replies based on tags/mentions or text search
-    const normalized = finalTxt.toLowerCase();
-    if (teammates.length > 0) {
-      const mentionedTeammate = teammates.find(t => normalized.includes(`@${t.name.toLowerCase().split(' ')[0]}`));
-      if (mentionedTeammate) {
-        simulateTeammateResponse(mentionedTeammate.name, finalTxt);
-      } else if (Math.random() > 0.6) {
-        setTimeout(() => {
-          const chooser = teammates[Math.floor(Math.random() * teammates.length)];
-          if (chooser) {
-            simulateTeammateResponse(chooser.name, finalTxt);
-          }
-        }, 4500);
-      }
-    }
+
   };
 
   // Smart Context-Aware Response Engine
-  const getSimulatedResponse = (name: string, userMessage: string): string => {
-    const msg = userMessage.toLowerCase();
-    
-    if (msg.includes("ticket") || msg.includes("548")) {
-      return "I'm checking the issue now. The team flagged this in yesterday's system sync.";
-    }
-    if (msg.includes("database") || msg.includes("db") || msg.includes("lock")) {
-      return "The connection pool utilization looks healthy. Monitoring database thread stabilization.";
-    }
-    if (msg.includes("meet") || msg.includes("call") || msg.includes("sync")) {
-      return "Joining the Google Meet room now. Audio and video streams are online.";
-    }
-    return `Copy that @${currentAdminName}, monitoring operations and ready to assist!`;
-  };
-
-  const simulateTeammateResponse = (name: string, userMessage: string = "") => {
-    setTimeout(() => {
-      setTypingUsers(prev => Array.isArray(prev) ? [...prev, name] : [name]);
-      setTimeout(() => {
-        setTypingUsers(prev => Array.isArray(prev) ? prev.filter(u => u !== name) : []);
-        
-        // Generate a context-aware simulation statement
-        const responseText = getSimulatedResponse(name, userMessage);
-
-        const autoMsg: ChatMessage = {
-          id: "chatmsg_sim_" + Date.now(),
-          room_id: activeRoomId,
-          sender_id: `usr_${name.toLowerCase()}`,
-          sender_name: name,
-          text: responseText,
-          created_at: new Date().toISOString(),
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          message_status: "read",
-          reactions: {}
-        };
-
-        const saved = localStorage.getItem("dcms_chat_messages_v4");
-        const allMsg: ChatMessage[] = saved ? JSON.parse(saved) : [];
-        const combined = [...allMsg, autoMsg];
-        localStorage.setItem("dcms_chat_messages_v4", JSON.stringify(combined));
-        loadWorkspaceMessages();
-
-        // Voice playback synthesis trigger
-        speakText(responseText, name);
-
-        // If not focusing on this room, trigger unread badge update!
-        if (activeRoomId !== "ch_general") {
-          setUnreadCounts(prev => ({
-            ...prev,
-            "ch_general": (prev["ch_general"] || 0) + 1
-          }));
-        }
-      }, 2500);
-    }, 1000);
-  };
 
   // Add highly editable new custom channel features
   const handleCreateRoom = (predefinedName?: string) => {
@@ -1556,132 +1487,75 @@ export default function AdminTeamChat() {
 
       {/* GOOGLE MEET CREATION DIALOG */}
       {isNewCallDialogOpen && (
-        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in select-none">
-          <div className="bg-[#0F172A] border border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 text-white space-y-5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-505/10 via-transparent to-transparent rounded-full pointer-events-none" />
-            
-            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                  <Video className="w-4 h-4 text-indigo-400" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white leading-none">{"Create Google Meet"}</h3>
-                  <p className="text-[10px] text-slate-400">{"Schedule a Google Meet with your team"}</p>
-                </div>
-              </div>
-              <button onClick={() => setIsNewCallDialogOpen(false)} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer border-none bg-transparent">
-                <X className="w-4 h-4" />
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-slate-950 border border-slate-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl relative">
+            <button onClick={() => setIsNewCallDialogOpen(false)} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors border-none bg-transparent cursor-pointer">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Video className="w-6 h-6 text-emerald-400" />
+                Google Meet
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">Choose how you want to connect.</p>
             </div>
             
-            <div className="space-y-4">
-              {/* Google Workspace Integration Active Status */}
-              <div className="bg-emerald-950/40 border border-emerald-800/40 rounded-xl p-3 text-[11px] text-emerald-200/90 leading-relaxed flex gap-2.5 items-center">
-                <div className="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400 font-bold">
-                  ✓
-                </div>
-                <div>
-                  <strong className="text-emerald-300 font-bold block leading-tight">Google Workspace & Meet Connected</strong>
-                  <span className="text-[10px] text-slate-400">Project quiet-alchemy-0lkqp • Google Meet & Calendar API active</span>
-                </div>
-              </div>
-
-              {/* Check active meeting */}
-              {(() => {
-                const activeMeeting = getActiveMeetingForRoom(activeRoomId);
-                if (!activeMeeting) return null;
-                const isOrganizer = (activeMeeting.call_summary?.organizerId === currentAdminId || activeMeeting.sender_id === currentAdminId);
-                return (
-                  <div className="bg-indigo-950/60 border border-indigo-700/60 rounded-xl p-3 text-xs text-indigo-200 flex flex-col gap-2">
-                    <div className="flex items-center gap-2 font-bold text-indigo-300">
-                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                      <span>Meeting Already Active in Channel</span>
-                    </div>
-                    <p className="text-[11px] text-indigo-200/80">
-                      "{activeMeeting.call_summary?.title || 'Team Sync'}" is currently {activeMeeting.call_summary?.meet_status === 'Live' ? '🟢 LIVE' : '🟡 Waiting for participants'}.
-                    </p>
-                    <div className="flex gap-2 mt-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsNewCallDialogOpen(false);
-                          handleJoinGoogleMeet(activeMeeting.id);
-                        }}
-                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs cursor-pointer border-none"
-                      >
-                        Join Active Meeting
-                      </button>
-                      {isOrganizer && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleEndGoogleMeet(activeMeeting.id);
-                          }}
-                          className="px-3 py-1 bg-red-650 hover:bg-red-600 bg-red-600 text-white rounded-lg font-bold text-xs cursor-pointer border-none"
-                        >
-                          End Active Meeting
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              <div>
-                <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">{"Host Google Email ID"}</label>
-                <input 
-                  type="email" 
-                  id="meet-host-email"
-                  placeholder="e.g., nasikakavitha@gmail.com" 
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 text-white" 
-                  defaultValue={user?.email || dbUser?.email || "nasikakavitha@gmail.com"}
-                />
-                <p className="text-[10px] text-slate-400 mt-1">{"The Google Account email address starting and hosting this meeting."}</p>
-              </div>
-
-              <div>
-                <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">{"Meeting Title"}</label>
-                <input 
-                  type="text" 
-                  id="meet-title"
-                  placeholder="e.g., Weekly Sync" 
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" 
-                  defaultValue="Workplace Hub Sync"
-                />
-              </div>
-              
-              <div>
-                 <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">{"Participants"}</label>
-                 <div className="flex flex-wrap gap-2">
-                    {teammates.filter(t => t.id !== currentAdminId).map(t => (
-                        <div key={t.id} className="flex items-center gap-2 bg-slate-800 px-2 py-1 rounded-lg">
-                           <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                           <span className="text-xs">{t.name}</span>
-                        </div>
-                    ))}
-                 </div>
-              </div>
-            </div>
-
-            <div className="pt-2">
+            <div className="space-y-3">
               <button 
                  onClick={() => {
-                     const hostEmail = (document.getElementById('meet-host-email') as HTMLInputElement)?.value || user?.email || dbUser?.email || 'nasikakavitha@gmail.com';
-                     const title = (document.getElementById('meet-title') as HTMLInputElement)?.value || 'Team Sync';
                      const participants = teammates.filter(t => t.id !== currentAdminId).map(t => t.name);
-                     handleCreateGoogleMeet(title, participants, hostEmail);
+                     handleCreateGoogleMeet('Team Sync', participants);
+                     setIsNewCallDialogOpen(false);
                  }}
-                 className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl py-2.5 text-sm transition-colors border-none cursor-pointer flex items-center justify-center gap-2 shadow-lg"
+                 className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-white font-bold rounded-xl p-4 text-sm transition-colors cursor-pointer flex items-center justify-start gap-4 text-left group"
               >
-                 <Video className="w-4 h-4" />
-                 {"Generate Google Meet Link"}
+                 <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
+                   <Video className="w-5 h-5" />
+                 </div>
+                 <div>
+                   <div className="text-sm">Start Meet</div>
+                   <div className="text-[10px] text-slate-400 font-medium">Create a new meeting instantly</div>
+                 </div>
+              </button>
+
+              <button 
+                 onClick={() => {
+                     const link = prompt("Paste your Google Meet link (e.g. https://meet.google.com/abc-defg-hij)");
+                     if (link && link.includes("meet.google.com")) {
+                       handleSend(link);
+                       setIsNewCallDialogOpen(false);
+                     }
+                 }}
+                 className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-white font-bold rounded-xl p-4 text-sm transition-colors cursor-pointer flex items-center justify-start gap-4 text-left group"
+              >
+                 <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-colors shrink-0">
+                   <Link2 className="w-5 h-5" />
+                 </div>
+                 <div>
+                   <div className="text-sm">Share Existing Meet</div>
+                   <div className="text-[10px] text-slate-400 font-medium">Paste a meet.google.com link</div>
+                 </div>
+              </button>
+
+              <button 
+                 onClick={() => {
+                     window.open("https://calendar.google.com/calendar/u/0/r/eventedit", "_blank");
+                     setIsNewCallDialogOpen(false);
+                 }}
+                 className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-white font-bold rounded-xl p-4 text-sm transition-colors cursor-pointer flex items-center justify-start gap-4 text-left group"
+              >
+                 <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors shrink-0">
+                   <Calendar className="w-5 h-5" />
+                 </div>
+                 <div>
+                   <div className="text-sm">Schedule Meet</div>
+                   <div className="text-[10px] text-slate-400 font-medium">Create an event in Google Calendar</div>
+                 </div>
               </button>
             </div>
           </div>
         </div>
       )}
-
       {/* Join Google Meet Email Confirmation Modal */}
       {joinMeetModalMsgId && (
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in select-none">
@@ -2627,132 +2501,89 @@ export default function AdminTeamChat() {
 
                           {/* Message body text */}
                            {/* Rich Call Summary details Card */}
-                           {m.call_summary && (
-                             <div className="mb-3 p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl max-w-sm flex flex-col gap-3 text-left text-xs animate-fade-in relative overflow-hidden text-white">
+{m.call_summary && (
+                             <div className="mb-3 rounded-xl bg-slate-900 border border-slate-800 shadow-md max-w-sm flex flex-col text-left text-xs animate-fade-in relative overflow-hidden text-white w-full">
                                {/* Card Header */}
-                               <div className="flex items-center justify-between">
-                                 <div className="flex items-center gap-2.5">
-                                   <div className="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0 border border-indigo-500/30">
-                                     <Video className="w-4 h-4 text-indigo-400" />
-                                   </div>
-                                   <div>
-                                     <h4 className="font-bold text-sm text-white leading-tight">
-                                       {m.call_summary.title || m.text.replace("Created a Google Meet: ", "").replace("Scheduled a Google Meet: ", "") || "Google Meet"}
-                                     </h4>
-                                     <p className="text-[10px] text-slate-400 font-medium">
-                                       Created by <span className="text-slate-200 font-semibold">{m.call_summary.organizerName || m.sender_name}</span>
-                                     </p>
-                                   </div>
-                                 </div>
-                               </div>
-
-                               {/* Status indicator row */}
-                               <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
-                                 {(() => {
-                                   const status = m.call_summary.meet_status || "Waiting";
-                                   if (status === "Waiting") {
-                                     return (
-                                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-amber-500/10 text-amber-300 border-amber-500/30 flex items-center gap-1.5">
-                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                                         Waiting for participants...
-                                       </span>
-                                     );
-                                   }
-                                   if (status === "Live") {
-                                     const joinedCount = m.call_summary.joinedParticipants?.length || 1;
-                                     return (
-                                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-emerald-500/10 text-emerald-300 border-emerald-500/30 flex items-center gap-1.5">
-                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                                         🟢 LIVE ({joinedCount} joined)
-                                       </span>
-                                     );
-                                   }
-                                   if (status === "Ended") {
-                                     return (
-                                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-slate-800 text-slate-400 border-slate-700">
-                                         ⚫ Meeting Ended ({m.call_summary.duration || "Ended"})
-                                       </span>
-                                     );
-                                   }
-                                   return (
-                                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold border bg-slate-800 text-slate-400 border-slate-700">
-                                       {status}
-                                     </span>
-                                   );
-                                 })()}
-
-                                 <span className="text-[10px] font-mono text-slate-400">
-                                   {m.call_summary.meet_status === "Ended" && m.call_summary.endedAt
-                                     ? `Duration: ${m.call_summary.duration}`
-                                     : m.time}
+                               <div className="flex items-center gap-2 p-3 border-b border-slate-800/80 bg-slate-800/20">
+                                 <span className="relative flex h-2.5 w-2.5">
+                                   {(m.call_summary.meet_status === "Live" || m.call_summary.meet_status === "Waiting") && (
+                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                   )}
+                                   <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${m.call_summary.meet_status === "Ended" ? "bg-slate-500" : "bg-emerald-500"}`}></span>
                                  </span>
+                                 <span className="font-bold text-slate-200">Google Meet</span>
+                               </div>
+                               
+                               {/* Body */}
+                               <div className="p-3 space-y-2.5">
+                                 <div className="font-bold text-sm text-white leading-tight">
+                                   {m.call_summary.title || m.text.replace("Created a Google Meet: ", "").replace("Scheduled a Google Meet: ", "") || "Google Meet"}
+                                 </div>
+
+                                 {m.call_summary.meet_status !== "Ended" ? (
+                                   <div className="space-y-1.5 text-[11px] text-slate-300">
+                                     <div className="flex gap-2"><span className="w-4 text-center">👤</span> <span className="font-medium text-slate-400 w-16">Host</span> <span className="text-white">{m.call_summary.organizerName || m.sender_name}</span></div>
+                                     <div className="flex gap-2"><span className="w-4 text-center">👥</span> <span className="font-medium text-slate-400 w-16">Participants</span> <span className="text-white">{m.call_summary.joinedParticipants?.length || m.call_summary.participants?.length || 0}</span></div>
+                                     <div className="flex gap-2"><span className="w-4 text-center">📅</span> <span className="font-medium text-slate-400 w-16">Time</span> <span className="text-white">{m.time}</span></div>
+                                     {m.call_summary.meet_status === "Waiting" && (
+                                        <div className="text-amber-400 font-medium italic mt-1 flex items-center gap-1">
+                                          <span className="w-4 text-center">⏳</span> Starts in 15 min
+                                        </div>
+                                     )}
+                                   </div>
+                                 ) : (
+                                   <div className="space-y-1.5 text-[11px] text-slate-300">
+                                     <div className="flex gap-2"><span className="w-4 text-center">👥</span> <span>{(m.call_summary.joinedParticipants?.length || m.call_summary.participants?.length || 0)} Participants</span></div>
+                                     <div className="flex gap-2"><span className="w-4 text-center">⏱</span> <span>{m.call_summary.duration || "Ended"}</span></div>
+                                     <div className="flex gap-2"><span className="w-4 text-center">📅</span> <span>{m.time}</span></div>
+                                     <div className="flex gap-2 text-emerald-400 font-medium mt-1"><span className="w-4 text-center">✓</span> <span>Meeting Completed</span></div>
+                                   </div>
+                                 )}
                                </div>
 
-                               {/* Participant Badges */}
-                               {((m.call_summary.joinedParticipants && m.call_summary.joinedParticipants.length > 0) || m.call_summary.participants.length > 0) && (
-                                 <div className="flex flex-wrap gap-1 bg-slate-950/60 p-2 rounded-xl border border-slate-800/60">
-                                   <span className="text-[9.5px] font-bold text-slate-400 block w-full mb-0.5 uppercase tracking-wider">
-                                     {m.call_summary.meet_status === "Ended" ? "Meeting Attendance:" : "Participants:"}
-                                   </span>
-                                   {(m.call_summary.joinedParticipants && m.call_summary.joinedParticipants.length > 0 ? m.call_summary.joinedParticipants : m.call_summary.participants).map((person, idx) => {
-                                     const isJoined = m.call_summary?.joinedParticipants?.includes(person);
-                                     return (
-                                       <span
-                                         key={idx}
-                                         className={`px-2 py-0.5 rounded-md text-[10px] font-medium flex items-center gap-1 border ${
-                                           isJoined
-                                             ? "bg-emerald-950/40 text-emerald-300 border-emerald-800/50"
-                                             : "bg-slate-800 text-slate-300 border-slate-700/50"
-                                         }`}
-                                       >
-                                         {isJoined && <span className="w-1 h-1 rounded-full bg-emerald-400 shrink-0" />}
-                                         {person}
-                                       </span>
-                                     );
-                                   })}
-                                 </div>
-                               )}
-
-                               {/* Action Buttons */}
-                               <div className="flex items-center gap-2 pt-1 border-t border-slate-800/80">
-                                 {(m.call_summary.meet_status === "Waiting" || m.call_summary.meet_status === "Live") && (
+                               {/* Actions */}
+                               <div className="flex items-center gap-0 border-t border-slate-800/80 bg-slate-950/30">
+                                 {(m.call_summary.meet_status === "Waiting" || m.call_summary.meet_status === "Live") ? (
                                    <>
                                      <button
                                        type="button"
                                        onClick={() => handleJoinGoogleMeet(m.id)}
-                                       className="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer border-none"
+                                       className="flex-1 py-2 text-center text-emerald-400 hover:text-emerald-300 hover:bg-slate-800/50 text-[11px] font-bold transition-colors cursor-pointer border-r border-slate-800/80"
                                      >
-                                       <Video className="w-3.5 h-3.5" />
-                                       Join Meeting
+                                       Join
                                      </button>
-
+                                     <button
+                                       type="button"
+                                       onClick={() => {
+                                         navigator.clipboard.writeText(m.call_summary?.meet_link || "https://meet.google.com/abc-defg-hij");
+                                         alert("Link copied to clipboard!");
+                                       }}
+                                       className="flex-1 py-2 text-center text-slate-400 hover:text-white hover:bg-slate-800/50 text-[11px] font-bold transition-colors cursor-pointer border-r border-slate-800/80"
+                                     >
+                                       Copy Link
+                                     </button>
                                      {m.call_summary.joinedParticipants?.includes(currentAdminName) && (
                                        <button
                                          type="button"
                                          onClick={() => handleLeaveGoogleMeet(m.id)}
-                                         className="px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-colors border border-slate-700 cursor-pointer"
+                                         className="flex-1 py-2 text-center text-red-400 hover:text-red-300 hover:bg-slate-800/50 text-[11px] font-bold transition-colors cursor-pointer border-r border-slate-800/80"
                                        >
                                          Leave
                                        </button>
                                      )}
-
-                                     {/* End Meeting button (ONLY visible to Organizer!) */}
                                      {(m.call_summary.organizerId === currentAdminId || m.sender_id === currentAdminId) && (
                                        <button
                                          type="button"
                                          onClick={() => handleEndGoogleMeet(m.id)}
-                                         className="px-3 py-2 bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 hover:border-transparent rounded-xl text-xs font-bold transition-all cursor-pointer"
-                                         title="Only the meeting creator can end this meeting"
+                                         className="flex-1 py-2 text-center text-red-400 hover:text-red-300 hover:bg-slate-800/50 text-[11px] font-bold transition-colors cursor-pointer"
+                                         title="End Meeting"
                                        >
-                                         End Meeting
+                                         End
                                        </button>
                                      )}
                                    </>
-                                 )}
-
-                                 {m.call_summary.meet_status === "Ended" && (
-                                   <div className="flex items-center justify-between w-full">
-                                     <span className="text-[10.5px] text-slate-400 italic">Meeting concluded</span>
+                                 ) : (
+                                   <>
                                      <button
                                        type="button"
                                        onClick={() => {
@@ -2760,15 +2591,34 @@ export default function AdminTeamChat() {
                                          navigator.clipboard.writeText(summaryText);
                                          alert("Meeting summary copied to clipboard!");
                                        }}
-                                       className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-bold border border-slate-700 cursor-pointer"
+                                       className="flex-1 py-2 text-center text-slate-300 hover:text-white hover:bg-slate-800/50 text-[11px] font-bold transition-colors cursor-pointer border-r border-slate-800/80"
                                      >
-                                       Copy Summary
+                                       Summary
                                      </button>
-                                   </div>
+                                     <button
+                                       type="button"
+                                       onClick={() => {
+                                         navigator.clipboard.writeText(m.call_summary?.meet_link || "https://meet.google.com/abc-defg-hij");
+                                         alert("Link copied to clipboard!");
+                                       }}
+                                       className="flex-1 py-2 text-center text-slate-400 hover:text-white hover:bg-slate-800/50 text-[11px] font-bold transition-colors cursor-pointer border-r border-slate-800/80"
+                                     >
+                                       Copy
+                                     </button>
+                                     <button
+                                       type="button"
+                                       onClick={() => alert("Share dialog opened")}
+                                       className="flex-1 py-2 text-center text-slate-400 hover:text-white hover:bg-slate-800/50 text-[11px] font-bold transition-colors cursor-pointer"
+                                     >
+                                       Share
+                                     </button>
+                                   </>
                                  )}
                                </div>
                              </div>
                            )}
+
+                          {/* Message body text */}
 
                           {editingMessageId === m.id ? (
                             <div className="space-y-1.5 min-w-[240px]">
@@ -2783,9 +2633,40 @@ export default function AdminTeamChat() {
                               </div>
                             </div>
                           ) : m.text && (!m.call_summary || (!m.text.includes("Team Call Completed") && !m.text.includes("Ad-hoc Triage Huddle Notes") && m.text !== "Team Call Summary")) ? (
-                            <p className={`whitespace-pre-wrap break-words pr-4 select-text font-medium leading-relaxed font-sans text-xs ${isSelf ? "text-white" : "text-black dark:text-white"}`}>
-                              {renderMessageTextWithMentionsHighlight(m.text)}
-                            </p>
+                            <div className="flex flex-col gap-2">
+                              {(() => {
+                                const meetLinkMatch = m.text.match(/https:\/\/meet\.google\.com\/[a-z0-9-]+/i);
+                                const isOnlyMeetLink = meetLinkMatch && m.text.trim() === meetLinkMatch[0];
+                                return (
+                                  <>
+                                    {!isOnlyMeetLink && (
+                                      <p className={`whitespace-pre-wrap break-words pr-4 select-text font-medium leading-relaxed font-sans text-xs ${isSelf ? "text-white" : "text-black dark:text-white"}`}>
+                                        {renderMessageTextWithMentionsHighlight(m.text)}
+                                      </p>
+                                    )}
+                                    {meetLinkMatch && !m.call_summary && (
+                                      <div className="mt-1 rounded-xl bg-slate-900 border border-slate-800 shadow-md max-w-sm flex flex-col text-left text-xs relative overflow-hidden text-white w-full animate-fade-in">
+                                         <div className="flex items-center gap-2 p-3 border-b border-slate-800/80 bg-slate-800/20">
+                                           <span className="font-bold text-slate-200">🟢 Google Meet</span>
+                                         </div>
+                                         <div className="p-3 space-y-1.5">
+                                           <div className="font-bold text-sm text-white">Ad-hoc Meeting</div>
+                                           <div className="flex gap-2 text-[11px] text-slate-300">
+                                             <span className="w-4 text-center">👥</span> 
+                                             <span>Join to see participants</span>
+                                           </div>
+                                         </div>
+                                         <div className="flex items-center gap-0 border-t border-slate-800/80 bg-slate-950/30">
+                                            <a href={meetLinkMatch[0]} target="_blank" rel="noopener noreferrer" className="flex-1 py-2 text-center text-emerald-400 hover:text-emerald-300 hover:bg-slate-800/50 text-[11px] font-bold transition-colors cursor-pointer">
+                                              Join Meeting
+                                            </a>
+                                         </div>
+                                      </div>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
                           ) : null}
 
                           {/* Reactions displays list */}

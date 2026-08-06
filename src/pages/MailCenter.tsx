@@ -60,6 +60,43 @@ export default function MailCenter() {
   const [composeAttachments, setComposeAttachments] = useState<{ name: string; size: string; type: string }[]>([]);
   const [aiImproving, setAiImproving] = useState(false);
 
+  
+  const getGeneratedTemplate = () => {
+    switch (selectedTemplateKey) {
+      case 'welcomeEmail': return EmailTemplates.welcomeEmail(templateVars.name);
+      case 'adminInvite': return EmailTemplates.adminInvite(templateVars.name, templateVars.email, templateVars.role, templateVars.inviter, "https://example.com/invite");
+      case 'passwordReset': return EmailTemplates.passwordReset(templateVars.name, "https://example.com/reset");
+      case 'emailVerification': return EmailTemplates.emailVerification(templateVars.name, "https://example.com/verify");
+      case 'complaintAssigned': return EmailTemplates.complaintAssigned(templateVars.name, "CMP-9821", "Sarah Agent", "High", "IT Support");
+      case 'complaintResolved': return EmailTemplates.complaintResolved(templateVars.name, "CMP-9821", "The network issue has been fixed.");
+      case 'complaintEscalated': return EmailTemplates.complaintEscalated(templateVars.name, "CMP-9821", "L3 Network Engineers", "24-48 Hours");
+      case 'meetingInvite': return EmailTemplates.meetingInvite(templateVars.title, templateVars.meetLink, templateVars.inviter, "admin@workplacehub.com", "Today at 4:30 PM", "45 mins", "Project Team");
+      case 'announcement': return EmailTemplates.announcement(templateVars.title, "Important update regarding system infrastructure maintenance.", templateVars.inviter);
+      case 'promotionLetter': return EmailTemplates.promotionLetter(templateVars.name, "Junior Developer", "Senior Developer", "1st Sep 2026", "We are proud of your growth.");
+      case 'salaryIncrement': return EmailTemplates.salaryIncrement(templateVars.name, "$80,000", "$95,000", "1st Sep 2026");
+      case 'appreciation': return EmailTemplates.appreciation(templateVars.name, "Star Performer", "Your recent project delivery was exceptional.");
+      case 'birthdayWishes': return EmailTemplates.birthdayWishes(templateVars.name, "Wishing you health, wealth and happiness!");
+      case 'workAnniversary': return EmailTemplates.workAnniversary(templateVars.name, 5, "Leading the frontend team to success.");
+      case 'offerLetter': return EmailTemplates.offerLetter("Jane Smith", "Product Manager", "$120,000/yr", "15th Oct 2026");
+      case 'rejectionEmail': return EmailTemplates.rejectionEmail("Jane Smith", "Product Manager");
+      case 'leaveApproved': return EmailTemplates.leaveApproved(templateVars.name, "12th - 15th Aug 2026", "Manager Alex");
+      case 'leaveRejected': return EmailTemplates.leaveRejected(templateVars.name, "12th - 15th Aug 2026", "Project deadline approaching.", "Please apply next month.");
+      case 'securityAlert': return EmailTemplates.securityAlert(templateVars.name, "Seattle, WA", "Chrome on Mac", "192.168.1.1", "10:45 AM UTC");
+      case 'twoFactorAuth': return EmailTemplates.twoFactorAuth(templateVars.name, "847-192");
+      case 'invoice': return EmailTemplates.invoice(templateVars.name, "INV-2026-081", "Enterprise Plan (Annual)", "$150", "$1,650");
+      case 'paymentReceived': return EmailTemplates.paymentReceived(templateVars.name, "$1,650", "TXN-9876543210");
+      case 'subscription': return EmailTemplates.subscription(templateVars.name, "Enterprise Max", "Aug 5th, 2027");
+      case 'newsletter': return EmailTemplates.newsletter(templateVars.name, "August Product Updates", "1. AI Complaint Categorization\n2. New Mail Center\n3. Advanced Analytics");
+      case 'maintenanceNotification': return EmailTemplates.maintenanceNotification("Saturday, Aug 15th at 2AM UTC", "4 Hours", "Authentication Service, Mail Delivery");
+      case 'survey': return EmailTemplates.survey(templateVars.name, "Quarterly Workplace Satisfaction", "Help us make Workplace Hub better for you.");
+      case 'eventRegistration': return EmailTemplates.eventRegistration(templateVars.name, "Annual Tech Summit 2026", "Grand Hotel, NYC", "Keynote, Workshops, Networking");
+      case 'certificateEmail': return EmailTemplates.certificateEmail(templateVars.name, "Certified AI Administrator", "August 5, 2026");
+      case 'accountSuspension': return EmailTemplates.accountSuspension(templateVars.name, "Suspicious activity detected on the network.");
+      case 'customEmail': return EmailTemplates.customEmail("Your Custom Subject", "Write your HTML or plain text content here.", templateVars.name);
+      default: return EmailTemplates.adminInvite(templateVars.name, templateVars.email, templateVars.role, templateVars.inviter, "https://example.com/invite");
+    }
+  };
+
   // Templates state
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>("adminInvite");
   const [templateVars, setTemplateVars] = useState({
@@ -696,29 +733,56 @@ export default function MailCenter() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Select Template</label>
-              {[
-                { key: 'adminInvite', title: 'Admin Invitation Email', category: 'Admin' },
-                { key: 'meetingInvite', title: 'Google Meet Invitation', category: 'Meetings' },
-                { key: 'announcement', title: 'System Announcement Broadcast', category: 'Announcements' },
-                { key: 'ticketUpdate', title: 'Ticket Resolution Notification', category: 'Tickets' },
-                { key: 'passwordReset', title: 'Security Credentials Verification', category: 'Security' }
-              ].map(tmpl => (
-                <button
-                  key={tmpl.key}
-                  onClick={() => setSelectedTemplateKey(tmpl.key)}
-                  className={`w-full text-left p-4 rounded-xl border text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
-                    selectedTemplateKey === tmpl.key 
-                      ? 'bg-indigo-600/20 border-indigo-500/50 text-white shadow-md' 
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-                  }`}
-                >
-                  <div>
-                    <div>{tmpl.title}</div>
-                    <span className="text-[10px] text-indigo-400 font-semibold mt-1 inline-block">{tmpl.category}</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-500" />
-                </button>
-              ))}
+              <div className="max-h-[600px] overflow-y-auto pr-2 custom-scrollbar space-y-2">
+                {[
+                  { key: 'welcomeEmail', title: '1. Welcome Email', category: 'Onboarding' },
+                  { key: 'adminInvite', title: '2. Invitation Email', category: 'Admin' },
+                  { key: 'passwordReset', title: '3. Password Reset', category: 'Security' },
+                  { key: 'emailVerification', title: '4. Email Verification', category: 'Security' },
+                  { key: 'complaintAssigned', title: '5. Complaint Assigned', category: 'Complaints' },
+                  { key: 'complaintResolved', title: '6. Complaint Resolved', category: 'Complaints' },
+                  { key: 'complaintEscalated', title: '7. Complaint Escalated', category: 'Complaints' },
+                  { key: 'meetingInvite', title: '8. Meeting Invitation', category: 'Meetings' },
+                  { key: 'announcement', title: '9. Announcement', category: 'Announcements' },
+                  { key: 'promotionLetter', title: '10. Promotion Email', category: 'HR' },
+                  { key: 'salaryIncrement', title: '11. Salary Increment', category: 'HR' },
+                  { key: 'appreciation', title: '12. Appreciation', category: 'HR' },
+                  { key: 'birthdayWishes', title: '13. Birthday Wishes', category: 'HR' },
+                  { key: 'workAnniversary', title: '14. Work Anniversary', category: 'HR' },
+                  { key: 'offerLetter', title: '15. Offer Letter', category: 'HR' },
+                  { key: 'rejectionEmail', title: '16. Rejection Email', category: 'HR' },
+                  { key: 'leaveApproved', title: '17. Leave Approved', category: 'HR' },
+                  { key: 'leaveRejected', title: '18. Leave Rejected', category: 'HR' },
+                  { key: 'securityAlert', title: '19. Security Alert', category: 'Security' },
+                  { key: 'twoFactorAuth', title: '20. Two Factor Authentication', category: 'Security' },
+                  { key: 'invoice', title: '21. Invoice', category: 'Finance' },
+                  { key: 'paymentReceived', title: '22. Payment Received', category: 'Finance' },
+                  { key: 'subscription', title: '23. Subscription', category: 'Billing' },
+                  { key: 'newsletter', title: '24. Newsletter', category: 'Marketing' },
+                  { key: 'maintenanceNotification', title: '25. Maintenance Notification', category: 'System' },
+                  { key: 'survey', title: '26. Survey', category: 'Feedback' },
+                  { key: 'eventRegistration', title: '27. Event Registration', category: 'Events' },
+                  { key: 'certificateEmail', title: '28. Certificate Email', category: 'Education' },
+                  { key: 'accountSuspension', title: '29. Account Suspension', category: 'Security' },
+                  { key: 'customEmail', title: '30. Custom Manual Email', category: 'Manual' },
+                ].map(tmpl => (
+                  <button
+                    key={tmpl.key}
+                    onClick={() => setSelectedTemplateKey(tmpl.key)}
+                    className={`w-full text-left p-3 rounded-xl border text-[11px] font-bold transition-all flex items-center justify-between cursor-pointer ${
+                      selectedTemplateKey === tmpl.key 
+                        ? 'bg-indigo-600/20 border-indigo-500/50 text-white shadow-md' 
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    }`}
+                  >
+                    <div>
+                      <div>{tmpl.title}</div>
+                      <span className="text-[9px] text-indigo-400 font-semibold mt-1 inline-block">{tmpl.category}</span>
+                    </div>
+                    <ChevronRight className="w-3 h-3 text-slate-500" />
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="md:col-span-2 space-y-4">
@@ -727,12 +791,7 @@ export default function MailCenter() {
                   <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">HTML Template Code & Live Render</span>
                   <Button
                     onClick={() => {
-                      let generated = EmailTemplates.adminInvite(templateVars.name, templateVars.email, templateVars.role, templateVars.inviter);
-                      if (selectedTemplateKey === 'meetingInvite') {
-                        generated = EmailTemplates.meetingInvite(templateVars.title, templateVars.meetLink, templateVars.inviter, "admin@workplacehub.com", "Today at 4:30 PM");
-                      } else if (selectedTemplateKey === 'announcement') {
-                        generated = EmailTemplates.announcement(templateVars.title, "Important update regarding system infrastructure maintenance.", templateVars.inviter);
-                      }
+                      const generated = getGeneratedTemplate();
                       setComposeSubject(generated.subject);
                       setComposeBody(generated.html);
                       setComposeTo(templateVars.email);
@@ -746,12 +805,7 @@ export default function MailCenter() {
 
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 max-h-[400px] overflow-y-auto">
                   {(() => {
-                    let generated = EmailTemplates.adminInvite(templateVars.name, templateVars.email, templateVars.role, templateVars.inviter);
-                    if (selectedTemplateKey === 'meetingInvite') {
-                      generated = EmailTemplates.meetingInvite(templateVars.title, templateVars.meetLink, templateVars.inviter, "admin@workplacehub.com", "Today at 4:30 PM");
-                    } else if (selectedTemplateKey === 'announcement') {
-                      generated = EmailTemplates.announcement(templateVars.title, "Important update regarding system infrastructure maintenance.", templateVars.inviter);
-                    }
+                    const generated = getGeneratedTemplate();
                     return (
                       <div>
                         <div className="text-xs font-bold text-white mb-2 pb-2 border-b border-slate-800">

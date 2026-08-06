@@ -1,3 +1,4 @@
+import { supabase } from "../supabase.ts";
 const GOOGLE_TOKEN_KEY = "google_workspace_access_token";
 const GOOGLE_AUTH_KEY = "google_meet_auth";
 const GOOGLE_PROJECT_KEY = "google_meet_project";
@@ -12,16 +13,19 @@ export function setStoredGoogleToken(token: string): void {
   localStorage.setItem(GOOGLE_PROJECT_KEY, "quiet-alchemy-0lkqp");
 }
 
+import { signInWithGoogle } from "./auth";
 export async function googleSignIn(customToken?: string): Promise<boolean> {
+  
   try {
     if (customToken) {
       setStoredGoogleToken(customToken);
+      return true;
     } else {
-      localStorage.setItem(GOOGLE_AUTH_KEY, "true");
-      localStorage.setItem(GOOGLE_PROJECT_KEY, "quiet-alchemy-0lkqp");
+      const res = await signInWithGoogle();
+      return res.success;
     }
-    return true;
   } catch (error) {
+
     console.error("Google Sign-In Error:", error);
     return false;
   }
@@ -31,8 +35,21 @@ export function isGoogleMeetAuthenticated(): boolean {
   return localStorage.getItem(GOOGLE_AUTH_KEY) === "true";
 }
 
+
+export async function getSupabaseProviderToken(): Promise<string | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.provider_token) {
+      return session.provider_token;
+    }
+  } catch (e) {
+    console.warn("Failed to get supabase session", e);
+  }
+  return null;
+}
+
 export async function createGoogleMeet(title?: string, explicitToken?: string): Promise<string | null> {
-  const accessToken = explicitToken || getStoredGoogleToken();
+  const accessToken = explicitToken || getStoredGoogleToken() || await getSupabaseProviderToken();
   const summaryTitle = title || "Workplace Hub Team Sync";
 
   // If OAuth access token is available, create via official Google Calendar API conferenceData
@@ -79,6 +96,6 @@ export async function createGoogleMeet(title?: string, explicitToken?: string): 
 
   // Official Google Meet instant room launcher URL
   // https://meet.google.com/new directly creates a genuine, live Google Meet room hosted on Google infrastructure
-  return "https://meet.google.com/new";
+  return null;
 }
 

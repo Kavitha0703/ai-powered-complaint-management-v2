@@ -54,9 +54,7 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [sidebarProfileMenuOpen, setSidebarProfileMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([
-    { id: "default-1", type: "notice", title: "AI Copilot System Live", message: "Gemini Auto-Triage Agent is actively routing network and hardware tickets.", time: "Operational", unread: true }
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [fabOpen, setFabOpen] = useState(false);
   const [fabContainerExpanded, setFabContainerExpanded] = useState(false);
 
@@ -175,12 +173,7 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
           });
         });
 
-        // Add backup mock system notices if empty
-        if (listAlerts.length === 0) {
-          listAlerts.push(
-            { id: 1, type: "status", title: "No Current Incidents", message: "Excellent! All system telemetry checks are fully compliant.", time: "Now", unread: false }
-          );
-        }
+
 
         setNotifications(listAlerts);
       } catch (err) {
