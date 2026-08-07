@@ -1,3 +1,4 @@
+import { GoogleOAuthProvider } from '@react-oauth/google';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -194,6 +195,7 @@ export default function App() {
 
     
   return (
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "1234567890-mock.apps.googleusercontent.com"}>
     <AuthProvider>
       
         <BrowserRouter>
@@ -249,6 +251,7 @@ export default function App() {
         </BrowserRouter>
       
     </AuthProvider>
+    </GoogleOAuthProvider>
   );
 }
 

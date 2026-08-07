@@ -6,12 +6,12 @@ export interface GoogleUserSession {
   provider?: string;
 }
 
-export async function signInWithGoogle(opts?: { isAdmin?: boolean }): Promise<{ success: boolean; data?: any; error?: string }> {
+export async function signInWithGoogle(opts?: { isAdmin?: boolean; returnTo?: string }): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     // Ensure any stale session is cleared before initiating a fresh OAuth flow
     await supabase.auth.signOut();
 
-    const redirectPath = opts?.isAdmin ? "/admin" : "/dashboard";
+    const redirectPath = opts?.returnTo || (opts?.isAdmin ? "/admin" : "/dashboard");
     const targetRedirectUrl = `${window.location.origin}${redirectPath}`;
 
     const { data, error } = await supabase.auth.signInWithOAuth({

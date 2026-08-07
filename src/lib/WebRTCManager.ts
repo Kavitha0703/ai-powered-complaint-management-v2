@@ -74,7 +74,7 @@ export class WebRTCManager {
     this.channel = supabase.channel(`webrtc-${this.roomId}`);
     
     this.channel.on('broadcast', { event: 'signal' }, (payload: any) => {
-      this.handleSignal(payload as Signal);
+      this.handleSignal(payload.payload as Signal);
     });
 
     this.channel.subscribe(async (status) => {
@@ -98,7 +98,7 @@ export class WebRTCManager {
       this.channel.send({
         type: 'broadcast',
         event: 'signal',
-        ...signal
+        payload: signal
       });
     }
   }

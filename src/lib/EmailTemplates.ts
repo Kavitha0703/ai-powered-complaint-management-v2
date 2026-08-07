@@ -1,7 +1,6 @@
-
 export const APP_URL = "https://ai-powered-complaint-management-v2.vercel.app/";
 export const APP_NAME = "Workplace Hub";
-export const BRAND_COLOR = "#6366f1"; // Purple/Indigo
+export const BRAND_COLOR = "#5B5CEB"; 
 
 type ThemeColor = 'primary' | 'success' | 'warning' | 'critical' | 'info';
 
@@ -15,99 +14,72 @@ function wrapTemplate(
   ctaText?: string,
   ctaUrl?: string,
 ) {
-  const colors = {
-    primary: { bg: '#4f46e5', light: '#e0e7ff', border: '#c7d2fe' },
-    success: { bg: '#16a34a', light: '#dcfce7', border: '#bbf7d0' },
-    warning: { bg: '#d97706', light: '#fef3c7', border: '#fde68a' },
-    critical: { bg: '#dc2626', light: '#fee2e2', border: '#fecaca' },
-    info: { bg: '#2563eb', light: '#dbeafe', border: '#bfdbfe' }
-  };
-  const theme = colors[bannerColor] || colors.primary;
-
   return `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+    <div style="font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; color: #111827; border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden;">
       
-      <!-- Preheader (Hidden) -->
       <div style="display: none; max-height: 0px; overflow: hidden;">
         ${preheader}
       </div>
 
-      <!-- Header -->
-      <div style="background-color: #f8fafc; padding: 24px; border-bottom: 1px solid #e2e8f0; text-align: center;">
-        <div style="font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">
-          <span style="color: ${BRAND_COLOR};">⚡</span> ${APP_NAME}
-        </div>
-        <div style="font-size: 13px; color: #64748b; font-weight: 500;">
-          AI-Powered Digital Workplace Platform
+      <div style="padding: 32px 32px 24px 32px; border-bottom: 1px solid #E5E7EB; display: flex; align-items: center; gap: 12px;">
+        <img src="${APP_URL}favicon.ico" alt="Logo" style="width: 24px; height: 24px; display: block;" />
+        <div>
+          <div style="font-size: 16px; font-weight: 600; color: #111827; line-height: 1;">${APP_NAME}</div>
+          <div style="font-size: 12px; color: #6B7280; font-weight: 400; margin-top: 4px; line-height: 1;">Enterprise Workplace Platform</div>
         </div>
       </div>
 
-      <!-- Banner -->
-      <div style="background-color: ${theme.bg}; color: #ffffff; padding: 16px 24px; text-align: center;">
-        <span style="font-size: 20px; vertical-align: middle; margin-right: 8px;">${bannerIcon}</span>
-        <span style="font-size: 18px; font-weight: 600; vertical-align: middle;">${bannerTitle}</span>
-      </div>
-
-      <!-- Body -->
-      <div style="padding: 32px 24px;">
-        <p style="font-size: 16px; color: #334155; margin-top: 0; margin-bottom: 24px; line-height: 1.6;">
+      <div style="padding: 32px;">
+        <p style="font-size: 15px; color: #111827; margin-top: 0; margin-bottom: 24px; line-height: 1.6; font-weight: 400;">
           ${greeting}
         </p>
         
         ${contentHtml}
 
         ${ctaText && ctaUrl ? `
-        <!-- CTA -->
-        <div style="margin-top: 32px; text-align: center;">
-          <a href="${ctaUrl}" style="display: inline-block; background-color: ${theme.bg}; color: #ffffff; text-decoration: none; font-weight: 600; padding: 14px 32px; border-radius: 8px; font-size: 15px;">
+        <div style="margin-top: 32px; text-align: left;">
+          <a href="${ctaUrl}" style="display: inline-block; background-color: ${BRAND_COLOR}; color: #ffffff; text-decoration: none; font-weight: 500; padding: 12px 24px; border-radius: 6px; font-size: 14px; text-align: center;">
             ${ctaText}
           </a>
         </div>
+        <div style="margin-top: 32px; font-size: 13px; color: #6B7280; line-height: 1.5;">
+          Can't click the button? Copy this link:<br>
+          <a href="${ctaUrl}" style="color: ${BRAND_COLOR}; text-decoration: none; word-break: break-all;">${ctaUrl}</a>
+        </div>
         ` : ''}
 
-        <!-- Signature -->
-        <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
-          <p style="margin: 0; font-size: 14px; color: #475569; line-height: 1.5;">Regards,</p>
-          <p style="margin: 4px 0 0 0; font-size: 15px; font-weight: 600; color: #0f172a;">${APP_NAME} Team</p>
-          <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">AI Powered Complaint Management</p>
-          <p style="margin: 6px 0 0 0; font-size: 13px;"><a href="mailto:nasikakavitha@gmail.com" style="color: ${BRAND_COLOR}; text-decoration: none;">nasikakavitha@gmail.com</a></p>
-          <p style="margin: 4px 0 0 0; font-size: 13px;"><a href="${APP_URL}" style="color: ${BRAND_COLOR}; text-decoration: none;">${APP_URL}</a></p>
+        <div style="margin-top: 24px; font-size: 13px; color: #6B7280; line-height: 1.5;">
+          If you weren't expecting this email, please ignore it.<br>
+          No account changes will be made.
         </div>
       </div>
 
-      <!-- Footer -->
-      <div style="background-color: #f1f5f9; padding: 24px; text-align: center; border-top: 1px solid #e2e8f0;">
-        <div style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
-          <strong>Need Help?</strong> Contact our support team.
-        </div>
+      <div style="padding: 24px 32px; text-align: left; border-top: 1px solid #E5E7EB; background-color: #ffffff;">
+        <div style="font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 4px;">${APP_NAME}</div>
+        <div style="font-size: 12px; color: #6B7280; margin-bottom: 16px;">Enterprise Workplace Platform</div>
+        
         <div style="margin-bottom: 16px;">
-          <a href="${APP_URL}" style="color: ${BRAND_COLOR}; text-decoration: none; font-size: 12px; margin: 0 6px;">Privacy Policy</a> | 
-          <a href="${APP_URL}" style="color: ${BRAND_COLOR}; text-decoration: none; font-size: 12px; margin: 0 6px;">Terms of Service</a> | 
-          <a href="${APP_URL}" style="color: ${BRAND_COLOR}; text-decoration: none; font-size: 12px; margin: 0 6px;">Contact Us</a> | 
-          <a href="${APP_URL}" style="color: ${BRAND_COLOR}; text-decoration: none; font-size: 12px; margin: 0 6px;">Help Center</a>
+          <a href="${APP_URL}docs" style="color: #6B7280; text-decoration: underline; font-size: 12px; margin-right: 12px;">Documentation</a>
+          <a href="${APP_URL}help" style="color: #6B7280; text-decoration: underline; font-size: 12px; margin-right: 12px;">Help Center</a>
+          <a href="${APP_URL}privacy" style="color: #6B7280; text-decoration: underline; font-size: 12px; margin-right: 12px;">Privacy</a>
+          <a href="${APP_URL}terms" style="color: #6B7280; text-decoration: underline; font-size: 12px;">Terms</a>
         </div>
-        <div style="font-size: 11px; color: #94a3b8; line-height: 1.5;">
-          Powered by ${APP_NAME}<br>
-          AI Powered Workplace Management Platform
+        
+        <div style="font-size: 12px; color: #6B7280;">
+          <a href="mailto:support@workplacehub.is-a.dev" style="color: #6B7280; text-decoration: none;">support@workplacehub.is-a.dev</a><br>
+          <span style="margin-top: 8px; display: inline-block;">© 2026 ${APP_NAME}</span>
         </div>
       </div>
+
     </div>
   `;
 }
 
 function cardBlock(title: string, content: string, theme: ThemeColor = 'info') {
-  const colors = {
-    primary: { bg: '#f5f3ff', border: '#8b5cf6', text: '#6d28d9' },
-    success: { bg: '#f0fdf4', border: '#22c55e', text: '#15803d' },
-    warning: { bg: '#fffbeb', border: '#f59e0b', text: '#b45309' },
-    critical: { bg: '#fef2f2', border: '#ef4444', text: '#b91c1c' },
-    info: { bg: '#eff6ff', border: '#3b82f6', text: '#1d4ed8' }
-  };
-  const c = colors[theme];
   return `
-    <div style="background-color: ${c.bg}; border-left: 4px solid ${c.border}; border-radius: 8px; padding: 16px; margin: 20px 0;">
-      ${title ? `<div style="font-size: 12px; color: ${c.text}; text-transform: uppercase; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.5px;">${title}</div>` : ''}
-      <div style="font-size: 14px; color: #334155; line-height: 1.5;">
+    <div style="border-top: 1px solid #E5E7EB; border-bottom: 1px solid #E5E7EB; padding: 16px 0; margin: 24px 0;">
+      ${title ? `<div style="font-size: 13px; color: #6B7280; text-transform: uppercase; font-weight: 600; margin-bottom: 12px; letter-spacing: 0.5px;">${title}</div>` : ''}
+      <div style="font-size: 14px; color: #111827; line-height: 1.6;">
         ${content}
       </div>
     </div>
@@ -115,7 +87,10 @@ function cardBlock(title: string, content: string, theme: ThemeColor = 'info') {
 }
 
 function keyValueItem(key: string, value: string) {
-  return `<div style="margin-bottom: 8px;"><strong style="color: #475569; display: inline-block; width: 140px;">${key}:</strong> <span style="color: #0f172a; font-weight: 500;">${value}</span></div>`;
+  return `<div style="margin-bottom: 12px; display: flex; flex-direction: column; gap: 2px;">
+    <span style="color: #6B7280; font-size: 13px;">${key}</span>
+    <strong style="color: #111827; font-size: 15px; font-weight: 500;">${value}</strong>
+  </div>`;
 }
 
 export const EmailTemplates = {

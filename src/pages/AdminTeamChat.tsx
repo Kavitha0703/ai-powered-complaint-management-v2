@@ -12,7 +12,8 @@ import {
   Paperclip, Users, Volume2, VolumeX, Mic, MicOff, Server, Terminal, Share, MousePointer2, FileText, Image, ShieldAlert, Trash2, Trash, ArrowRight, Edit2, Pin, Sparkles, MessageSquare, Bell, Reply
 , RotateCcw, Menu, Archive, Edit, ChevronLeft, CheckSquare, CornerDownRight, Pause, Play, CheckCheck, Calendar as CalendarIcon, Calendar, Link2} from "lucide-react";
 import { Group, Panel } from "react-resizable-panels";
-import { createGoogleMeet, googleSignIn } from "../lib/google/index.ts";
+import { createGoogleMeetBackend } from "../lib/google/meet.ts";
+import { useGoogleLogin } from "@react-oauth/google";
 import { sendEmailViaGmail, EmailTemplates } from "../lib/google/index.ts";
 import { getAllActiveAdmins } from "../lib/AdminManagementHelper.ts";
 import { GmailEmailCenterPanel } from "../components/GmailEmailCenterPanel.tsx";
@@ -106,8 +107,8 @@ interface RecentCall {
 export default function AdminTeamChat() {
   const { user, dbUser } = useAuth();
   
-  const currentAdminId = dbUser?.id || "usr_kavitha";
-  const currentAdminName = dbUser?.name || "Kavitha";
+  const currentAdminId = dbUser?.id || user?.id || "usr_unknown";
+  const currentAdminName = dbUser?.name || user?.email?.split("@")[0] || "Unknown User";
   
   const [meetings, setMeetings] = useState<RecentCall[]>([]);
   const speakText = (text: string, voiceName?: string) => {
@@ -151,18 +152,32 @@ export default function AdminTeamChat() {
   const [isLeavingMessage, setIsLeavingMessage] = useState<boolean>(false);
   const [stickyMessageText, setStickyMessageText] = useState<string>("");
   const [notifiedUsers, setNotifiedUsers] = useState<string[]>([]);
-  const [activeMessageActionId, setActiveMessageActionId] = useState<string | null>(null);
+  const [activeMenuPos, setActiveMenuPos] = useState<{id: string, x: number, y: number, up: boolean, isSelf: boolean, msg: ChatMessage} | null>(null);
+  const [showMainEmojiPicker, setShowMainEmojiPicker] = useState<boolean>(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
   const [editInput, setEditInput] = useState<string>("");
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [showGmailCenter, setShowGmailCenter] = useState<boolean>(false);
+  const [gmailInitialData, setGmailInitialData] = useState<{tab: 'log'|'compose', template?: 'meeting_invite', title?: string, link?: string} | null>(null);
   const [showAiMenu, setShowAiMenu] = useState<boolean>(false);
   const [loadingImprove, setLoadingImprove] = useState<boolean>(false);
   const [aiStep, setAiStep] = useState<number>(0);
 
-  const handleDeleteForMe = (msgId: string) => {
+    const handleDeleteForMe = (msgId: string) => {
       setMessages(prev => prev.filter(m => m.id !== msgId));
       setDeleteConfMsg(null);
+      const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
+      let allMessages = savedMsg ? JSON.parse(savedMsg) : [];
+      const updated = allMessages.map(m => {
+        if (m.id === msgId) {
+          return { ...m, deleted_for: [...(m.deleted_for || []), currentAdminId] };
+        }
+        return m;
+      });
+      const updatedForMe = [...deletedForMeIds, msgId];
+      setDeletedForMeIds(updatedForMe);
+      localStorage.setItem("dcms_chat_deleted_for_me", JSON.stringify(updatedForMe));
+      saveMessagesToStorage(updated);
   };
   const submitStickyMessage = () => {
       setBusySuccessMessage("Message left successfully.");
@@ -201,31 +216,71 @@ export default function AdminTeamChat() {
   const [isFetchingMeetings, setIsFetchingMeetings] = useState<boolean>(true);
   const [selectedCallDetail, setSelectedCallDetail] = useState<RecentCall | null>(null);
 
-  const loadActiveTeammatesFromDb = (): Teammate[] => {
-    const currentAdminName = user?.name || dbUser?.name || "Kavitha";
-    const currentAdminIdFallback = dbUser?.id || "usr_kavitha";
+      const loadActiveTeammatesFromDb = async (): Promise<Teammate[]> => {
+    const currentAdminName = user?.name || dbUser?.name || user?.email?.split("@")[0] || "Unknown User";
+    const currentAdminIdFallback = dbUser?.id || user?.id || "usr_unknown";
     const currentEmail = (user?.email || dbUser?.email || "").toLowerCase();
-
+    
     const activeAdmins = getAllActiveAdmins();
-    return activeAdmins
+    
+    let userProfiles: any[] = [];
+    try {
+      const { data } = await supabase.from('users').select('email, avatar_url, full_name, id');
+      if (data) userProfiles = data;
+    } catch (e) {
+      console.warn('Failed to fetch user profiles for avatars');
+    }
+    
+    // Find current user profile avatar
+    const myProfile = userProfiles.find(p => p.email?.toLowerCase() === currentEmail);
+    const myAvatar = myProfile?.avatar_url || dbUser?.avatar_url || "👤";
+
+    const otherTeammates = activeAdmins
       .filter(a => a.id !== currentAdminIdFallback && a.email.toLowerCase() !== currentEmail && a.name !== currentAdminName)
-      .map(a => ({
-        id: a.id,
-        name: a.name,
-        role: a.role === 'super_admin' ? 'Super Admin' : a.role === 'support_staff' ? 'Support Staff' : 'Administrator',
-        avatar: a.avatar || "👤",
-        status: (a.is_online ? "online" : "offline") as "online" | "in_call" | "away" | "offline"
-      }));
+      .map(a => {
+        const profile = userProfiles.find(p => p.email?.toLowerCase() === a.email.toLowerCase());
+        const realAvatar = profile?.avatar_url || a.avatar || "👤";
+        const realId = profile?.id || a.id;
+        const realName = profile?.full_name || a.name;
+        
+        return {
+          id: realId,
+          name: realName,
+          role: a.role === 'super_admin' ? 'Super Admin' : a.role === 'support_staff' ? 'Support Staff' : 'Administrator',
+          avatar: realAvatar,
+          status: (a.is_online ? "online" : "offline") as "online" | "in_call" | "away" | "offline"
+        };
+      });
+      
+    // Return YOU first
+    return [
+      {
+        id: currentAdminIdFallback,
+        name: currentAdminName,
+        role: "YOU",
+        avatar: myAvatar,
+        status: "online"
+      },
+      ...otherTeammates
+    ];
   };
 
-  const [teammates, setTeammates] = useState<Teammate[]>(loadActiveTeammatesFromDb);
-
+  const [teammates, setTeammates] = useState<Teammate[]>([]);
   useEffect(() => {
+    let mounted = true;
+    const fetchTeammates = async () => {
+      const tms = await loadActiveTeammatesFromDb();
+      if (mounted) setTeammates(tms);
+    };
+    fetchTeammates();
     const handleAdminInvitesUpdated = () => {
-      setTeammates(loadActiveTeammatesFromDb());
+      fetchTeammates();
     };
     window.addEventListener("dcms_admin_invites_updated", handleAdminInvitesUpdated);
-    return () => window.removeEventListener("dcms_admin_invites_updated", handleAdminInvitesUpdated);
+    return () => {
+      mounted = false;
+      window.removeEventListener("dcms_admin_invites_updated", handleAdminInvitesUpdated);
+    };
   }, [user, dbUser]);
 
   const [isNewCallDialogOpen, setIsNewCallDialogOpen] = useState<boolean>(false);
@@ -249,11 +304,11 @@ export default function AdminTeamChat() {
     if (!isSpeaking) {
       return <span className="text-slate-600 dark:text-slate-600 font-mono text-[9px] tracking-tight">▱▱▱▱</span>;
     }
-
-    if (id === "usr_kavitha") {
+    const currentAdminIdFallback = dbUser?.id || user?.id || "usr_unknown";
+    if (id === currentAdminIdFallback) {
       const bars = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
       const baseVal = Math.max(1, Math.min(7, audioLevel));
-      // Generate real-time fluctuating dynamic sequence for Kavitha (using actual mic level)
+      // Generate real-time fluctuating dynamic sequence for current user (using actual mic level)
       const sequence = Array.from({ length: 6 }).map(() => {
         const offset = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
         const idx = Math.max(0, Math.min(7, baseVal + offset));
@@ -269,7 +324,7 @@ export default function AdminTeamChat() {
       }).join("");
       return <span className="text-indigo-400 font-mono text-[11.5px] tracking-tighter" title={"VoIP Audio Inward"}>{sequence}</span>;
     }
-  };
+  };;
 
 
 
@@ -648,29 +703,41 @@ export default function AdminTeamChat() {
     setEditingMessageId(null);
   };
 
-  const handleConfirmDeleteMessage = (type: "me" | "everyone") => {
+    const handleConfirmDeleteMessage = (type: "me" | "everyone") => {
     if (!deleteConfMsg) return;
-
     const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
-    let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : [];
-
+    let allMessages = savedMsg ? JSON.parse(savedMsg) : [];
+    
     if (type === "me") {
+      handleDeleteForMe(deleteConfMsg.id);
+    } else {
       const updated = allMessages.map(m => {
         if (m.id === deleteConfMsg.id) {
-          return { ...m, deleted_for: [...(m.deleted_for || []), currentAdminId] };
+          return {
+             ...m,
+             text: "🚫 This message was deleted",
+             attachments: [],
+             call_summary: undefined,
+             audio_url: undefined,
+             is_voice_note: false
+          };
         }
         return m;
       });
-      // Synchronize with deletedForMeIds state and localStorage for complete state sync
-      const updatedForMe = [...deletedForMeIds, deleteConfMsg.id];
-      setDeletedForMeIds(updatedForMe);
-      localStorage.setItem("dcms_chat_deleted_for_me", JSON.stringify(updatedForMe));
-
       saveMessagesToStorage(updated);
-    } else {
-      // The logged-in administrator is authorized to delete any message (including teammate or AI messages) for everyone
-      const updated = allMessages.filter(m => m.id !== deleteConfMsg.id);
-      saveMessagesToStorage(updated);
+      setMessages(prev => prev.map(m => {
+        if (m.id === deleteConfMsg.id) {
+          return {
+             ...m,
+             text: "🚫 This message was deleted",
+             attachments: [],
+             call_summary: undefined,
+             audio_url: undefined,
+             is_voice_note: false
+          };
+        }
+        return m;
+      }));
     }
     setDeleteConfMsg(null);
   };
@@ -700,7 +767,7 @@ export default function AdminTeamChat() {
   };
 
   const handleJoinGoogleMeet = (messageId: string) => {
-    const defaultEmail = user?.email || dbUser?.email || "nasikakavitha@gmail.com";
+    const defaultEmail = user?.email || dbUser?.email || "";
     setJoinUserEmailInput(defaultEmail);
     setJoinMeetModalMsgId(messageId);
   };
@@ -794,81 +861,111 @@ export default function AdminTeamChat() {
     saveMessagesToStorage(updated);
   };
 
-  const handleCreateGoogleMeet = async (title: string, selectedParticipants: string[], hostEmail?: string) => {
-    const defaultEmail = user?.email || dbUser?.email || "nasikakavitha@gmail.com";
-    const finalHostEmail = hostEmail || createHostEmailInput || defaultEmail;
+  
+  const googleLogin = useGoogleLogin({
+    flow: 'auth-code',
+    scope: 'https://www.googleapis.com/auth/meetings.space.created',
+    onSuccess: async (codeResponse) => {
+      try {
+        const res = await fetch('/api/google/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: codeResponse.code, userId: currentAdminId })
+        });
+        
+        if (res.ok) {
+           const pendingTitle = sessionStorage.getItem("pendingMeetTitle") || "";
+           const pendingParticipantsStr = sessionStorage.getItem("pendingMeetParticipants");
+           const pendingRoomId = sessionStorage.getItem("pendingMeetRoomId") || activeRoomId;
+           const participants = pendingParticipantsStr ? JSON.parse(pendingParticipantsStr) : [];
+           
+           sessionStorage.removeItem("pendingMeetRoomId");
+           sessionStorage.removeItem("pendingMeetTitle");
+           sessionStorage.removeItem("pendingMeetParticipants");
+           
+           const meetLink = await createGoogleMeetBackend(pendingTitle, currentAdminId);
+           if (meetLink) {
+             finalizeMeetingCreation(pendingTitle, participants, currentAdminName, pendingRoomId, meetLink);
+           } else {
+             alert("Failed to create Google Meet room. Please try again.");
+           }
+        } else {
+           alert("Google Meet authorization is not configured correctly for this environment.");
+        }
+      } catch (err) {
+         console.error(err);
+         alert("Google Meet couldn't be connected. Please check Google connection.");
+      }
+    },
+    onError: (errorResponse) => {
+      console.error(errorResponse);
+      alert("Google Meet couldn't be connected.");
+    }
+  });
 
-    // Prevent duplicate meetings in the same channel
-    const activeMeeting = getActiveMeetingForRoom(activeRoomId);
+  const handleCreateGoogleMeet = async (title: string, selectedParticipants: string[], hostEmail?: string, targetRoomId?: string) => {
+    const roomIdToUse = targetRoomId || activeRoomId;
+    const activeMeeting = getActiveMeetingForRoom(roomIdToUse);
+    
     if (activeMeeting) {
-      alert(`A Google Meet ("${activeMeeting.call_summary?.title || 'Team Sync'}") is already in progress in this channel. Please join or end the existing meeting before creating a new one.`);
+      alert(`A Google Meet ("${activeMeeting.call_summary?.title || 'Team Sync'}") is already in progress in this channel.`);
       setIsNewCallDialogOpen(false);
       return;
     }
 
-    try {
-      let meetLink = await createGoogleMeet(title);
-      if (!meetLink) {
-        const result = await googleSignIn();
-        if (result) {
-          meetLink = await createGoogleMeet(title);
-        }
-      }
+    // Try to create immediately. If backend says 401 (Not authenticated), trigger popup.
+    const res = await fetch("/api/google/meet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ summary: title, userId: currentAdminId }),
+    });
 
-      if (meetLink) {
-        const now = new Date().toISOString();
-        const hostParticipantLabel = `${currentAdminName} (${finalHostEmail})`;
-        const newMsg: ChatMessage = {
-          id: "msg_" + Date.now(),
-          room_id: activeRoomId,
-          sender_id: currentAdminId,
-          sender_name: currentAdminName,
-          text: "Created a Google Meet: " + title,
-          created_at: now,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          call_summary: {
-            title: title,
-            type: "video" as "video",
-            duration: "Waiting for participants...",
-            participants: selectedParticipants,
-            joinedParticipants: [hostParticipantLabel],
-            joinedParticipantEmails: [finalHostEmail],
-            meet_link: meetLink,
-            meet_status: "Waiting" as const,
-            organizerId: currentAdminId,
-            organizerName: currentAdminName,
-            organizerEmail: finalHostEmail,
-            createdAt: now
-          }
-        };
+    if (res.status === 401) {
+       // Need auth
+       sessionStorage.setItem("pendingMeetRoomId", roomIdToUse);
+       sessionStorage.setItem("pendingMeetTitle", title || "");
+       sessionStorage.setItem("pendingMeetParticipants", JSON.stringify(selectedParticipants));
+       googleLogin();
+       return;
+    }
 
-        const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
-        let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : messages;
-        saveMessagesToStorage([...allMessages, newMsg]);
-        setIsNewCallDialogOpen(false);
-
-        // Dispatch Gmail Invitation via Gmail API
-        const emailContent = EmailTemplates.meetingInvite(
-          title,
-          meetLink,
-          currentAdminName,
-          finalHostEmail,
-          new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " Today"
-        );
-        sendEmailViaGmail({
-          to: finalHostEmail,
-          subject: emailContent.subject,
-          bodyHtml: emailContent.html,
-          category: 'meeting_invite'
-        }).catch(err => console.error("Email send warning:", err));
-      }
-    } catch (e) {
-      console.error(e);
-      alert("Failed to create Google Meet");
+    if (res.ok) {
+       const data = await res.json();
+       finalizeMeetingCreation(title, selectedParticipants, currentAdminName, roomIdToUse, data.meetingUri);
+    } else {
+       alert("Google Meet authorization is not configured correctly for this environment.");
     }
   };
 
-  const handleToggleReaction = (msgId: string, emoji: string) => {
+  const finalizeMeetingCreation = (title: string, selectedParticipants: string[], hostName: string, roomIdToUse: string, meetLink: string) => {
+      const now = new Date().toISOString();
+      const newMsg = {
+        id: "msg_" + Date.now(),
+        room_id: roomIdToUse,
+        sender_id: currentAdminId,
+        sender_name: currentAdminName,
+        text: "Created a Google Meet: " + title,
+        created_at: now,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        call_summary: {
+          title: title,
+          type: "video" as "video",
+          duration: "Waiting for participants...",
+          participants: selectedParticipants,
+          status: "active" as "active",
+          host_name: currentAdminName,
+          meeting_link: meetLink,
+        },
+      };
+
+      const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
+      let allMessages = savedMsg ? JSON.parse(savedMsg) : [];
+      allMessages.push(newMsg);
+      saveMessagesToStorage(allMessages);
+      setIsNewCallDialogOpen(false);
+  };
+  
+const handleToggleReaction = (msgId: string, emoji: string) => {
     const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
     let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : [];
 
@@ -1333,7 +1430,7 @@ export default function AdminTeamChat() {
   const renderMessageTextWithMentionsHighlight = (text: string) => {
     if (!text) return "";
     const words = text.split(/(\s+)/);
-    const mKeywords = ["@arun", "@priya", "@kavitha", "@kiki", "@testadmin"];
+    const mKeywords = ["@admin", "@support"];
 
     return words.map((word, idx) => {
       const lower = word.toLowerCase();
@@ -1522,7 +1619,7 @@ export default function AdminTeamChat() {
                  onClick={() => {
                      const link = prompt("Paste your Google Meet link (e.g. https://meet.google.com/abc-defg-hij)");
                      if (link && link.includes("meet.google.com")) {
-                       handleSend(link);
+                       handleSendMessage(link);
                        setIsNewCallDialogOpen(false);
                      }
                  }}
@@ -1601,7 +1698,7 @@ export default function AdminTeamChat() {
                       type="email"
                       value={joinUserEmailInput}
                       onChange={(e) => setJoinUserEmailInput(e.target.value)}
-                      placeholder="e.g., nasikakavitha@gmail.com"
+                      placeholder="e.g., host@example.com"
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
                     />
                     <p className="text-[10px] text-slate-400 mt-1">
@@ -1705,12 +1802,7 @@ export default function AdminTeamChat() {
             </button>
           )}
 
-          <Group
-            key={panelKey}
-            orientation="horizontal"
-            onLayoutChanged={savePanelSizesToPersistence}
-            defaultLayout={panelLayouts}
-          >
+          <div className="flex flex-row w-full h-full overflow-hidden">
             
             {/* PANEL 2: CHANNELS LIST */}
             {isChannelsSidebarOpen && (
@@ -1752,24 +1844,7 @@ export default function AdminTeamChat() {
                   </div>
                 </div>
               ) : (
-                <Panel
-                  id="channels-panel"
-                  minSize={12}
-                  maxSize={30}
-                  collapsible={true}
-                  collapsedSize={0}
-                  onResize={(panelSize) => {
-                    const collapsed = panelSize.asPercentage === 0;
-                    setIsChannelsSidebarCollapsed(prev => {
-                      if (prev !== collapsed) {
-                        return collapsed;
-                      }
-                      return prev;
-                    });
-                  }}
-                  panelRef={channelsPanelRef}
-                  className="flex flex-col bg-slate-50/25 dark:bg-[#070C15]/20 border-r border-[#E2E8F0] dark:border-[#1E293B] h-full max-h-full select-none"
-                >
+                <div className="w-[280px] min-w-[280px] shrink-0 flex flex-col bg-slate-50/25 dark:bg-[#070C15]/20 border-r border-[#E2E8F0] dark:border-[#1E293B] h-full max-h-full select-none overflow-hidden">
                   
                   {/* Header search bar */}
                   <div className="p-2.5 border-b border-slate-200 dark:border-slate-800 shrink-0 flex items-center gap-2">
@@ -2111,19 +2186,14 @@ export default function AdminTeamChat() {
                     </div>
                   </div>
 
-                </Panel>
+                </div>
               )
             )}
 
-            {isChannelsSidebarOpen && !sidebarCollapsed && <CustomResizeHandle />}
+            
 
             {/* PANEL 3: CHAT WINDOW IN THE MIDDLE */}
-            <Panel
-              id="chat-panel"
-              minSize={35}
-              maxSize={75}
-              className="flex flex-col h-full bg-slate-50/10 dark:bg-[#070c15]/5 relative min-w-[360px] lg:min-w-[600px] xl:min-w-[700px] overflow-hidden"
-            >
+            <div className="flex-1 min-w-[400px] flex flex-col h-full bg-slate-50/10 dark:bg-[#070c15]/5 relative overflow-hidden">
               
               {/* Pinned Messages Header notification banner */}
               {pinnedMessagesInRoom.length > 0 && (
@@ -2192,7 +2262,20 @@ export default function AdminTeamChat() {
                   
                   {/* Gmail Button */}
                   <button
-                    onClick={() => setShowGmailCenter(true)}
+                    onClick={() => {
+                      const activeMeeting = getActiveMeetingForRoom(activeRoomId);
+                      if (activeMeeting) {
+                         setGmailInitialData({
+                           tab: 'compose',
+                           template: 'meeting_invite',
+                           title: activeMeeting.call_summary?.title,
+                           link: activeMeeting.call_summary?.meet_link
+                         });
+                      } else {
+                         setGmailInitialData({ tab: 'log' });
+                      }
+                      setShowGmailCenter(true);
+                    }}
                     className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-sm"
                     title="Gmail"
                   >
@@ -2210,7 +2293,21 @@ export default function AdminTeamChat() {
                     if (!activeMeeting) {
                       return (
                         <button
-                          onClick={() => setIsNewCallDialogOpen(true)}
+                          onClick={() => {
+                            let roomTitle = "Team Sync";
+                            let selectedNames: string[] = [];
+                            if (activeRoomId === "global") {
+                              roomTitle = "General Channel Sync";
+                            } else if (activeRoomId.startsWith("dm_")) {
+                              const peerId = activeRoomId.replace("dm_", "");
+                              const peer = teammates.find(t => t.id === peerId);
+                              if (peer) {
+                                roomTitle = `Sync with ${peer.name}`;
+                                selectedNames = [peer.name];
+                              }
+                            }
+                            handleCreateGoogleMeet(roomTitle, selectedNames);
+                          }}
                           className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-sm"
                           title="Google Meet"
                         >
@@ -2365,7 +2462,7 @@ export default function AdminTeamChat() {
                     return (
                       <div
                         key={m.id}
-                        className={`flex gap-2 items-center w-full min-w-0 ${isSelf ? "flex-row-reverse" : "flex-row"}`}
+                        className={`flex items-start w-full min-w-0 hover:bg-slate-50 dark:hover:bg-slate-900/40 py-3 transition-colors`}
                       >
                         {/* Batch Selection Checkbox */}
                         {isSelectModeActive && (
@@ -2385,31 +2482,54 @@ export default function AdminTeamChat() {
                           </div>
                         )}
 
-                        <div
-                          className={`max-w-[75%] lg:max-w-[700px] min-w-[120px] flex flex-col space-y-1 ${isSelf ? "self-end items-end" : "self-start items-start"}`}
-                        >
-                          {/* Sender details */}
-                          <div className={`text-[10px] text-slate-400 font-bold px-1.5 flex items-center gap-1.5 select-none leading-none ${isSelf ? "justify-end" : "justify-start"} w-full`}>
-                            {m.sender_name}
-                            <span className="text-[9px] font-medium text-slate-400 leading-none">{m.time}</span>
-                            {m.is_edited && <span className="text-[9px] text-indigo-400 italic font-normal leading-none">{"(edited)"}</span>}
-                            {m.is_pinned && <span className="text-[9px] text-amber-500 font-bold flex items-center gap-0.5 leading-none">{"📌 Pinned"}</span>}
+                        <div className="flex gap-3 w-full max-w-[850px] min-w-0 pl-2 pr-4 relative">
+                          <div className="shrink-0 mt-0.5 relative">
+                             <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                {(() => {
+                                  const av = teammates.find(t => t.id === m.sender_id || t.name === m.sender_name)?.avatar || "👤";
+                                  if (av.startsWith('http') || av.startsWith('data:')) {
+                                    return <img src={av} alt={m.sender_name} className="w-full h-full object-cover" />;
+                                  }
+                                  return <span>{av}</span>;
+                                })()}
+                             </div>
                           </div>
+                          
+                          <div className="flex flex-col min-w-0 w-full group">
+                            {/* Sender details */}
+                            <div className="flex items-baseline gap-2 mb-1">
+                              <span className="font-bold text-[13px] text-slate-900 dark:text-slate-100 leading-tight truncate max-w-[200px]" title={m.sender_name}>
+                                {m.sender_name}
+                              </span>
+                              <span className="text-[10px] font-medium text-slate-400 leading-tight">
+                                {m.time}
+                              </span>
+                              <span className="text-[10px] font-semibold text-indigo-500 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-1.5 py-0.5 rounded leading-tight ml-1">
+                                {teammates.find(t => t.id === m.sender_id || t.name === m.sender_name)?.role || (isSelf ? "Administrator" : "Member")}
+                              </span>
+                              {m.is_edited && <span className="text-[9px] text-indigo-400 italic font-normal leading-tight ml-1">{"(edited)"}</span>}
+                              {m.is_pinned && <span className="text-[9px] text-amber-500 font-bold flex items-center gap-0.5 leading-tight ml-1">{"📌 Pinned"}</span>}
+                              {isSelf && (
+                                <div className="opacity-70 ml-1.5 mt-0.5 flex items-center">
+                                  {m.message_status === "read" ? (
+                                    <CheckCheck className="w-3.5 h-3.5 text-sky-400" title={"Read (✓✓ Blue)"} />
+                                  ) : m.message_status === "delivered" ? (
+                                    <CheckCheck className="w-3.5 h-3.5 text-slate-300 dark:text-slate-500" title={"Delivered (✓✓ Gray)"} />
+                                  ) : (
+                                    <Check className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600" title={"Sent (✓ Gray)"} />
+                                  )}
+                                </div>
+                              )}
+                            </div>
 
-                          {/* Text bubble bubble */}
-                          <div className={`p-3 rounded-2xl border text-xs text-left relative group leading-relaxed font-sans min-w-0 break-words ${
-                            isSelf
-                              ? "bg-indigo-600 border-indigo-500 text-white rounded-tr-none"
-                              : "bg-white dark:bg-[#111A2E] border-slate-200 dark:border-slate-800 text-black dark:text-white rounded-tl-none shadow-xs"
-                          } ${isSelected ? "ring-2 ring-indigo-400 ring-offset-2 dark:ring-offset-slate-900" : ""}`}>
+                            {/* Text message content */}
+                            <div className={`text-[13px] text-slate-700 dark:text-slate-300 relative leading-relaxed font-sans min-w-0 break-words whitespace-pre-wrap ${
+                              isSelected ? "bg-indigo-50 dark:bg-indigo-900/10 -ml-2 -mr-2 px-2 py-1 rounded" : ""
+                            }`}>
                             
                             {/* Reply quotation preview nested block */}
                           {m.reply_to && (
-                            <div className={`p-2 rounded-xl mb-2 border text-[10px] leading-tight flex items-start gap-1 ${
-                              isSelf
-                                ? "bg-indigo-700/60 border-indigo-500/50 text-indigo-100"
-                                : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-black/80 dark:text-white/80"
-                            }`}>
+                            <div className={`p-2 rounded-xl mb-2 border text-[10px] leading-tight flex items-start gap-1 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 w-max max-w-full`}>
                               <CornerDownRight className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-60" />
                               <div className="truncate min-width-0">
                                 <strong className="block text-[9.5px] font-black uppercase tracking-wide">
@@ -2562,6 +2682,34 @@ export default function AdminTeamChat() {
                                      >
                                        Copy Link
                                      </button>
+                                     <button
+                                       type="button"
+                                       onClick={() => {
+                                         const shareData = {
+                                           title: m.call_summary?.title || "Meeting",
+                                           text: `Join this Google Meet: ${m.call_summary?.title}`,
+                                           url: m.call_summary?.meet_link
+                                         };
+                                         if (navigator.share) {
+                                           navigator.share(shareData).catch(console.error);
+                                         } else {
+                                           navigator.clipboard.writeText(m.call_summary?.meet_link || "");
+                                           alert("Link copied for sharing!");
+                                         }
+                                       }}
+                                       className="flex-1 py-2 text-center text-slate-400 hover:text-white hover:bg-slate-800/50 text-[11px] font-bold transition-colors cursor-pointer border-r border-slate-800/80"
+                                     >
+                                       Share
+                                     </button>
+                                     <button
+                                       type="button"
+                                       onClick={() => {
+                                         window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(m.call_summary?.title || "Team Sync")}&location=${encodeURIComponent(m.call_summary?.meet_link || "")}`, '_blank');
+                                       }}
+                                       className="flex-1 py-2 text-center text-slate-400 hover:text-white hover:bg-slate-800/50 text-[11px] font-bold transition-colors cursor-pointer border-r border-slate-800/80"
+                                     >
+                                       Calendar
+                                     </button>
                                      {m.call_summary.joinedParticipants?.includes(currentAdminName) && (
                                        <button
                                          type="button"
@@ -2628,8 +2776,8 @@ export default function AdminTeamChat() {
                                 className="text-xs bg-slate-50 dark:bg-slate-950 text-black dark:text-white p-2 border-slate-300 dark:border-slate-800 h-16 rounded-lg font-medium"
                               />
                               <div className="flex gap-1.5 justify-end">
-                                <Button size="xs" variant="outline" className={`h-6 text-[10px] ${isSelf ? "text-white border-white/30 hover:bg-white/10" : "text-black dark:text-white"}`} onClick={() => setEditingMessageId(null)}>{"Cancel"}</Button>
-                                <Button size="xs" className={`h-6 text-[10px] bg-emerald-600 hover:bg-emerald-700 border-none ${isSelf ? "text-white" : "text-black dark:text-white"}`} onClick={() => handleSaveEditMessage(m.id)}>{"Save"}</Button>
+                                <Button size="xs" variant="outline" className={`h-6 text-[10px] text-black dark:text-white`} onClick={() => setEditingMessageId(null)}>{"Cancel"}</Button>
+                                <Button size="xs" className={`h-6 text-[10px] bg-emerald-600 hover:bg-emerald-700 border-none text-white`} onClick={() => handleSaveEditMessage(m.id)}>{"Save"}</Button>
                               </div>
                             </div>
                           ) : m.text && (!m.call_summary || (!m.text.includes("Team Call Completed") && !m.text.includes("Ad-hoc Triage Huddle Notes") && m.text !== "Team Call Summary")) ? (
@@ -2640,7 +2788,7 @@ export default function AdminTeamChat() {
                                 return (
                                   <>
                                     {!isOnlyMeetLink && (
-                                      <p className={`whitespace-pre-wrap break-words pr-4 select-text font-medium leading-relaxed font-sans text-xs ${isSelf ? "text-white" : "text-black dark:text-white"}`}>
+                                      <p className={`whitespace-pre-wrap break-words pr-4 select-text leading-relaxed font-sans text-[13px] text-slate-700 dark:text-slate-300`}>
                                         {renderMessageTextWithMentionsHighlight(m.text)}
                                       </p>
                                     )}
@@ -2693,29 +2841,16 @@ export default function AdminTeamChat() {
                             </div>
                           )}
 
-                          {/* Read Receipts progress representation */}
-                          {isSelf && (
-                            <div className="absolute right-1.5 bottom-1 opacity-70">
-                              {m.message_status === "read" ? (
-                                <CheckCheck className="w-3.5 h-3.5 text-sky-400" title={"Read (✓✓ Blue)"} />
-                              ) : m.message_status === "delivered" ? (
-                                <CheckCheck className="w-3.5 h-3.5 text-slate-300" title={"Delivered (✓✓ Gray)"} />
-                              ) : (
-                                <Check className="w-3.5 h-3.5 text-slate-400" title={"Sent (✓ Gray)"} />
-                              )}
-                            </div>
-                          )}
+
 
                           {/* Visual Float actions modal buttons */}
                           {!activeChannelObj?.is_archived && (
-                            <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 duration-150 z-30 ${
-                              isSelf ? "right-full mr-2" : "left-full ml-1"
-                            }`}>
+                            <div className={`absolute top-3 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 duration-150 z-30 bg-white dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm`}>
                               
                               {/* Quick Smile Quick Reaction Button on hover */}
                               <button
                                 onClick={() => setShowEmojiPicker(showEmojiPicker === m.id ? null : m.id)}
-                                className="w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 rounded-lg flex items-center justify-center cursor-pointer shadow-xs border-none"
+                                className="w-6 h-6 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 rounded flex items-center justify-center cursor-pointer transition-colors border-none"
                                 title={"Add Quick Reaction"}
                               >
                                 <Smile className="w-3.5 h-3.5" />
@@ -2724,120 +2859,31 @@ export default function AdminTeamChat() {
                               {/* Three-Dot ⋮ message option trigger */}
                               <div className="relative">
                                 <button
-                                  onClick={() => setActiveMessageActionId(activeMessageActionId === m.id ? null : m.id)}
-                                  className={`w-6 h-6 border rounded-lg flex items-center justify-center cursor-pointer shadow-xs ${
-                                    activeMessageActionId === m.id
-                                      ? "bg-indigo-100 dark:bg-indigo-950 border-indigo-400 text-indigo-650 dark:text-indigo-400"
-                                      : "bg-white dark:bg-slate-800 border-slate-205 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-505"
-                                  }`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (activeMenuPos?.id === m.id) {
+                                      setActiveMenuPos(null);
+                                    } else {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      const spaceBelow = window.innerHeight - rect.bottom;
+                                      const up = spaceBelow < 150;
+                                      setActiveMenuPos({
+                                        id: m.id,
+                                        x: Math.max(10, rect.right - 176),
+                                        y: up ? rect.top : rect.bottom,
+                                        up,
+                                        isSelf,
+                                        msg: m
+                                      });
+                                    }
+                                  }}
+                                  className={`w-6 h-6 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 rounded flex items-center justify-center cursor-pointer transition-colors border-none ${activeMenuPos?.id === m.id ? "bg-slate-100 dark:bg-slate-800" : ""}`}
                                   title={"Message Actions"}
                                 >
                                   <MoreVertical className="w-3.5 h-3.5" />
                                 </button>
 
-                                {activeMessageActionId === m.id && (
-                                  <>
-                                  <div className="fixed inset-0 z-40 cursor-default" onClick={(e) => { e.stopPropagation(); setActiveMessageActionId(null); }} />
-                                  <div className={`absolute bottom-full mb-1 w-44 bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 overflow-hidden font-bold py-1 text-[11px] text-left text-slate-800 dark:text-slate-200 ${
-                                    isSelf ? "right-0" : "left-0"
-                                  }`}>
-                                    <div className="px-3 py-1 text-[9px] uppercase font-mono tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-950/10 mb-1">
-                                      {"Message Options"}</div>
-
-                                    <button
-                                      onClick={() => {
-                                        setActiveMessageActionId(null);
-                                        setReplyTarget(m);
-                                      }}
-                                      className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 flex items-center gap-2 border-none cursor-pointer bg-transparent text-slate-700 dark:text-slate-200"
-                                    >
-                                      <Reply className="w-3.5 h-3.5 text-indigo-500" />
-                                      {"Reply Message"}</button>
-
-                                    {isSelf && (
-                                      <button
-                                        onClick={() => {
-                                          setActiveMessageActionId(null);
-                                          setEditingMessageId(m.id);
-                                          setEditInput(m.text);
-                                        }}
-                                        className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 flex items-center gap-2 border-none cursor-pointer bg-transparent text-slate-700 dark:text-slate-200"
-                                      >
-                                        <Edit2 className="w-3.5 h-3.5 text-blue-500" />
-                                        {"Edit Text"}</button>
-                                    )}
-
-                                    <button
-                                      onClick={() => {
-                                        setActiveMessageActionId(null);
-                                        handleCopyToClipboard(m.text);
-                                      }}
-                                      className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 flex items-center gap-2 border-none cursor-pointer bg-transparent text-slate-700 dark:text-slate-200"
-                                    >
-                                      <FileText className="w-3.5 h-3.5 text-slate-400" />
-                                      {"Copy Text"}</button>
-
-                                    <button
-                                      onClick={() => {
-                                        setActiveMessageActionId(null);
-                                        handleTogglePinMessage(m.id);
-                                      }}
-                                      className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 flex items-center gap-2 border-none cursor-pointer bg-transparent text-slate-700 dark:text-slate-200"
-                                    >
-                                      <Pin className="w-3.5 h-3.5 text-amber-550 rotate-45" />
-                                      {m.is_pinned ? "Unpin Message" : "Pin Message"}
-                                    </button>
-
-                                    <button
-                                      onClick={() => {
-                                        setActiveMessageActionId(null);
-                                        setForwardDialogMsg(m);
-                                      }}
-                                      className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 flex items-center gap-2 border-none cursor-pointer bg-transparent text-slate-700 dark:text-slate-200"
-                                    >
-                                      <ArrowRight className="w-3.5 h-3.5 text-teal-500" />
-                                      {"Forward ..."}</button>
-
-                                    <button
-                                      onClick={() => {
-                                        setActiveMessageActionId(null);
-                                        setShowEmojiPicker(m.id);
-                                      }}
-                                      className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 flex items-center gap-2 border-none cursor-pointer bg-transparent text-slate-700 dark:text-slate-200"
-                                    >
-                                      <Smile className="w-3.5 h-3.5 text-amber-500" />
-                                      {"Add Reaction"}</button>
-
-                                    <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
-
-                                    <button
-                                      onClick={() => {
-                                        setActiveMessageActionId(null);
-                                        handleDeleteForMe(m.id);
-                                      }}
-                                      className="w-full text-left px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 flex items-center gap-2 border-none cursor-pointer bg-transparent"
-                                      title={"Hide message from my feed"}
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                      {"Delete for Me"}</button>
-
-                                    {/* The logged-in administrator can delete any message for everyone */}
-                                    {true && (
-                                      <button
-                                        onClick={() => {
-                                          setActiveMessageActionId(null);
-                                          setDeleteConfMsg(m);
-                                        }}
-                                        className="w-full text-left px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 flex items-center gap-2 border-none cursor-pointer bg-transparent"
-                                        title={"Delete message for all participants"}
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                        {"Delete for Everyone"}</button>
-                                    )}
-
-                                  </div>
-                                  </>
-                                )}
+                                
                               </div>
 
                             </div>
@@ -2859,6 +2905,7 @@ export default function AdminTeamChat() {
                           )}
 
                         </div>
+                      </div>
                       </div>
                       </div>
                     );
@@ -3026,8 +3073,34 @@ export default function AdminTeamChat() {
                       </div>
                     )}
 
-                    {/* Unified Whatsapp/Discord-style message input and controls layout */}
-                    <div className="flex flex-col bg-slate-100/60 dark:bg-slate-900/40 border border-slate-205 dark:border-slate-800 rounded-2xl overflow-hidden focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all p-1">
+                    
+              {showMainEmojiPicker && (
+                <div className="absolute bottom-[100px] left-2 z-[999] shadow-2xl rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-fade-in" style={{ backgroundColor: 'var(--tw-colors-slate-900)' }}>
+                  <div className="w-[320px] h-[300px] bg-white dark:bg-slate-900 flex flex-col p-3">
+                    <div className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2">Emojis</div>
+                    <div className="flex-1 overflow-y-auto grid grid-cols-6 gap-2 content-start [scrollbar-width:thin]">
+                      {["😀", "😂", "🥰", "😎", "🤔", "😅", "😊", "🥳", "😭", "😤", "👍", "👎", "👏", "🙌", "🤝", "🙏", "❤️", "🔥", "✨", "💯", "✅", "❌", "❓", "❗", "🎉", "🎈", "🎂", "🚀", "💡", "⭐", "🎵", "👀", "👽", "🤖", "👻", "🤓", "🤡", "💩", "💀", "💪", "🏃", "🚶", "🍔", "🍕", "☕", "🍺", "🥂", "🚗", "✈️", "🌍", "🌈", "☀️", "🌙", "🌧️", "❄️"].map(em => (
+                        <button
+                          key={em}
+                          type="button"
+                          onClick={() => {
+                            setCommentInput(prev => prev + em);
+                          }}
+                          className="hover:bg-slate-100 dark:hover:bg-slate-800 text-xl w-10 h-10 flex items-center justify-center rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+                        >
+                          {em}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => setShowMainEmojiPicker(false)} className="absolute top-2 right-6 bg-slate-100/50 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-700 p-1 rounded-md text-slate-500 cursor-pointer z-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  </button>
+                </div>
+              )}
+
+{/* Unified Whatsapp/Discord-style message input and controls layout */}
+                    <div className="flex flex-col relative bg-slate-100/60 dark:bg-slate-900/40 border border-slate-205 dark:border-slate-800 rounded-2xl overflow-hidden focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all p-1">
                       
                       {/* Multiline auto-wrapping Textarea box */}
                       <textarea
@@ -3047,6 +3120,9 @@ export default function AdminTeamChat() {
                         placeholder={`${"Message to #"}${activeChannelObj?.name || "chat"}...`}
                         className="w-full bg-transparent border-none text-xs text-black dark:text-white p-2.5 focus:outline-none resize-none font-medium placeholder-slate-400 [scrollbar-width:thin] min-h-[50px] max-h-[140px]"
                       />
+
+                      
+              
 
                       {/* Action Bar footer containing attachment, emoji, mic, AI popover option and Send */}
                       <div className="flex items-center justify-between px-2 py-1.5 border-t border-slate-150 dark:border-slate-800/40 bg-slate-155/30 dark:bg-slate-950/25">
@@ -3081,12 +3157,8 @@ export default function AdminTeamChat() {
                           {/* Smiley Emoji helper */}
                           <button
                             type="button"
-                            onClick={() => {
-                              const coreEmoji = ["😀", "👍", "🔥", "🚀", "🙌", "💀", "👀", "🎉"];
-                              const picked = coreEmoji[Math.floor(Math.random() * coreEmoji.length)];
-                              setCommentInput(prev => prev + picked);
-                            }}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer transition-all shrink-0 border-none bg-transparent"
+                            onClick={() => setShowMainEmojiPicker(prev => !prev)}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all shrink-0 border-none ${showMainEmojiPicker ? 'bg-slate-200 dark:bg-slate-800 text-indigo-500' : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 bg-transparent'}`}
                             title={"Insert instant reaction emoji (😀)"}
                           >
                             <Smile className="w-4 h-4" />
@@ -3198,20 +3270,14 @@ export default function AdminTeamChat() {
                 )}
               </div>
 
-            </Panel>
+            </div>
 
             {showMembersPanel && (
               <>
-                <CustomResizeHandle />
+                
 
                 {/* PANEL 4: USER DIRECTORY ACTIVE PRESENCES */}
-                <Panel
-                  id="users-panel"
-                  minSize={15}
-                  maxSize={35}
-                  defaultSize={25}
-                  className="flex flex-col bg-slate-50/50 dark:bg-[#070C15]/40 h-full max-h-full select-none"
-                >
+                <div className="w-[300px] min-w-[300px] shrink-0 flex flex-col bg-slate-50/50 dark:bg-[#070C15]/40 h-full max-h-full select-none border-l border-slate-200 dark:border-slate-800 overflow-hidden">
                   
                   <div className="p-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
                     <span className="text-[10px] uppercase font-mono tracking-wider font-bold text-slate-400 block px-0.5 leading-none">
@@ -3286,7 +3352,11 @@ export default function AdminTeamChat() {
                             />
 
                             {/* Avatar */}
-                            <span className="text-sm shrink-0 select-none">{m.avatar}</span>
+                            {m.avatar.startsWith('http') || m.avatar.startsWith('data:') ? (
+                              <img src={m.avatar} alt={m.name} className="w-5 h-5 rounded-full object-cover shrink-0 select-none" />
+                            ) : (
+                              <span className="text-sm shrink-0 select-none">{m.avatar}</span>
+                            )}
                             
                             <div className="truncate min-w-0 text-left">
                               <span className="font-extrabold text-slate-850 dark:text-slate-100 block leading-tight truncate" title={m.name}>
@@ -3350,11 +3420,11 @@ export default function AdminTeamChat() {
                     </div>
                   </div>
 
-                </Panel>
+                </div>
               </>
             )}
 
-          </Group>
+          </div>
         </div>
       )}
 
@@ -3802,11 +3872,65 @@ export default function AdminTeamChat() {
       {showGmailCenter && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
           <div className="w-full max-w-4xl h-[85vh] max-h-[720px]">
-            <GmailEmailCenterPanel onClose={() => setShowGmailCenter(false)} />
+            <GmailEmailCenterPanel 
+              onClose={() => setShowGmailCenter(false)} 
+              initialTab={gmailInitialData?.tab}
+              initialTemplate={gmailInitialData?.template}
+              initialMeetTitle={gmailInitialData?.title}
+              initialMeetLink={gmailInitialData?.link}
+            />
           </div>
         </div>
       )}
 
+
+      {/* Global Context Menu */}
+      {activeMenuPos && (
+        <div className="fixed inset-0 z-[99999]" onClick={() => setActiveMenuPos(null)} onContextMenu={(e) => { e.preventDefault(); setActiveMenuPos(null); }}>
+          <div 
+            className="fixed w-44 bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden font-bold py-1 text-[12px] text-left text-slate-800 dark:text-slate-200 animate-in fade-in zoom-in-95 duration-100 flex flex-col"
+            style={{
+              left: activeMenuPos.x,
+              ...(activeMenuPos.up ? { bottom: window.innerHeight - activeMenuPos.y + 5 } : { top: activeMenuPos.y + 5 })
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => {
+                handleDeleteForMe(activeMenuPos.id);
+                setActiveMenuPos(null);
+              }}
+              className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200 flex items-center gap-2 border-none cursor-pointer bg-transparent transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              {"Delete for me"}
+            </button>
+            
+            {(activeMenuPos.isSelf || currentAdminName === "Nasika Kavitha") && (
+              <button
+                onClick={() => {
+                  setDeleteConfMsg(activeMenuPos.msg);
+                  setActiveMenuPos(null);
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 flex items-center gap-2 border-none cursor-pointer bg-transparent transition-colors"
+              >
+                <AlertCircle className="w-4 h-4" />
+                {"Delete for everyone"}
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                setActiveMenuPos(null);
+              }}
+              className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200 flex items-center gap-2 border-none cursor-pointer bg-transparent transition-colors"
+            >
+              <X className="w-4 h-4" />
+              {"Cancel"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

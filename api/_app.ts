@@ -6,6 +6,7 @@ const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabase
 
 import express from "express";
 import path from "path";
+import googleMeetRouter from "./google_meet.ts";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";

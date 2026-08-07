@@ -14,21 +14,33 @@ import {
   EmailTemplates 
 } from "../lib/google/index.ts";
 
-export function GmailEmailCenterPanel({ onClose }: { onClose?: () => void }) {
+export function GmailEmailCenterPanel({ 
+  onClose,
+  initialTab = 'log',
+  initialTemplate = 'admin_invite',
+  initialMeetTitle = 'Weekly Executive Sync',
+  initialMeetLink = 'https://meet.google.com/abc-defg-hij'
+}: { 
+  onClose?: () => void,
+  initialTab?: 'log' | 'compose',
+  initialTemplate?: 'custom' | 'admin_invite' | 'meeting_invite' | 'announcement',
+  initialMeetTitle?: string,
+  initialMeetLink?: string
+}) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(isGmailAuthenticated());
   const [emails, setEmails] = useState<SentEmailRecord[]>(getSentEmailsLog());
   const [selectedEmail, setSelectedEmail] = useState<SentEmailRecord | null>(null);
 
   // Quick Compose state
-  const [activeTab, setActiveTab] = useState<'log' | 'compose'>('log');
-  const [templateType, setTemplateType] = useState<'custom' | 'admin_invite' | 'meeting_invite' | 'announcement'>('admin_invite');
+  const [activeTab, setActiveTab] = useState<'log' | 'compose'>(initialTab);
+  const [templateType, setTemplateType] = useState<'custom' | 'admin_invite' | 'meeting_invite' | 'announcement'>(initialTemplate);
   const [toEmail, setToEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [customBody, setCustomBody] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [roleInput, setRoleInput] = useState("Administrator");
-  const [meetTitle, setMeetTitle] = useState("Weekly Executive Sync");
-  const [meetLink, setMeetLink] = useState("https://meet.google.com/abc-defg-hij");
+  const [meetTitle, setMeetTitle] = useState(initialMeetTitle);
+  const [meetLink, setMeetLink] = useState(initialMeetLink);
   const [sending, setSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState("");
 

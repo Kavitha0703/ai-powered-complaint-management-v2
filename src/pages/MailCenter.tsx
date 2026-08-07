@@ -11,6 +11,9 @@ import {
 } from "../lib/google/index.ts";
 import { useAuth } from "../lib/AuthContext.tsx";
 import { Button } from "../../components/ui/button.tsx";
+import { EmailEditor, EmailBlock } from "../components/mail/EmailEditor.tsx";
+import { RichTextEditor } from "../components/mail/RichTextEditor.tsx";
+import { renderEmailHtml } from "../components/mail/EmailRenderer.tsx";
 import { Input } from "../../components/ui/input.tsx";
 
 interface MailAuditEntry {
@@ -99,6 +102,7 @@ export default function MailCenter() {
 
   // Templates state
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>("adminInvite");
+  const [customBlocks, setCustomBlocks] = useState<EmailBlock[]>([]);
   const [templateVars, setTemplateVars] = useState({
     name: "John Doe",
     email: "john.doe@enterprise.com",
@@ -525,6 +529,7 @@ export default function MailCenter() {
             { id: 'scheduled', label: 'Scheduled', icon: Clock, count: metrics.scheduled },
             { id: 'failed', label: 'Failed', icon: AlertTriangle, count: metrics.failed },
             { id: 'templates', label: 'Email Templates', icon: Sparkles },
+            { id: 'builder', label: 'Visual Builder', icon: Eye },
             { id: 'outbox', label: 'Compose Outbox', icon: Plus },
             { id: 'history', label: 'Immutable Audit Log', icon: ShieldCheck, count: auditLogs.length }
           ].map((tab) => {
@@ -657,12 +662,12 @@ export default function MailCenter() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">HTML / Markdown Email Body</label>
-                <textarea
-                  rows={8}
-                  placeholder="Type email body content..."
+                <RichTextEditor
                   value={composeBody}
-                  onChange={(e) => setComposeBody(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-xs text-slate-200 p-4 rounded-xl font-mono focus:outline-none focus:border-indigo-500 leading-relaxed"
+                  onChange={setComposeBody}
+                  placeholder="Type email body content..."
+                  rows={8}
+                  className="w-full"
                 />
               </div>
 
@@ -816,6 +821,48 @@ export default function MailCenter() {
                     );
                   })()}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      
+      {/* TAB CONTENT: VISUAL BUILDER */}
+      {activeTab === 'builder' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Eye className="w-5 h-5 text-indigo-400" />
+                Visual Email Builder
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">Design responsive enterprise emails using custom blocks instead of raw HTML.</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[700px]">
+            <div className="h-full">
+              <EmailEditor blocks={customBlocks} onChange={setCustomBlocks} />
+            </div>
+            
+            <div className="h-full bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-4 flex flex-col">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
+                <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Live Preview</span>
+                <Button
+                  onClick={() => {
+                    const generatedHtml = renderEmailHtml(customBlocks, templateVars);
+                    setComposeSubject("Custom Built Email");
+                    setComposeBody(generatedHtml);
+                    setActiveTab('outbox');
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl px-4 py-2 cursor-pointer border-none"
+                >
+                  Use in Outbox
+                </Button>
+              </div>
+              <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 overflow-y-auto">
+                <div dangerouslySetInnerHTML={{ __html: renderEmailHtml(customBlocks, templateVars) }} />
               </div>
             </div>
           </div>

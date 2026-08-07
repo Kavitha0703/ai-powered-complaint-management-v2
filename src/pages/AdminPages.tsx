@@ -1059,9 +1059,9 @@ export function ManageTickets() {
             .from("tickets")
             .select("*")
             .order("created_at", { ascending: false })
-            .then(({ data }) => setTickets(data || [])).catch(console.error);
+            .then(({ data }) => setTickets(data || [])).then(undefined, console.error);
         }
-      }).catch(console.error);
+      }).then(undefined, console.error);
   };
   useEffect(() => {
     load();
@@ -1887,7 +1887,7 @@ export function ManageNotices() {
       .from("notices")
       .select("*")
       .order("created_at", { ascending: false })
-      .then(({ data }) => setNotices(data || [])).catch(console.error);
+      .then(({ data }) => setNotices(data || [])).then(undefined, console.error);
   useEffect(() => {
     load();
   }, []);
@@ -2705,9 +2705,9 @@ export function ViewFeedback() {
             .from("feedback")
             .select("*")
             .order("created_at", { ascending: false })
-            .then(({ data }) => setFb(data || [])).catch(console.error);
+            .then(({ data }) => setFb(data || [])).then(undefined, console.error);
         }
-      }).catch(console.error);
+      }).then(undefined, console.error);
   }, []);
 
   const saveResponse = (id: string, newState: any) => {

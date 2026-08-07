@@ -131,14 +131,7 @@ export default function AdminManagement() {
     // Dispatch Gmail / Outbound Invitation
     const inviteeName = emailToInvite.split("@")[0];
     const roleLabel = newRole === "super_admin" ? "Super Admin" : newRole === "support_staff" ? "Support Staff" : "Administrator";
-    const emailPayload = EmailTemplates.adminInvite(
-      inviteeName,
-      emailToInvite,
-      roleLabel,
-      dbUser?.name || "Super Admin",
-      inviteUrl,
-      expiresAt
-    );
+    const emailPayload = EmailTemplates.adminInvite(inviteeName, emailToInvite, roleLabel, dbUser?.name || "Super Admin", inviteUrl);
 
     setNewEmail("");
 
@@ -190,14 +183,7 @@ export default function AdminManagement() {
 
     const inviteeName = invite.email.split("@")[0];
     const roleLabel = invite.role === "super_admin" ? "Super Admin" : invite.role === "support_staff" ? "Support Staff" : "Administrator";
-    const emailPayload = EmailTemplates.adminInvite(
-      inviteeName,
-      invite.email,
-      roleLabel,
-      dbUser?.name || "Super Admin",
-      inviteUrl,
-      expiresAt
-    );
+    const emailPayload = EmailTemplates.adminInvite(inviteeName, invite.email, roleLabel, dbUser?.name || "Super Admin", inviteUrl);
 
     try {
       const res = await sendEmailViaGmail({

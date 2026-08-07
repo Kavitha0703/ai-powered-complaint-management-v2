@@ -314,3 +314,6 @@ html:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1
 html:not(.dark) div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(1) {
   color: #000000 !important;
 }
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(4) {
+    max-width: 651px;
+}
