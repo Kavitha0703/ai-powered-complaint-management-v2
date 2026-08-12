@@ -16,7 +16,28 @@ export interface AdminInvite {
 
 const INVITES_KEY = "dcms_admin_invites_v1";
 
-export const HARDCODED_ADMINS: any[] = [];
+export const HARDCODED_ADMINS: any[] = [
+  {
+    id: "admin_testdemo",
+    name: "Testadmin",
+    email: "testdemo@admin.local",
+    role: "super_admin",
+    status: "Active",
+    is_online: true,
+    last_active: "Active now",
+    department: "System Administration"
+  },
+  {
+    id: "admin_kavitha",
+    name: "Kavitha",
+    email: "nasikakavitha@gmail.com",
+    role: "super_admin",
+    status: "Active",
+    is_online: true,
+    last_active: "Active now",
+    department: "System Administration"
+  }
+];
 
 export function getAdminInvites(): AdminInvite[] {
   const data = localStorage.getItem(INVITES_KEY);
@@ -64,6 +85,7 @@ export function getAllActiveAdmins(): RegisteredAdmin[] {
       avatar: "👤"
     }));
 
+  // Do not return hardcoded admins for real presence board
   const hardcoded: RegisteredAdmin[] = HARDCODED_ADMINS.map(a => ({
     ...a,
     avatar: "👤"

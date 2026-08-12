@@ -1,0 +1,7 @@
+--- src/App.tsx
++++ src/App.tsx
+@@ -192,2 +192,3 @@
+         <Suspense fallback={<PageLoader />}>
+           <Routes>
++            <Route path="/test-chat" element={<AdminTeamChat />} />
+             <Route path="/" element={<Home />} />

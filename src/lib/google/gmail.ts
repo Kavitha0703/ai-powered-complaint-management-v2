@@ -64,7 +64,7 @@ export function getGmailUserEmail(): string {
 export async function gmailSignIn(email?: string): Promise<boolean> {
   try {
     localStorage.setItem(GMAIL_AUTH_KEY, "true");
-    localStorage.setItem(GMAIL_PROJECT_KEY, "quiet-alchemy-0lkqp");
+    localStorage.setItem(GMAIL_PROJECT_KEY, "default-project");
     if (email) localStorage.setItem("google_user_email", email);
     return true;
   } catch (error) {

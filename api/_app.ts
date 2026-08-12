@@ -26,6 +26,42 @@ let globalCache: any = {
 };
 const app = express();
 
+// --- Mock Calendar Database ---
+let calendarEventsDb = [];
+
+app.get('/api/calendar/events', (req, res) => {
+  const userId = req.headers['x-user-id'];
+  // Return public (Team) events and the user's own Private events
+  const allowedEvents = calendarEventsDb.filter(ev => {
+    if (ev.visibility === 'Team') return true;
+    if (ev.visibility === 'Private' && ev.userId === userId) return true;
+    return false;
+  });
+  res.json({ items: allowedEvents });
+});
+
+app.post('/api/calendar/events', (req, res) => {
+  const event = req.body;
+  calendarEventsDb.push(event);
+  res.json(event);
+});
+
+app.delete('/api/calendar/events/:id', (req, res) => {
+  const id = req.params.id;
+  const userId = req.headers['x-user-id'];
+  
+  const ev = calendarEventsDb.find(e => e.id === id);
+  if (!ev) return res.status(404).json({ error: "Not found" });
+  
+  if (ev.visibility === 'Private' && ev.userId !== userId) {
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+
+  calendarEventsDb = calendarEventsDb.filter(e => e.id !== id);
+  res.json({ success: true });
+});
+
+
 app.use(express.json({ limit: "50mb" }));
 
 // Mount phase routes

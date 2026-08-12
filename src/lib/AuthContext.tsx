@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from './supabase.ts';
+import { supabase } from './supabase';
 import { User } from '@supabase/supabase-js';
-import { isEmailAdmin, getAdminRoleByEmail } from './AdminManagementHelper.ts';
+import { isEmailAdmin, getAdminRoleByEmail, getAdminInvites, saveAdminInvites } from './AdminManagementHelper';
 
 interface DbUser {
   id: string;
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
          setLoading(false);
       }
-    }).catch(console.error);
+    }).catch((e) => console.warn("Caught error gracefully:", e));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { console.log("[AuthContext] onAuthStateChange triggered - Event: " + _event + ", Session:", session ? "Exists for " + session.user?.email : "None");
       if (session?.provider_token) {
@@ -71,9 +71,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const syncUser = async (u: User) => {
+    const syncUser = async (u: User) => {
      const email = u.email || '';
-     const isAdminVal = ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase()) || isEmailAdmin(email);
+     const cleanEmail = email.toLowerCase();
+     
+     // Auto-activate any pending invites for this email
+     const invites = getAdminInvites();
+     let invitesUpdated = false;
+     const pendingIdx = invites.findIndex(i => i.email.toLowerCase() === cleanEmail && (i.status === "Pending" || i.status === "Active"));
+     if (pendingIdx !== -1) {
+        if (invites[pendingIdx].status === "Pending") {
+            invites[pendingIdx].status = "Active";
+            invites[pendingIdx].delivery_status = "Registered";
+            invites[pendingIdx].name = u.user_metadata?.full_name || u.user_metadata?.name || email.split('@')[0];
+            invitesUpdated = true;
+        }
+        invites[pendingIdx].last_active = "Just now";
+        invitesUpdated = true;
+     }
+     if (invitesUpdated) {
+        saveAdminInvites(invites);
+     }
+
+     const isAdminVal = ADMIN_EMAILS.map(e => e.toLowerCase()).includes(cleanEmail) || isEmailAdmin(email);
      const role = isAdminVal ? 'admin' : 'user';
      const sub_role = isAdminVal ? getAdminRoleByEmail(email) : 'user';
      

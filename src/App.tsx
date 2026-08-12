@@ -15,13 +15,14 @@ import AuthPage from "./pages/AuthPage.tsx";
 import DashboardLayout from "./components/DashboardLayout.tsx";
 import { UserDashboardStats, RegisterTicket, MyTickets, Notices, UserFeedback, UserProfile, UserSettings, DraftTickets, UserNotificationsView } from "./pages/UserPages.tsx";
 import { AdminStats, ManageTickets, ManageNotices, ViewFeedback, AdminProfile, AdminSettings } from "./pages/AdminPages.tsx";
-import { LayoutDashboard, FileText, Bell, MessageSquare, ClipboardList, Shield, User as UserIcon, Settings, Layers, Sparkles, BookOpen, Network, UserCog, Mail } from "lucide-react";
+import { LayoutDashboard, FileText, Bell, MessageSquare, ClipboardList, Shield, User as UserIcon, Settings, Layers, Sparkles, BookOpen, Network, UserCog, Mail, Calendar as CalendarIcon } from "lucide-react";
 
 // Dynamic imports for code splitting & initial bundle optimization
 const AdminCommunicationCenter = lazy(() => import("./pages/AdminCommunicationCenter.tsx"));
 const AdminTeamChat = lazy(() => import("./pages/AdminTeamChat.tsx"));
 const AiAssistantPage = lazy(() => import("./pages/AiAssistantPage.tsx"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter.tsx"));
+const CalendarApp = lazy(() => import("./pages/CalendarApp.tsx"));
 const AdminManagement = lazy(() => import("./pages/AdminManagement.tsx"));
 const MailCenter = lazy(() => import("./pages/MailCenter.tsx"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy.tsx"));
@@ -58,6 +59,7 @@ function UserPortal() {
       { label: "My Tickets", path: "/dashboard/my-complaints", icon: ClipboardList },
       { label: "Draft Tickets", path: "/dashboard/drafts", icon: Layers },
       { label: "Help Center", path: "/dashboard/help", icon: BookOpen },
+      { label: "Calendar", path: "/dashboard/calendar", icon: CalendarIcon },
       
       { label: "Communication", isHeader: true },
       { label: "Announcements", path: "/dashboard/notices", icon: Bell },
@@ -97,6 +99,7 @@ function AdminPortal() {
     { label: "Communication Center", path: "/admin/communication-center", icon: Network },
     { label: "Mail Center", path: "/admin/mail-center", icon: Mail },
     { label: "Admin Management", path: "/admin/management", icon: UserCog },
+    { label: "Calendar", path: "/admin/calendar", icon: CalendarIcon },
     { label: "View Feedback", path: "/admin/feedback", icon: FileText },
     { label: "Help Center", path: "/admin/help", icon: BookOpen },
   ];
@@ -206,6 +209,7 @@ export default function App() {
           <InstallSuccessModal />
         <Suspense fallback={<PageLoader />}>
           <Routes>
+            
             <Route path="/" element={<Home />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<Terms />} />
@@ -227,6 +231,7 @@ export default function App() {
               <Route path="settings" element={<UserSettings />} />
               <Route path="ai-assistant" element={<AiAssistantPage />} />
               <Route path="help" element={<HelpCenter />} />
+              <Route path="calendar" element={<CalendarApp />} />
             </Route>
 
             <Route path="/admin" element={<AdminPortal />}>
@@ -239,11 +244,13 @@ export default function App() {
               <Route path="communication-center" element={<AdminCommunicationCenter />} />
               <Route path="mail-center" element={<MailCenter />} />
               <Route path="management" element={<AdminManagement />} />
+              <Route path="calendar" element={<CalendarApp />} />
               <Route path="feedback" element={<ViewFeedback />} />
               <Route path="profile" element={<AdminProfile />} />
               <Route path="settings" element={<AdminSettings />} />
               <Route path="ai-assistant" element={<AiAssistantPage />} />
               <Route path="help" element={<HelpCenter />} />
+              <Route path="calendar" element={<CalendarApp />} />
             </Route>
 
           </Routes>

@@ -11,6 +11,11 @@ export interface GoogleCalendarEvent {
   htmlLink?: string;
   attendees?: Array<{ email: string; displayName?: string; responseStatus?: string }>;
   status?: string;
+  type?: string;
+  visibility?: 'Private' | 'Team';
+  color?: string;
+    priority?: 'Low' | 'Normal' | 'High' | 'Urgent';
+  userId?: string;
 }
 
 const CALENDAR_AUTH_KEY = "google_calendar_auth";
@@ -24,7 +29,7 @@ export function isGoogleCalendarAuthenticated(): boolean {
 export async function googleCalendarSignIn(): Promise<boolean> {
   try {
     localStorage.setItem(CALENDAR_AUTH_KEY, "true");
-    localStorage.setItem(CALENDAR_PROJECT_KEY, "quiet-alchemy-0lkqp");
+    localStorage.setItem(CALENDAR_PROJECT_KEY, "default-project");
     return true;
   } catch (error) {
     console.error("Google Calendar Sign-In error:", error);
@@ -53,7 +58,7 @@ export function saveCachedCalendarEvents(events: GoogleCalendarEvent[]): void {
 }
 
 // API Calls
-export async function fetchGoogleCalendarEvents(accessToken?: string): Promise<GoogleCalendarEvent[]> {
+export async function fetchGoogleCalendarEvents(accessToken?: string, userId?: string): Promise<GoogleCalendarEvent[]> {
   if (accessToken) {
     try {
       const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=50", {
@@ -83,6 +88,15 @@ export async function fetchGoogleCalendarEvents(accessToken?: string): Promise<G
     }
   }
 
+  try {
+    const res = await fetch('/api/calendar/events', {
+      headers: { 'x-user-id': userId || '' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.items || [];
+    }
+  } catch (err) {}
   return getCachedCalendarEvents();
 }
 
@@ -94,6 +108,11 @@ export async function createGoogleCalendarEvent(
     endTime: string;   // ISO string
     attendees?: string[];
     addGoogleMeet?: boolean;
+    type?: string;
+    visibility?: 'Private' | 'Team';
+    color?: string;
+    priority?: 'Low' | 'Normal' | 'High' | 'Urgent';
+    userId?: string;
   },
   accessToken?: string
 ): Promise<GoogleCalendarEvent> {
@@ -110,6 +129,11 @@ export async function createGoogleCalendarEvent(
     htmlLink: meetLink ? meetLink : `https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(eventData.summary)}`,
     attendees: (eventData.attendees || []).map((email) => ({ email })),
     status: "confirmed",
+    type: eventData.type || 'Personal',
+    visibility: eventData.visibility || 'Private',
+    color: eventData.color || 'blue',
+    priority: eventData.priority || 'Normal',
+    userId: eventData.userId,
   };
 
   if (accessToken) {
@@ -161,7 +185,7 @@ export async function createGoogleCalendarEvent(
   return newEvent;
 }
 
-export async function deleteGoogleCalendarEvent(eventId: string, accessToken?: string): Promise<boolean> {
+export async function deleteGoogleCalendarEvent(eventId: string, accessToken?: string, userId?: string): Promise<boolean> {
   if (accessToken) {
     try {
       await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
@@ -175,6 +199,12 @@ export async function deleteGoogleCalendarEvent(eventId: string, accessToken?: s
     }
   }
 
+  try {
+    await fetch(`/api/calendar/events/${eventId}`, {
+      method: 'DELETE',
+      headers: { 'x-user-id': userId || '' }
+    });
+  } catch (e) {}
   const existing = getCachedCalendarEvents();
   const filtered = existing.filter((e) => e.id !== eventId);
   saveCachedCalendarEvents(filtered);

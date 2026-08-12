@@ -593,95 +593,9 @@ export default function ProductTour() {
     }
   }, [activeTour, stepIndex]);
 
-  // Contextual tips for inactivity (Passive)
-  useEffect(() => {
-    if (activeTour || activeTip) return;
+  // Removed contextual tips for inactivity
 
-    const tipShown = sessionStorage.getItem("dcms_session_tip_shown");
-    if (tipShown) return; // Max 1 tip per session
-
-    const suggestionsEnabled = localStorage.getItem("dcms_suggestions_enabled") !== "false";
-    if (!suggestionsEnabled) return; // Respect preferences!
-    
-    const welcomeSeen = localStorage.getItem("dcms_welcome_seen");
-    if (!welcomeSeen) return; // Don't show tips during initial onboarding
-    
-    const timer = setTimeout(() => {
-      const path = location.pathname;
-      let availableTips: string[] = [];
-
-      if (path === "/") {
-        availableTips = [
-          "💡 Pro-Tip: Submit a test ticket in the AI Sandbox to preview automatic operations routing!",
-          "💡 Fast-Track: Click 'Get Started' to test full employee recovery registers and live chats."
-        ];
-      } else if (path.includes("/dashboard")) {
-        availableTips = [
-          "💡 Pro-Tip: You can capture physical equipment evidence directly from your web camera!",
-          "💡 Smart Assistant: Ask Gemini at the top right to analyze SLA timelines or search directories."
-        ];
-      } else if (path.includes("/admin")) {
-        availableTips = [
-          "💡 Admin Hack: Click 'Download PDF' to compile instant compliance reports of tickets.",
-          "💡 AI Diagnostics: Select any case in the grid to review instant pre-drafted replies."
-        ];
-      }
-
-      if (availableTips.length > 0) {
-        const chosen = availableTips[Math.floor(Math.random() * availableTips.length)];
-        setActiveTip(chosen);
-        sessionStorage.setItem("dcms_session_tip_shown", "true");
-      }
-    }, 5000); // Wait 5 seconds after page load to show the tip bubble
-
-    return () => clearTimeout(timer);
-  }, [location.pathname, activeTour, activeTip]);
-
-  if (!activeTour) {
-    return (
-      <AnimatePresence>
-        {activeTip && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-[99999] font-sans flex flex-col items-end"
-          >
-            {!isTipExpanded ? (
-              <button
-                onClick={() => setIsTipExpanded(true)}
-                className="bg-blue-600 hover:bg-blue-500 text-white rounded-full px-4 py-2.5 shadow-lg flex items-center gap-2 cursor-pointer transition-colors border border-blue-400/30"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span className="text-xs font-bold">{"AI Suggestions (1)"}</span>
-              </button>
-            ) : (
-              <div className="max-w-sm bg-slate-900 border border-slate-800 text-white rounded-2xl p-4.5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col gap-2.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-blue-400 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" /> {"SMART ADVICE"}</span>
-                  <button 
-                    onClick={() => setActiveTip(null)}
-                    className="w-5 h-5 rounded-full hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-                <p className="text-xs font-semibold leading-relaxed text-slate-200 pr-4">{activeTip}</p>
-                <div className="flex justify-end pt-1">
-                  <button 
-                    onClick={() => setActiveTip(null)}
-                    className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px] rounded-lg transition-colors cursor-pointer"
-                  >
-                    {"Dismiss"}</button>
-                </div>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    );
-  }
+  if (!activeTour) return null;
 
   const steps = TOURS[activeTour];
   if (!steps) return null;

@@ -1,0 +1,380 @@
++1 at 1494: {selectedCallDetail && (
++2 at 1501: <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+-2 at 1503: }`}>
++2 at 1541: {selectedCallDetail.participants.map((pname) => {
+-2 at 1552: })}
++2 at 1584: onClick={() => {
+-2 at 1588: }}
+-1 at 1602: )}
++1 at 1606: {isNewCallDialogOpen && (
++2 at 1622: onClick={() => {
+-2 at 1626: }}
++2 at 1639: onClick={() => {
++1 at 1641: if (link && link.includes("meet.google.com")) {
+-1 at 1644: }
+-2 at 1645: }}
++2 at 1658: onClick={() => {
+-2 at 1661: }}
+-1 at 1675: )}
++1 at 1677: {joinMeetModalMsgId && (
++2 at 1699: {(() => {
++1 at 1708: {summary.organizerEmail && (
+-1 at 1712: )}
++2 at 1739: onClick={() => {
++1 at 1740: if (!joinUserEmailInput || !joinUserEmailInput.includes("@")) {
+-1 at 1743: }
+-2 at 1745: }}
+-2 at 1754: })()}
+-1 at 1757: )}
++1 at 1762: {isMobile && (
++2 at 1766: className={`p-2 rounded-xl text-xs font-bold transition-all ${
+-2 at 1768: }`}
++2 at 1773: className={`p-2 rounded-xl text-xs font-bold transition-all ${
+-2 at 1775: }`}
++2 at 1780: className={`p-2 rounded-xl text-xs font-bold transition-all ${
+-2 at 1782: }`}
+-1 at 1786: )}
++1 at 1789: {!isMobile && (
++1 at 1792: {(!isChannelsSidebarOpen || isChannelsSidebarCollapsed) && (
++2 at 1794: onClick={() => {
++1 at 1795: if (!isChannelsSidebarOpen) {
+-1 at 1797: }
++1 at 1798: if (isChannelsSidebarCollapsed) {
+-1 at 1800: }
+-2 at 1802: }}
+-1 at 1808: )}
++1 at 1813: {isChannelsSidebarOpen && (
++1 at 1825: {sidebarCollapsed ? (
++2 at 1828: onClick={() => {
+-2 at 1831: }}
++2 at 1838: {sortedRooms.map(r => {
++2 at 1846: className={`w-10 h-10 rounded-xl font-black text-[10px] flex items-center justify-center relative cursor-pointer transition-all duration-75 hover:scale-105 active:scale-95 ${
+-2 at 1850: }`}
++1 at 1854: {hasUnread > 0 && !isActive && (
+-1 at 1856: )}
+-2 at 1859: })}
++2 at 1869: onClick={() => {
+-2 at 1872: }}
++1 at 1905: {sortedRooms.length === 0 ? (
++1 at 1908: sortedRooms.map((r) => {
++2 at 1915: className={`group relative flex items-center justify-between rounded-xl transition-all ${
+-2 at 1919: }`}
++1 at 1925: {r.is_pinned ? (
+-1 at 1929: )}
++1 at 1933: {hasUnreadCount > 0 && !isActive && (
+-1 at 1937: )}
++2 at 1944: className={`h-6 w-6 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity border-none pb-0.5 ${
+-2 at 1946: }`}
++1 at 1951: {dropdownRoomId === r.id && (
++2 at 1969: onClick={() => {
+-2 at 1972: }}
+-1 at 1987: )}
+-1 at 1991: })
+-1 at 1992: )}
++1 at 2005: {meetings.length > 0 && !isMeetingsCollapsed && (
++2 at 2008: onClick={() => {
+-2 at 2011: }}
+-1 at 2016: )}
++1 at 2019: {!isMeetingsCollapsed && (
++1 at 2021: {isFetchingMeetings ? (
++1 at 2024: {[1, 2].map((i) => (
+-1 at 2032: ))}
++1 at 2038: meetings.map((call) => {
++2 at 2049: <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center ${
+-2 at 2053: }`}>
++1 at 2054: {isVideo ? (
+-1 at 2058: )}
++2 at 2078: onClick={(e) => {
++1 at 2083: const matchedIds = peerNames.map(name => {
+-1 at 2086: }).filter((id): id is string => id !== null);
+-2 at 2089: }}
+-1 at 2097: })
+-1 at 2098: )}
+-1 at 2100: )}
++1 at 2104: {archivedRoomsList.length > 0 && (
++1 at 2114: {isArchivedSectionExpanded && (
++1 at 2116: {archivedRoomsList.map((r) => (
+-1 at 2133: ))}
+-1 at 2135: )}
+-1 at 2137: )}
++1 at 2144: {dbUser?.avatar_url || user?.avatar_url ? (
+-1 at 2150: )}
++2 at 2151: <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-100 dark:border-[#070C15] ${
+-2 at 2157: }`} />
++1 at 2185: {showStatusMenu && (
++2 at 2188: onClick={() => {
+-2 at 2191: }}
++2 at 2197: onClick={() => {
+-2 at 2200: }}
++2 at 2206: onClick={() => {
+-2 at 2209: }}
+-1 at 2215: )}
+-1 at 2220: )}
+-1 at 2222: )}
++1 at 2231: {pinnedMessagesInRoom.length > 0 && (
+-1 at 2246: )}
++1 at 2250: {isSelectModeActive ? (
++2 at 2254: onClick={() => {
+-2 at 2257: }}
++2 at 2264: onClick={() => {
++1 at 2266: if (selectedMessageIds.length === allIds.length) {
+-1 at 2270: }
+-2 at 2271: }}
++1 at 2277: {selectedMessageIds.length > 0 && (
++2 at 2280: onClick={() => {
+-2 at 2286: }}
+-1 at 2300: )}
++1 at 2306: {(!isChannelsSidebarOpen || isChannelsSidebarCollapsed) ? (
++2 at 2310: onClick={() => {
+-2 at 2312: }}
+-1 at 2318: )}
++1 at 2325: {activeChannelObj?.is_archived && (
+-1 at 2328: )}
++2 at 2351: onClick={() => {
++1 at 2353: if (activeMeeting) {
++1 at 2354: setGmailInitialData({
+-1 at 2359: });
+-1 at 2362: }
+-2 at 2364: }}
++2 at 2377: {(() => {
++1 at 2379: if (!activeMeeting) {
++2 at 2382: onClick={() => {
++1 at 2385: if (activeRoomId === "global") {
++1 at 2390: if (peer) {
+-1 at 2393: }
+-1 at 2394: }
+-2 at 2396: }}
+-1 at 2409: }
++1 at 2412: if (status === "Waiting") {
+-1 at 2429: }
++1 at 2431: if (status === "Live") {
+-1 at 2448: }
+-2 at 2465: })()}
++2 at 2483: onClick={() => {
+-2 at 2487: }}
++2 at 2488: className={`p-1.5 rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+-2 at 2492: }`}
+-1 at 2499: )}
++1 at 2511: {isDraggingOverChat && (
+-1 at 2521: )}
++1 at 2523: {filteredChatMessages.length === 0 ? (
++1 at 2532: filteredChatMessages.map((m) => {
++2 at 2539: onClick={(e) => {
++1 at 2540: if (window.innerWidth < 768 && !activeChannelObj?.is_archived) {
++1 at 2541: if (activeMenuPos?.id === m.id) {
++1 at 2548: setActiveMenuPos({
+-1 at 2555: });
+-1 at 2556: }
+-1 at 2557: }
+-2 at 2558: }}
++1 at 2561: {isSelectModeActive && (
++2 at 2566: onChange={(e) => {
++1 at 2567: if (e.target.checked) {
+-1 at 2571: }
+-2 at 2572: }}
+-1 at 2576: )}
++2 at 2581: {(() => {
++1 at 2583: if (av.startsWith('http') || av.startsWith('data:')) {
+-1 at 2585: }
+-2 at 2587: })()}
++1 at 2602: {isSelf && (
++1 at 2604: {m.message_status === "read" ? (
+-1 at 2610: )}
+-1 at 2612: )}
++1 at 2616: {m.reply_to && (
+-1 at 2625: )}
++1 at 2627: {m.is_voice_note && (
++2 at 2632: onClick={() => {
++1 at 2633: if (playingVoiceId === m.id) {
+-1 at 2639: }
+-2 at 2640: }}
+-1 at 2662: )}
++1 at 2664: {m.call_summary && (
++1 at 2678: {m.call_summary.meet_status !== "Ended" && (
+-1 at 2683: )}
+-1 at 2685: )}
++1 at 2687: {m.text && (
++2 at 2688: <div className={`relative px-3 py-2 mt-0.5 shadow-sm text-[13.5px] whitespace-pre-wrap break-words leading-relaxed group/textbubble ${
+-2 at 2690: }`}>
++1 at 2691: {m.text === "🚫 This message was deleted" ? (
+-1 at 2700: )}
+-1 at 2702: )}
++1 at 2704: {m.reactions && m.reactions.length > 0 && (
++1 at 2706: {m.reactions.map((r, idx) => (
+-1 at 2711: ))}
+-1 at 2713: )}
++1 at 2715: {!activeChannelObj?.is_archived && (
++2 at 2717: onClick={(e) => {
++1 at 2723: setActiveMenuPos({
+-1 at 2730: });
+-2 at 2731: }}
++2 at 2732: className={`absolute top-1 hidden md:group-hover/bubble:flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-slate-800 shadow border border-slate-200 dark:border-slate-700 text-slate-500 cursor-pointer z-10 hover:bg-slate-50 dark:hover:bg-slate-700 ${
+-2 at 2734: }`}
+-1 at 2738: )}
+-1 at 2744: })
+-1 at 2745: )}
++1 at 2748: {typingUsers.length > 0 && (
+-1 at 2760: )}
++1 at 2766: {isSelectModeActive && selectedMessageIds.length > 0 && (
++2 at 2773: onClick={() => {
+-2 at 2780: }}
++2 at 2789: onClick={() => {
++1 at 2792: const pseudoMsg: ChatMessage = {
+-1 at 2802: };
+-2 at 2806: }}
++2 at 2817: onClick={() => {
+-2 at 2819: }}
++2 at 2827: onClick={() => {
+-2 at 2830: }}
+-1 at 2836: )}
++1 at 2839: {editingMessageId && (
++2 at 2846: onClick={() => {
+-2 at 2849: }}
+-1 at 2855: )}
++1 at 2856: {replyTarget && !editingMessageId && (
+-1 at 2876: )}
++1 at 2879: {chatFiles.length > 0 && (
++1 at 2881: {chatFiles.map((f, i) => (
+-1 at 2891: ))}
+-1 at 2893: )}
++1 at 2897: {activeChannelObj?.is_archived ? (
++1 at 2904: {showMentionSuggestions && mentionSuggestionsList.length > 0 && (
++1 at 2908: {mentionSuggestionsList.map((t) => (
+-1 at 2921: ))}
+-1 at 2923: )}
++1 at 2926: {showMainEmojiPicker && (
++1 at 2931: {["😀", "😂", "🥰", "😎", "🤔", "😅", "😊", "🥳", "😭", "😤", "👍", "👎", "👏", "🙌", "🤝", "🙏", "❤️", "🔥", "✨", "💯", "✅", "❌", "❓", "❗", "🎉", "🎈", "🎂", "🚀", "💡", "⭐", "🎵", "👀", "👽", "🤖", "👻", "🤓", "🤡", "💩", "💀", "💪", "🏃", "🚶", "🍔", "🍕", "☕", "🍺", "🥂", "🚗", "✈️", "🌍", "🌈", "☀️", "🌙", "🌧️", "❄️"].map(em => (
++2 at 2935: onClick={() => {
+-2 at 2937: }}
+-1 at 2942: ))}
+-1 at 2949: )}
++1 at 2954: {replyTarget && (
+-1 at 2968: )}
++2 at 2972: onChange={(e) => {
+-2 at 2975: }}
++2 at 2976: onKeyDown={(e) => {
++1 at 2978: if (e.key === "Enter" && !e.shiftKey) {
+-1 at 2981: }
+-2 at 2982: }}
++1 at 3032: {isRecordingVoice ? (
+-1 at 3068: )}
++2 at 3075: className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer border-none bg-transparent ${
+-2 at 3079: }`}
++1 at 3085: {showAiMenu && (
++1 at 3089: {[
++2 at 3100: onClick={() => {
+-2 at 3103: }}
+-1 at 3108: ))}
+-1 at 3110: )}
++1 at 3115: {loadingImprove && (
+-1 at 3119: )}
+-1 at 3134: )}
++1 at 3159: {selectedTeammatesForCall.length > 0 ? (
++2 at 3170: onClick={() => {
+-2 at 3174: }}
+-1 at 3189: ) : null}
++2 at 3196: {teammates.map((m) => {
++2 at 3201: className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-all border ${
+-2 at 3205: }`}
++2 at 3213: onChange={(e) => {
++1 at 3215: setSelectedTeammatesForCall(prev => {
++1 at 3216: if (checked) {
+-1 at 3220: }
+-1 at 3221: });
+-2 at 3222: }}
++1 at 3227: {m.avatar.startsWith('http') || m.avatar.startsWith('data:') ? (
+-1 at 3231: )}
++2 at 3246: onClick={() => {
+-2 at 3248: }}
++2 at 3258: onClick={() => {
++1 at 3259: setTeammates(prev => prev.map(t => {
++1 at 3260: if (t.id === m.id) {
+-1 at 3264: }
+-1 at 3266: }));
+-2 at 3267: }}
++2 at 3268: className={`h-3 w-3 rounded-full border border-white dark:border-[#070C15] shrink-0 cursor-pointer p-0 hover:scale-125 hover:brightness-110 active:scale-95 transition-all outline-none ${
+-2 at 3276: }`}
++2 at 3277: title={`Status: ${
+-2 at 3279: } (Click to toggle)`}
+-2 at 3284: })}
++1 at 3302: {isMobile && (
++1 at 3306: {mobileActiveTab === "channels" && (
++2 at 3329: {sortedRooms.map((r) => {
++2 at 3335: onClick={() => {
+-2 at 3338: }}
++2 at 3339: className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all ${
+-2 at 3341: }`}
++1 at 3347: {hasUnreadCount > 0 && (
+-1 at 3351: )}
+-2 at 3354: })}
+-1 at 3357: )}
++1 at 3360: {mobileActiveTab === "chat" && (
++1 at 3377: {filteredChatMessages.length === 0 ? (
++1 at 3380: filteredChatMessages.map((m) => {
++2 at 3387: <div className={`p-2.5 rounded-2xl text-xs text-left relative leading-relaxed font-sans ${
+-2 at 3389: }`}>
+-1 at 3394: })
+-1 at 3395: )}
+-1 at 3415: )}
++1 at 3418: {mobileActiveTab === "users" && (
++1 at 3421: {teammates.map((m) => (
+-1 at 3432: ))}
+-1 at 3434: )}
+-1 at 3437: )}
++1 at 3440: {showNewChatPanel && (
++1 at 3455: {["Network Team", "HR Operations", "Level 2 Escalations", "Corporate Board"].map((preset) => (
+-1 at 3464: ))}
+-1 at 3498: )}
++1 at 3501: {deleteConfRoom && (
+-1 at 3530: )}
++1 at 3533: {deleteConfMsg && (
++1 at 3547: {(deleteConfMsg.sender_id === (dbUser?.id || user?.id || "usr_unknown") || currentAdminName === "Nasika Kavitha") && (
+-1 at 3553: )}
+-1 at 3563: )}
++1 at 3566: {bulkDeleteConfirmOpen && (
++2 at 3578: onClick={() => {
++1 at 3582: const updated = allMessages.map(m => {
++1 at 3583: if (selectedMessageIds.includes(m.id)) {
+-1 at 3585: }
+-1 at 3587: });
+-2 at 3594: }}
++2 at 3599: {(() => {
++1 at 3602: if (allEligible) {
++2 at 3605: onClick={() => {
++1 at 3608: const updated = allMessages.map(m => {
++1 at 3609: if (selectedMessageIds.includes(m.id)) {
+-1 at 3611: }
+-1 at 3613: });
++1 at 3615: setMessages(prev => prev.map(m => {
++1 at 3616: if (selectedMessageIds.includes(m.id)) {
+-1 at 3618: }
+-1 at 3620: }));
+-2 at 3624: }}
+-1 at 3630: }
+-2 at 3632: })()}
+-1 at 3643: )}
++1 at 3647: {showGmailCenter && (
+-1 at 3659: )}
++1 at 3662: {chatCameraActive && (
++2 at 3667: onCapturePhotos={(photos) => {
++1 at 3668: const newFiles = photos.map(p => ({
+-1 at 3672: }));
+-2 at 3675: }}
+-1 at 3680: )}
++1 at 3683: {activeMenuPos && (
++2 at 3687: style={{
+-2 at 3690: }}
++2 at 3694: onClick={() => {
+-2 at 3698: }}
++2 at 3704: onClick={() => {
+-2 at 3707: }}
++1 at 3713: {activeMenuPos.isSelf && (
++2 at 3715: onClick={() => {
+-2 at 3720: }}
+-1 at 3725: )}
++2 at 3728: onClick={() => {
+-2 at 3732: }}
++2 at 3741: onClick={() => {
+-2 at 3744: }}
+-1 at 3751: )}
+-1 at 3754: }

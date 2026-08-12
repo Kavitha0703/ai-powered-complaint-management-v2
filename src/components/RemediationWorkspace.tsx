@@ -898,8 +898,11 @@ export function RemediationWorkspace({
     }
     try {
       const newMs = await navigator.mediaDevices.getUserMedia({
-        video: { 
+        video: newId ? { 
           deviceId: { exact: newId },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        } : {
           width: { ideal: 1920 },
           height: { ideal: 1080 }
         }

@@ -12,7 +12,7 @@ import {
   getGmailUserEmail, 
   SentEmailRecord, 
   EmailTemplates 
-} from "../lib/google/index.ts";
+} from "../lib/google/index";
 
 export function GmailEmailCenterPanel({ 
   onClose,
@@ -168,7 +168,7 @@ export function GmailEmailCenterPanel({
       </div>
 
       {/* Main Body */}
-      <div className="flex-1 overflow-y-auto p-6 bg-slate-950/60">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-slate-950/60">
         {activeTab === 'log' ? (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-full">
             {/* Email List */}

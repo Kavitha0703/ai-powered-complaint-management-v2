@@ -325,12 +325,21 @@ export default function AdminManagement() {
   ];
 
   // Filtering list
-  const filteredAdmins = combinedAdminsList.filter(a => {
+  const currentAdmins = combinedAdminsList.filter(a => a.status === "Active");
+  const pendingInvitesList = combinedAdminsList.filter(a => a.status === "Pending" || a.status === "Deactivated");
+
+  const filteredAdmins = currentAdmins.filter(a => {
     const matchesSearch = a.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           a.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = roleFilter === "all" || a.role === roleFilter;
     const matchesDept = deptFilter === "all" || a.department === deptFilter;
     return matchesSearch && matchesRole && matchesDept;
+  });
+  
+  const filteredPendingInvites = pendingInvitesList.filter(a => {
+    const matchesSearch = a.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          a.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
   return (
@@ -448,7 +457,7 @@ export default function AdminManagement() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
             <h3 className="text-sm font-black text-slate-900 dark:text-white tracking-tight uppercase flex items-center gap-2">
               <UserCheck className="w-4 h-4 text-emerald-500" />
-              {"Current Admins ("}{combinedAdminsList.length})
+              {"Current Admins ("}{currentAdmins.length})
             </h3>
 
             <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">

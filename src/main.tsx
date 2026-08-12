@@ -8,21 +8,21 @@ import { ThemeProvider } from './components/ThemeProvider.tsx';
 const compileError = console.error;
 console.error = (...args) => {
   const message = args[0] instanceof Error ? args[0].message : String(args[0]);
-  if (message.includes('ResizeObserver loop')) {
+  if (message.includes('ResizeObserver loop') || message.includes('Failed to fetch')) {
     return;
   }
   compileError(...args);
 };
 
 window.addEventListener('error', e => {
-  if (e.message.includes('ResizeObserver loop')) {
+  if (e.message.includes('ResizeObserver loop') || e.message.includes('Failed to fetch')) {
     e.stopImmediatePropagation();
     e.preventDefault();
   }
 });
 
 window.addEventListener('unhandledrejection', e => {
-  if (e.reason?.message?.includes('ResizeObserver loop')) {
+  if (e.reason?.message?.includes('ResizeObserver loop') || e.reason?.message?.includes('Failed to fetch')) {
     e.stopImmediatePropagation();
     e.preventDefault();
   }

@@ -1,3 +1,4 @@
+import ResizablePanel from "./ResizablePanel";
 import { UserAvatar } from "./UserAvatar";
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -37,6 +38,8 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
 
   // Mobile navigation drawer state
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+
 
   // Auto-close mobile drawer on route navigation
   useEffect(() => {
@@ -222,7 +225,7 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#020617] flex flex-col md:flex-row font-sans transition-colors duration-350">
+    <div className="h-[100dvh] overflow-hidden bg-[#F8FAFC] dark:bg-[#020617] flex flex-col md:flex-row font-sans transition-colors duration-350">
       
       {/* Sidebar helper function to avoid repeating layout code */}
       {(() => {
@@ -384,7 +387,21 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
         return (
           <>
             {/* Desktop Sidebar */}
-            <aside className={`hidden md:flex ${sidebarCollapsed ? 'w-20' : 'w-[260px]'} bg-white dark:bg-[#0B1222] border-r border-slate-200/80 dark:border-[#1E293B] flex-col text-slate-800 dark:text-slate-100 z-40 shrink-0 transition-all duration-300 ease-in-out relative`}>
+            
+    {/* Desktop Sidebar */}
+    <div className="hidden md:flex z-40">
+      <ResizablePanel
+        id="dashboard_sidebar"
+        position="right"
+        defaultWidth={260}
+        minWidth={200}
+        maxWidth={400}
+        isCollapsed={sidebarCollapsed}
+        collapsedWidth={80}
+        className="bg-white dark:bg-[#0B1222] border-r border-slate-200/80 dark:border-[#1E293B] flex-col text-slate-800 dark:text-slate-100"
+      >
+        <div className="w-full h-full flex flex-col relative overflow-hidden">
+          
               {/* Desktop Collapse Arrow Toggle */}
               <button 
                 onClick={() => {
@@ -398,7 +415,11 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
                 {sidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
               </button>
               {renderSidebar(false)}
-            </aside>
+            
+        </div>
+      </ResizablePanel>
+    </div>
+
 
             {/* Mobile Drawer Sidebar */}
             <AnimatePresence>
