@@ -43,6 +43,11 @@ export default function ResizablePanel({
     }
   }, [id, defaultWidth, onReset]);
 
+  const widthRef = useRef(width);
+  useEffect(() => {
+    widthRef.current = width;
+  }, [width]);
+
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
       if (!isResizing.current) return;
@@ -56,8 +61,6 @@ export default function ResizablePanel({
       
       animationFrameRef.current = requestAnimationFrame(() => {
         setWidth(prev => {
-          // If handle is on the right, dragging right (+delta) increases width
-          // If handle is on the left, dragging right (+delta) decreases width
           const newWidth = position === 'right' ? prev + delta : prev - delta;
           return Math.max(minWidth, Math.min(maxWidth, newWidth));
         });
@@ -69,7 +72,7 @@ export default function ResizablePanel({
         isResizing.current = false;
         document.body.style.cursor = 'default';
         document.body.style.userSelect = 'auto';
-        localStorage.setItem(`dcms_resizable_panel_${id}`, width.toString());
+        localStorage.setItem(`dcms_resizable_panel_${id}`, widthRef.current.toString());
       }
     };
 
@@ -85,12 +88,11 @@ export default function ResizablePanel({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [id, minWidth, maxWidth, position, width]);
+  }, [id, minWidth, maxWidth, position]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     // Only allow left click
     if (e.button !== 0) return;
-    if (document.body.classList.contains('modal-open')) return;
     
     e.preventDefault();
     e.stopPropagation();

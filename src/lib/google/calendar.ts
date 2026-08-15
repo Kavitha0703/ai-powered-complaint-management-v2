@@ -16,6 +16,7 @@ export interface GoogleCalendarEvent {
   color?: string;
     priority?: 'Low' | 'Normal' | 'High' | 'Urgent';
   userId?: string;
+  reminderMinutes?: number;
 }
 
 const CALENDAR_AUTH_KEY = "google_calendar_auth";
@@ -113,6 +114,7 @@ export async function createGoogleCalendarEvent(
     color?: string;
     priority?: 'Low' | 'Normal' | 'High' | 'Urgent';
     userId?: string;
+    reminderMinutes?: number;
   },
   accessToken?: string
 ): Promise<GoogleCalendarEvent> {
@@ -134,6 +136,7 @@ export async function createGoogleCalendarEvent(
     color: eventData.color || 'blue',
     priority: eventData.priority || 'Normal',
     userId: eventData.userId,
+    reminderMinutes: eventData.reminderMinutes,
   };
 
   if (accessToken) {
@@ -144,7 +147,17 @@ export async function createGoogleCalendarEvent(
         start: { dateTime: eventData.startTime },
         end: { dateTime: eventData.endTime },
         attendees: (eventData.attendees || []).map((email) => ({ email })),
+        visibility: eventData.visibility === 'Private' ? 'private' : 'default',
       };
+
+      if (eventData.reminderMinutes !== undefined) {
+        body.reminders = {
+          useDefault: false,
+          overrides: [
+            { method: 'popup', minutes: eventData.reminderMinutes }
+          ]
+        };
+      }
 
       if (eventData.addGoogleMeet) {
         body.conferenceData = {
@@ -185,8 +198,90 @@ export async function createGoogleCalendarEvent(
   return newEvent;
 }
 
+export async function updateGoogleCalendarEvent(
+  eventId: string,
+  eventData: {
+    summary: string;
+    description?: string;
+    startTime: string; // ISO string
+    endTime: string;   // ISO string
+    attendees?: string[];
+    addGoogleMeet?: boolean;
+    type?: string;
+    visibility?: 'Private' | 'Team';
+    color?: string;
+    priority?: 'Low' | 'Normal' | 'High' | 'Urgent';
+    userId?: string;
+    reminderMinutes?: number;
+  },
+  accessToken?: string
+): Promise<GoogleCalendarEvent> {
+  const existing = getCachedCalendarEvents();
+  const index = existing.findIndex(e => e.id === eventId);
+  if (index === -1) throw new Error("Event not found");
+
+  const updatedEvent: GoogleCalendarEvent = {
+    ...existing[index],
+    summary: eventData.summary,
+    description: eventData.description,
+    start: { dateTime: eventData.startTime },
+    end: { dateTime: eventData.endTime },
+    type: eventData.type || 'Personal',
+    visibility: eventData.visibility || 'Private',
+    color: eventData.color || 'blue',
+    priority: eventData.priority || 'Normal',
+    reminderMinutes: eventData.reminderMinutes,
+  };
+
+  if (accessToken && !eventId.startsWith("gcal_")) {
+    try {
+      const body: any = {
+        summary: eventData.summary,
+        description: eventData.description,
+        start: { dateTime: eventData.startTime },
+        end: { dateTime: eventData.endTime },
+        attendees: (eventData.attendees || []).map((email) => ({ email })),
+        visibility: eventData.visibility === 'Private' ? 'private' : 'default',
+      };
+
+      if (eventData.reminderMinutes !== undefined) {
+        body.reminders = {
+          useDefault: false,
+          overrides: [
+            { method: 'popup', minutes: eventData.reminderMinutes }
+          ]
+        };
+      }
+
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
+      if (response.ok) {
+        const item = await response.json();
+        updatedEvent.id = item.id;
+        updatedEvent.hangoutLink = item.hangoutLink || updatedEvent.hangoutLink;
+        updatedEvent.htmlLink = item.htmlLink || updatedEvent.htmlLink;
+      }
+    } catch (err) {
+      console.warn("Failed to update event on Google API", err);
+    }
+  }
+
+  existing[index] = updatedEvent;
+  saveCachedCalendarEvents(existing);
+  return updatedEvent;
+}
+
 export async function deleteGoogleCalendarEvent(eventId: string, accessToken?: string, userId?: string): Promise<boolean> {
-  if (accessToken) {
+  if (accessToken && !eventId.startsWith("gcal_")) {
     try {
       await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
         method: "DELETE",

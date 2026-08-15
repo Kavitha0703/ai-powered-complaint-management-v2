@@ -496,6 +496,12 @@ export function RegisterTicket() {
 
   // Autosave when form values modify
   useEffect(() => {
+  useEffect(() => {
+    return () => {
+      if (voiceIntervalRef.current) clearInterval(voiceIntervalRef.current);
+    };
+  }, []);
+
     // Avoid autosaving if user is editing an existing ticket (which has editTicketId)
     const stateObj = location.state as any;
     if (stateObj?.editTicketId) return;
@@ -1276,7 +1282,7 @@ export function RegisterTicket() {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmission} className="space-y-6">
+              <form onSubmit={handleSubmission} className="space-y-6 pb-24 md:pb-6">
                 
                 {/* Section 1: Ticket Details */}
                 <div className="space-y-4">

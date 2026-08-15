@@ -13,8 +13,10 @@ import {
   Lock,
   Search,
   Users,
-  Clock
+  Clock,
+  Bell
 } from "lucide-react";
+import { useGoogleLogin } from '@react-oauth/google';
 import {
   GoogleCalendarEvent,
   fetchGoogleCalendarEvents,
@@ -23,6 +25,7 @@ import {
   isGoogleCalendarAuthenticated,
   googleCalendarSignIn,
 } from "../lib/google/index";
+import { updateGoogleCalendarEvent } from "../lib/google/calendar";
 
 interface GoogleCalendarPanelProps {
   onClose?: () => void;
@@ -30,6 +33,35 @@ interface GoogleCalendarPanelProps {
   inline?: boolean;
 }
 export const GoogleCalendarPanel: React.FC<GoogleCalendarPanelProps> = ({ onClose, isOpen = true, inline = false }) => {
+
+  const googleLogin = useGoogleLogin({
+    prompt: 'select_account',
+    scope: 'https://www.googleapis.com/auth/calendar.events openid email profile',
+    onSuccess: async (tokenResponse) => {
+      try {
+        sessionStorage.setItem("google_workspace_access_token", tokenResponse.access_token);
+        setIsConnected(true);
+        googleCalendarSignIn();
+        
+        try {
+          const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+          });
+          if (userInfoRes.ok) {
+            const userInfo = await userInfoRes.json();
+            if (userInfo.email) {
+              setConnectedGoogleEmail(userInfo.email);
+              sessionStorage.setItem("google_meet_connected_email", userInfo.email);
+            }
+          }
+        } catch (e) {
+          console.warn("Could not fetch Google user info", e);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  });
 
   const [events, setEvents] = useState<GoogleCalendarEvent[]>([]);
   const [isConnected, setIsConnected] = useState<boolean>(isGoogleCalendarAuthenticated());
@@ -62,20 +94,18 @@ export const GoogleCalendarPanel: React.FC<GoogleCalendarPanelProps> = ({ onClos
   const [eventColor, setEventColor] = useState('green');
   const [eventVisibility, setEventVisibility] = useState<'Private' | 'Team'>('Private');
   const [eventPriority, setEventPriority] = useState('Normal');
+  const [reminder, setReminder] = useState<number | undefined>(10);
+  const [connectedGoogleEmail, setConnectedGoogleEmail] = useState<string | null>(() => sessionStorage.getItem("google_meet_connected_email"));
 
   useEffect(() => {
     if (isOpen) {
       loadEvents();
       if (!inline) {
-        document.body.style.overflow = 'hidden';
         // Class to disable sidebar resizing or other background elements
-        document.body.classList.add("modal-open");
       }
     }
     return () => {
       if (!inline) {
-        document.body.style.overflow = '';
-        document.body.classList.remove("modal-open");
       }
     };
   }, [isOpen, currentDate, inline]);
@@ -162,9 +192,10 @@ export const GoogleCalendarPanel: React.FC<GoogleCalendarPanelProps> = ({ onClos
       'Task': 'orange', 'Important': 'red', 'Reminder': 'yellow', 'Birthday': 'pink'
     };
     setEventColor(cMap[typeOveride] || 'gray');
-    setEventVisibility('Private');
+    setEventVisibility(['Personal', 'Reminder', 'Birthday'].includes(typeOveride) ? 'Private' : 'Team');
     setEventPriority('Normal');
     setAddMeet(false);
+    setReminder(10);
     
     setShowEventModal(true);
   };
@@ -184,6 +215,7 @@ export const GoogleCalendarPanel: React.FC<GoogleCalendarPanelProps> = ({ onClos
     setEventVisibility(ev.visibility || 'Private');
     setEventPriority(ev.priority || 'Normal');
     setAddMeet(!!ev.hangoutLink);
+    setReminder(ev.reminderMinutes !== undefined ? ev.reminderMinutes : 10);
     
     setShowEventModal(true);
   };
@@ -191,30 +223,39 @@ export const GoogleCalendarPanel: React.FC<GoogleCalendarPanelProps> = ({ onClos
   const handleSaveEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!summary || !startDate || !endDate) return;
+    
+    const token = sessionStorage.getItem("google_workspace_access_token");
+    if (!token) {
+      googleLogin();
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const newEv = await createGoogleCalendarEvent({
+      let savedEv: GoogleCalendarEvent;
+      const eventData = {
         summary,
         description,
         startTime: new Date(startDate).toISOString(),
         endTime: new Date(endDate).toISOString(),
-        addGoogleMeet: addMeet
-      });
-      
-      if (newEv) {
-        newEv.type = eventType;
-        newEv.color = eventColor;
-        newEv.visibility = eventVisibility;
-        newEv.priority = eventPriority as any;
-        
-        if (editingEventId) {
-          newEv.id = editingEventId;
-          setEvents(prev => prev.map(ev => ev.id === editingEventId ? newEv : ev));
-        } else {
-          setEvents(prev => [...prev, newEv]);
-        }
+        addGoogleMeet: addMeet,
+        type: eventType,
+        visibility: eventVisibility as any,
+        color: eventColor,
+        priority: eventPriority as any,
+        reminderMinutes: reminder === -1 ? undefined : reminder,
+        userId: user?.id,
+      };
+
+      if (editingEventId) {
+        savedEv = await updateGoogleCalendarEvent(editingEventId, eventData, token);
+        setEvents(prev => prev.map(ev => ev.id === editingEventId ? savedEv : ev));
+      } else {
+        savedEv = await createGoogleCalendarEvent(eventData, token);
+        setEvents(prev => [...prev, savedEv]);
       }
       setShowEventModal(false);
+      window.location.reload(); // Reload page to ensure sync
     } catch (err) {
       console.error("Failed to save event", err);
     } finally {
@@ -224,11 +265,13 @@ export const GoogleCalendarPanel: React.FC<GoogleCalendarPanelProps> = ({ onClos
 
   const handleDeleteEvent = async () => {
     if (!deleteConfirmId) return;
+    const token = sessionStorage.getItem("google_workspace_access_token");
     setIsDeleting(true);
     try {
-      await deleteGoogleCalendarEvent(deleteConfirmId);
+      await deleteGoogleCalendarEvent(deleteConfirmId, token || undefined, user?.id);
       setEvents(prev => prev.filter(ev => ev.id !== deleteConfirmId));
       setDeleteConfirmId(null);
+      window.location.reload(); // Reload page to ensure sync
     } catch (err) {
       console.error("Failed to delete event", err);
       setEvents(prev => prev.filter(ev => ev.id !== deleteConfirmId));
@@ -564,7 +607,7 @@ export const GoogleCalendarPanel: React.FC<GoogleCalendarPanelProps> = ({ onClos
       {/* Form Modal */}
       {showEventModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4" onClick={() => setShowEventModal(false)}>
-          <form onSubmit={handleSaveEvent} className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl text-left" onClick={e => e.stopPropagation()}>
+          <form onSubmit={handleSaveEvent} className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl text-left max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <h4 className="font-bold text-[16px] text-white mb-5">{editingEventId ? 'Edit event' : 'Add event'}</h4>
             
             <div className="space-y-4">
@@ -579,17 +622,49 @@ export const GoogleCalendarPanel: React.FC<GoogleCalendarPanelProps> = ({ onClos
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block mb-1.5">Start Date & Time</label>
-                  <input
-                    type="datetime-local" required value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[13px] text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
+                  <div className="flex flex-col gap-2">
+                    <div className="relative group">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-indigo-400 transition-colors">📅</div>
+                      <input
+                        type="date" required value={startDate ? startDate.slice(0,10) : ""} 
+                        onChange={(e) => setStartDate(`${e.target.value}T${startDate ? startDate.slice(11,16) : "10:00"}`)}
+                        onClick={(e) => { try { if ('showPicker' in e.currentTarget) (e.currentTarget as any).showPicker(); } catch(err){} }}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-[13px] font-medium text-white focus:outline-none focus:border-indigo-500 hover:border-slate-600 transition-colors cursor-pointer"
+                      />
+                    </div>
+                    <div className="relative group">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-indigo-400 transition-colors">🕐</div>
+                      <input
+                        type="time" required value={startDate ? startDate.slice(11,16) : ""} 
+                        onChange={(e) => setStartDate(`${startDate ? startDate.slice(0,10) : new Date().toISOString().slice(0,10)}T${e.target.value}`)}
+                        onClick={(e) => { try { if ('showPicker' in e.currentTarget) (e.currentTarget as any).showPicker(); } catch(err){} }}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-[13px] font-medium text-white focus:outline-none focus:border-indigo-500 hover:border-slate-600 transition-colors cursor-pointer"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block mb-1.5">End Date & Time</label>
-                  <input
-                    type="datetime-local" required value={endDate} onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[13px] text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
+                  <div className="flex flex-col gap-2">
+                    <div className="relative group">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-indigo-400 transition-colors">📅</div>
+                      <input
+                        type="date" required value={endDate ? endDate.slice(0,10) : ""} 
+                        onChange={(e) => setEndDate(`${e.target.value}T${endDate ? endDate.slice(11,16) : "11:00"}`)}
+                        onClick={(e) => { try { if ('showPicker' in e.currentTarget) (e.currentTarget as any).showPicker(); } catch(err){} }}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-[13px] font-medium text-white focus:outline-none focus:border-indigo-500 hover:border-slate-600 transition-colors cursor-pointer"
+                      />
+                    </div>
+                    <div className="relative group">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-indigo-400 transition-colors">🕐</div>
+                      <input
+                        type="time" required value={endDate ? endDate.slice(11,16) : ""} 
+                        onChange={(e) => setEndDate(`${endDate ? endDate.slice(0,10) : new Date().toISOString().slice(0,10)}T${e.target.value}`)}
+                        onClick={(e) => { try { if ('showPicker' in e.currentTarget) (e.currentTarget as any).showPicker(); } catch(err){} }}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-[13px] font-medium text-white focus:outline-none focus:border-indigo-500 hover:border-slate-600 transition-colors cursor-pointer"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
               
@@ -601,6 +676,11 @@ export const GoogleCalendarPanel: React.FC<GoogleCalendarPanelProps> = ({ onClos
                       setEventType(e.target.value);
                       const cMap: Record<string,string> = {'Work': 'blue', 'Meeting': 'purple', 'Personal': 'green', 'Task': 'orange', 'Important': 'red', 'Reminder': 'yellow', 'Birthday': 'pink'};
                       if (cMap[e.target.value]) setEventColor(cMap[e.target.value]);
+                      if (['Personal', 'Reminder', 'Birthday'].includes(e.target.value)) {
+                        setEventVisibility('Private');
+                      } else {
+                        setEventVisibility('Team');
+                      }
                     }}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[13px] font-medium text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
                   >
@@ -625,7 +705,6 @@ export const GoogleCalendarPanel: React.FC<GoogleCalendarPanelProps> = ({ onClos
                   </select>
                 </div>
               </div>
-
               <div className="pt-1">
                 <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block mb-2">Color Label</label>
                 <div className="flex flex-wrap gap-2.5">
@@ -645,8 +724,43 @@ export const GoogleCalendarPanel: React.FC<GoogleCalendarPanelProps> = ({ onClos
                   ))}
                 </div>
               </div>
-            </div>
+              
+              <div className="pt-2">
+                <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block mb-1.5">Reminder</label>
+                <div className="relative group">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-indigo-400 transition-colors">🔔</div>
+                  <select
+                    value={reminder === undefined ? -1 : reminder} 
+                    onChange={(e) => setReminder(parseInt(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-[13px] font-medium text-white focus:outline-none focus:border-indigo-500 hover:border-slate-600 transition-colors cursor-pointer appearance-none"
+                  >
+                    <option value={0}>At time of event</option>
+                    <option value={5}>5 minutes before</option>
+                    <option value={10}>10 minutes before</option>
+                    <option value={30}>30 minutes before</option>
+                    <option value={60}>1 hour before</option>
+                    <option value={1440}>1 day before</option>
+                    <option value={-1}>No reminder</option>
+                  </select>
+                </div>
+              </div>
 
+              <div className="pt-2 flex flex-col gap-1.5">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block mb-1.5">Google Calendar Sync</span>
+                {sessionStorage.getItem("google_workspace_access_token") ? (
+                  <div className="flex items-center gap-2 text-[12px] font-medium text-slate-300 bg-slate-950/50 px-3 py-2.5 rounded-xl border border-slate-800">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></div>
+                    Connected as {connectedGoogleEmail || "authenticated user"}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-[12px] font-medium text-slate-300 bg-slate-950/50 px-3 py-2.5 rounded-xl border border-slate-800">
+                    <div className="w-2 h-2 rounded-full bg-slate-600 shrink-0"></div>
+                    Not connected (Will connect on save)
+                  </div>
+                )}
+              </div>
+
+            </div>
             <div className="flex justify-end gap-3 pt-6 mt-4 border-t border-slate-800/80">
               <button type="button" onClick={() => setShowEventModal(false)} className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-[13px] cursor-pointer transition-colors">
                 Cancel

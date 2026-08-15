@@ -105,10 +105,13 @@ export default function AdminTeamChat() {
   const { user, dbUser } = useAuth();
 
   const handleCreateGoogleMeet = async (title: string, participants: string[]) => {
-    const isConnected = localStorage.getItem("google_calendar_auth") === "true";
+    const isConnected = !!sessionStorage.getItem("google_workspace_access_token");
     
     if (!isConnected) {
-      setShowMeetConnectDialog({ title, participants, roomIdToUse: activeRoomId });
+      sessionStorage.setItem("pendingMeetRoomId", activeRoomId);
+      sessionStorage.setItem("pendingMeetTitle", title);
+      sessionStorage.setItem("pendingMeetParticipants", JSON.stringify(participants));
+      googleLogin();
       return;
     }
 
@@ -238,7 +241,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
 
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [showMeetConnectDialog, setShowMeetConnectDialog] = useState<{title: string, participants: string[], roomIdToUse: string} | null>(null);
+  const [connectedGoogleEmail, setConnectedGoogleEmail] = useState<string | null>(() => sessionStorage.getItem("google_meet_connected_email"));
   
   const [showMembersPanel, setShowMembersPanel] = useState<boolean>(true);
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -559,6 +562,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
     return () => {
       if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
       if (playbackTimerRef.current) clearInterval(playbackTimerRef.current);
+      if (typingSimTimerRef.current) clearInterval(typingSimTimerRef.current);
     };
   }, []);
 
@@ -924,13 +928,26 @@ const [membersWidth, setMembersWidth] = useState(() => {
 
   
   const googleLogin = useGoogleLogin({
-    flow: 'auth-code',
-    // @ts-ignore - The react-oauth/google types might not include prompt for auth-code flow, but it is supported by Google OAuth
     prompt: 'select_account',
-    scope: 'https://www.googleapis.com/auth/meetings.space.created',
-    onSuccess: async (codeResponse) => {
+    scope: 'https://www.googleapis.com/auth/meetings.space.created openid email profile',
+    onSuccess: async (tokenResponse) => {
       try {
-        localStorage.setItem("google_workspace_access_token", codeResponse.code);
+        sessionStorage.setItem("google_workspace_access_token", tokenResponse.access_token);
+        
+        try {
+          const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+          });
+          if (userInfoRes.ok) {
+            const userInfo = await userInfoRes.json();
+            if (userInfo.email) {
+              setConnectedGoogleEmail(userInfo.email);
+              sessionStorage.setItem("google_meet_connected_email", userInfo.email);
+            }
+          }
+        } catch (e) {
+          console.warn("Could not fetch Google user info", e);
+        }
         
         const pendingTitle = sessionStorage.getItem("pendingMeetTitle") || "";
         const pendingParticipantsStr = sessionStorage.getItem("pendingMeetParticipants");
@@ -1430,10 +1447,13 @@ const [membersWidth, setMembersWidth] = useState(() => {
   const activeChannelObj = rooms.find(c => c.id === activeRoomId);
 
   // Search filter query inside messages stream + Delete For Me filter
-  const filteredChatMessages = messages
-    .filter(m => !deletedForMeIds.includes(m.id))
-    .filter(m => !(m.deleted_for && m.deleted_for.includes(currentAdminId)))
-    .filter(m => searchQuery.trim() === "" || m.text.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredChatMessages = React.useMemo(() => {
+    return messages
+      .filter(m => m.room_id === activeRoomId)
+      .filter(m => !deletedForMeIds.includes(m.id))
+      .filter(m => !(m.deleted_for && m.deleted_for.includes(currentAdminId)))
+      .filter(m => searchQuery.trim() === "" || m.text.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [messages, activeRoomId, deletedForMeIds, currentAdminId, searchQuery]);
 
   const pinnedMessagesInRoom = messages.filter(m => m.is_pinned);
 
@@ -1476,7 +1496,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
   );
 
   return (
-    <div className="w-full h-[calc(100vh-130px)] lg:h-[calc(100vh-150px)] min-h-[550px] flex flex-col justify-start overflow-hidden bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+    <div className="w-full flex-1 min-h-0 flex flex-col justify-start bg-white dark:bg-[#0B1222] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden" style={{ height: "calc(100vh - 120px)" }}>
       
       {/* GOOGLE CALENDAR PANEL */}
       <GoogleCalendarPanel isOpen={isCalendarPanelOpen} onClose={() => setIsCalendarPanelOpen(false)} />
@@ -1593,37 +1613,6 @@ const [membersWidth, setMembersWidth] = useState(() => {
       )}
 
 
-      {/* MEET CONNECT DIALOG */}
-      {showMeetConnectDialog && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl relative overflow-hidden flex flex-col">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Connect Google Meet</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-              Google Meet isn't connected yet. Connect Google Calendar to start meetings.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button 
-                 onClick={() => setShowMeetConnectDialog(null)}
-                 className="px-4 py-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-bold text-sm cursor-pointer"
-              >Cancel</button>
-              <button 
-                 onClick={() => {
-                   sessionStorage.setItem("pendingMeetRoomId", showMeetConnectDialog.roomIdToUse);
-                   sessionStorage.setItem("pendingMeetTitle", showMeetConnectDialog.title || "");
-                   sessionStorage.setItem("pendingMeetParticipants", JSON.stringify(showMeetConnectDialog.participants));
-                   googleLogin();
-                   setShowMeetConnectDialog(null);
-                 }}
-                 className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-blue-500/30 transition-colors cursor-pointer flex items-center gap-2"
-              >
-                <Video className="w-4 h-4" />
-                Connect Google
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* GOOGLE MEET CREATION DIALOG */}
       {isNewCallDialogOpen && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1638,11 +1627,11 @@ const [membersWidth, setMembersWidth] = useState(() => {
               </h2>
               <p className="text-xs text-slate-400 mt-1">Choose how you want to connect.</p>
               
-              {localStorage.getItem("google_calendar_auth") === "true" && (
+              {!!sessionStorage.getItem("google_workspace_access_token") && (
                 <div className="mt-4 p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between">
                    <div className="flex flex-col">
                      <span className="text-[10px] uppercase text-emerald-400 font-bold tracking-wider">Connected</span>
-                     <span className="text-xs text-slate-300">Authorized with Google</span>
+                     <span className="text-xs text-slate-300">Connected as: {connectedGoogleEmail || "Authorized with Google"}</span>
                    </div>
                    <button 
                      onClick={(e) => { e.stopPropagation(); googleLogin(); }} 
@@ -1837,7 +1826,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
 
       {/* DESKTOP RESIZABLE PANELS LAYOUT */}
       {!isMobile && (
-        <div className="flex-1 w-full bg-white dark:bg-[#0B1222] h-full max-h-full overflow-hidden flex flex-col relative text-left select-text">
+        <div className="flex-1 min-h-0 w-full bg-white dark:bg-[#0B1222] overflow-hidden flex flex-col relative text-left select-text">
           {/* FLOATING SIDEBAR RESTORE ARROW BUTTON */}
           {(!isChannelsSidebarOpen || isChannelsSidebarCollapsed) && (
             <button
@@ -1857,7 +1846,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
             </button>
           )}
 
-          <div className="flex flex-row w-full h-full overflow-hidden">
+          <div className="flex-1 min-h-0 min-w-0 flex flex-row w-full overflow-hidden">
             
             {/* PANEL 2: CHANNELS LIST */}
             {isChannelsSidebarOpen && (
@@ -2283,7 +2272,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
 
             
             {/* PANEL 3: CHAT WINDOW IN THE MIDDLE */}
-            <div id="chat" className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden"><div className="w-full h-full min-h-0 flex flex-col bg-slate-50/10 dark:bg-[#070c15]/5 relative overflow-hidden">
+            <div id="chat" className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden"><div className="flex-1 min-h-0 w-full flex flex-col bg-slate-50/10 dark:bg-[#070c15]/5 relative overflow-hidden">
               
               {/* Pinned Messages Header notification banner */}
               {pinnedMessagesInRoom.length > 0 && (
@@ -2545,7 +2534,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
               {/* Chat Message list Container with highly interactive Drag-and-Drop overlay */}
               <div
                 id="chat-scroll-container"
-                className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain p-4 space-y-3" style={{ scrollbarGutter: "stable" }}
+                className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-4 space-y-3" style={{ scrollbarGutter: "stable" }}
                 onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
                 onDragOver={handleDragOver}

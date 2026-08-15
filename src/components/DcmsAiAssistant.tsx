@@ -119,6 +119,26 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
   const typingIntervalRef = useRef<any>(null);
 
   const [isOpen, setIsOpen] = useState(false);
+  const [activeContext, setActiveContext] = useState<any>(null);
+
+  useEffect(() => {
+    const handleContextUpdate = (e: any) => {
+      const detail = e.detail;
+      if (detail && detail.selectedTicketId) {
+         setActiveContext({
+             selectedTicketId: detail.selectedTicketId,
+             title: detail.selectedTicketTitle,
+             description: detail.selectedTicketDescription,
+             category: detail.selectedTicketCategory
+         });
+      } else {
+         setActiveContext(null);
+      }
+    };
+    window.addEventListener('dcms_context_update', handleContextUpdate);
+    return () => window.removeEventListener('dcms_context_update', handleContextUpdate);
+  }, []);
+
 
   // Draggable floating chatbot setup with dynamic boundary screening & device constraints
   const [position, setPosition] = useState(() => {
@@ -1061,12 +1081,17 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         quickActions: localRuleResponse.quickActions || []
       };
 
-      const reLoadedThreads = [...currentThreads];
-      const targetIdx = reLoadedThreads.findIndex((t) => t.id === targetThreadId);
-      if (targetIdx > -1) {
-        reLoadedThreads[targetIdx].messages = [...reLoadedThreads[targetIdx].messages, assistantMsg];
-        setThreads(reLoadedThreads);
-      }
+      setThreads((prevThreads) => {
+        const updated = [...prevThreads];
+        const tIdx = updated.findIndex((t) => t.id === targetThreadId);
+        if (tIdx > -1) {
+          updated[tIdx] = {
+            ...updated[tIdx],
+            messages: [...updated[tIdx].messages, assistantMsg]
+          };
+        }
+        return updated;
+      });
 
       if (typingIntervalRef.current) {
         clearInterval(typingIntervalRef.current);
@@ -1106,66 +1131,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       return;
     }
 
-    const cacheKey = `${processedText.trim().toLowerCase()}_mode_${chatbotMode}_brief_${isBrief}`;
-    if (chatbotCache.current[cacheKey]) {
-      const cached = chatbotCache.current[cacheKey];
-      const assistantMsgId = "msg_assist_" + Date.now();
-      const assistantMsg: ChatMessage = {
-        id: assistantMsgId,
-        sender: "assistant",
-        text: "",
-        timestamp: Date.now(),
-        suggestedCategory: cached.suggestedCategory,
-        suggestedSeverity: cached.suggestedSeverity,
-        quickActions: cached.quickActions || [],
-        suggestedQueries: cached.suggestedQueries || [],
-        physicalLocation: cached.physicalLocation
-      };
-
-      let reLoadedThreads = [...currentThreads];
-      let targetIdx = reLoadedThreads.findIndex((t) => t.id === targetThreadId);
-      if (targetIdx > -1) {
-        reLoadedThreads[targetIdx].messages = [...reLoadedThreads[targetIdx].messages, assistantMsg];
-        setThreads(reLoadedThreads);
-      }
-
-      if (typingIntervalRef.current) {
-        clearInterval(typingIntervalRef.current);
-      }
-
-      const words = cached.text.split(" ");
-      let currentWordIndex = 0;
-      let currentTypedText = "";
-      
-      typingIntervalRef.current = setInterval(() => {
-        if (currentWordIndex < words.length) {
-          currentTypedText += (currentWordIndex === 0 ? "" : " ") + words[currentWordIndex];
-          currentWordIndex++;
-          
-          setThreads((prevThreads) => {
-            const updated = [...prevThreads];
-            const tIdx = updated.findIndex((t) => t.id === targetThreadId);
-            if (tIdx > -1) {
-              updated[tIdx] = {
-                ...updated[tIdx],
-                messages: updated[tIdx].messages.map((m) => 
-                  m.id === assistantMsgId ? { ...m, text: currentTypedText } : m
-                )
-              };
-            }
-            return updated;
-          });
-        } else {
-          if (typingIntervalRef.current) {
-            clearInterval(typingIntervalRef.current);
-            typingIntervalRef.current = null;
-          }
-          if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
-          setLoading(false);
-        }
-      }, 5);
-      return;
-    }
+    
 
     try {
       // Gather dynamic live DB grounding report before prompt generation for truthfulness rules
@@ -1175,13 +1141,15 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
           systemContext = {
             role: "user",
             permissions: ["ownTickets.read", "complaints.create"],
-            userProfile: { name: dbUser.name, email: dbUser.email, id: dbUser.id }
+            userProfile: { name: dbUser.name, email: dbUser.email, id: dbUser.id },
+            activeViewContext: activeContext
           };
         } else if (dbUser && chatbotMode === "admin") {
           systemContext = {
             role: "admin",
             permissions: ["tickets.read", "users.read", "reports.read", "analytics.read"],
-            userProfile: { name: dbUser.name, email: dbUser.email, id: dbUser.id }
+            userProfile: { name: dbUser.name, email: dbUser.email, id: dbUser.id },
+            activeViewContext: activeContext
           };
         } else {
           systemContext = {
@@ -1218,21 +1186,6 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
 
       const rawResult = await response.json();
       
-      const cacheKey = `${processedText.trim().toLowerCase()}_mode_${chatbotMode}_brief_${isBrief}`;
-      chatbotCache.current[cacheKey] = {
-        text: rawResult.text || "I was unable to analyze that request accurately.",
-        suggestedCategory: rawResult.suggestedCategory,
-        suggestedSeverity: rawResult.suggestedSeverity,
-        quickActions: rawResult.quickActions || [],
-        suggestedQueries: rawResult.suggestedQueries || [],
-        physicalLocation: rawResult.physicalLocation,
-        structuredData: rawResult.structuredData,
-        detectedLanguage: rawResult.detectedLanguage,
-        originalComplaint: rawResult.originalComplaint,
-        translatedComplaint: rawResult.translatedComplaint,
-        aiAnalysis: rawResult.aiAnalysis
-      };
-      
       const fullText = rawResult.text || "I was unable to analyze that request accurately.";
       const assistantMsgId = "msg_assist_" + Date.now();
       
@@ -1254,12 +1207,17 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       };
 
       // Append empty AI Assistant response to active state
-      let reLoadedThreads = [...currentThreads];
-      let targetIdx = reLoadedThreads.findIndex((t) => t.id === targetThreadId);
-      if (targetIdx > -1) {
-        reLoadedThreads[targetIdx].messages = [...reLoadedThreads[targetIdx].messages, assistantMsg];
-        setThreads(reLoadedThreads);
-      }
+      setThreads((prevThreads) => {
+        const updated = [...prevThreads];
+        const tIdx = updated.findIndex((t) => t.id === targetThreadId);
+        if (tIdx > -1) {
+          updated[tIdx] = {
+            ...updated[tIdx],
+            messages: [...updated[tIdx].messages, assistantMsg]
+          };
+        }
+        return updated;
+      });
 
       // Clear any prior active typing interval before initiating a new one
       if (typingIntervalRef.current) {

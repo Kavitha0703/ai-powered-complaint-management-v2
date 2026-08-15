@@ -225,7 +225,7 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
   };
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-[#F8FAFC] dark:bg-[#020617] flex flex-col md:flex-row font-sans transition-colors duration-350">
+    <div className="h-screen max-h-screen overflow-hidden bg-[#F8FAFC] dark:bg-[#020617] flex flex-col md:flex-row font-sans transition-colors duration-350">
       
       {/* Sidebar helper function to avoid repeating layout code */}
       {(() => {
@@ -386,10 +386,8 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
 
         return (
           <>
-            {/* Desktop Sidebar */}
-            
     {/* Desktop Sidebar */}
-    <div className="hidden md:flex z-40">
+    <div className="hidden md:flex z-40 shrink-0">
       <ResizablePanel
         id="dashboard_sidebar"
         position="right"
@@ -585,9 +583,11 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
         </header>
 
         {/* Content View wrapper -- Fluid Grid */}
-        <main className="flex-1 overflow-x-auto overflow-y-auto relative w-full">
-          <div className="p-4 sm:p-6 lg:p-8 w-full max-w-[1600px] mx-auto flex flex-col items-stretch justify-start min-h-full overflow-x-auto">
-            {children}
+        <main className="flex-1 w-full relative min-h-0 flex flex-col">
+          <div className="absolute inset-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+            <div className="w-full max-w-[1600px] mx-auto flex flex-col min-h-full pb-16">
+              {children}
+            </div>
           </div>
         </main>
 

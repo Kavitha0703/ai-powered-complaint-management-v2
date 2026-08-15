@@ -168,7 +168,7 @@ async function withRetry<T>(operation: () => Promise<T>, maxRetries = 1, baseDel
 async function callGeminiWithFallback(
   params: { contents: any; config?: any; model?: string },
   fallbackValue: any,
-  timeoutMs: number = 15000
+  timeoutMs: number = 55000
 ): Promise<{ text: string; [key: string]: any }> {
   let lastError: any = null;
   // If the key is missing entirely, trigger fallback right away
@@ -223,497 +223,26 @@ app.post("/api/gemini/analyze", async (req: express.Request, res: express.Respon
       return;
     }
 
-    // Helper function for typo correction & abbreviation expansion
-    const autoCorrectTypos = (text: string): string => {
-      const typoMap: Record<string, string> = {
-        "salry": "salary",
-        "sallary": "salary",
-        "increasd": "increased",
-        "incremnt": "increment",
-        "pritner": "printer",
-        "wrking": "working",
-        "wrkin": "working",
-        "wfi": "wifi",
-        "conection": "connection",
-        "recomnd": "recommend",
-        "depts": "departments",
-        "pasword": "password",
-        "manger": "manager",
-        "ac": "AC",
-        "xerox": "printer",
-        "canon": "printer",
-        "epson": "printer",
-        "laserjet": "printer",
-        "vpn": "VPN",
-        "hr": "HR",
-        "it": "IT",
-        "mfa": "MFA",
-        "sso": "SSO",
-        "2fa": "2FA",
-        "otp": "OTP",
-        "db": "database",
-        "api": "API",
-        "ad": "Active Directory",
-        "lan": "LAN",
-        "wan": "WAN"
-      };
-
-      let words = text.split(/\s+/);
-      words = words.map(word => {
-        const cleanWord = word.toLowerCase().replace(/[^a-z0-9]/g, "");
-        if (typoMap[cleanWord]) {
-          return typoMap[cleanWord];
-        }
-        return word;
-      });
-
-      let corrected = words.join(" ");
-      if (corrected.length > 0) {
-        corrected = corrected.charAt(0).toUpperCase() + corrected.slice(1);
-      }
-      return corrected;
-    };
-
-    const correctedText = autoCorrectTypos(description);
-    const descLower = correctedText.toLowerCase();
-
-    // 1. Emotion & Sentiment Analysis
-    let sentiment = "Neutral";
-    if (descLower.includes("frustrated") || descLower.includes("angry") || descLower.includes("disappointed") || descLower.includes("terrible") || descLower.includes("nobody helping") || descLower.includes("three times") || descLower.includes("3 times") || descLower.includes("useless") || descLower.includes("annoyed") || descLower.includes("help me please")) {
-      sentiment = "Frustrated";
-    } else if (descLower.includes("fire") || descLower.includes("smoke") || descLower.includes("hacked") || descLower.includes("breach") || descLower.includes("compromise") || descLower.includes("emergency") || descLower.includes("disaster") || descLower.includes("leak") || descLower.includes("malware")) {
-      sentiment = "Urgent/Critical Incident";
-    } else if (descLower.includes("please") || descLower.includes("thank") || descLower.includes("appreciate")) {
-      sentiment = "Calm/Polite";
-    } else if (descLower.includes("worried") || descLower.includes("concern") || descLower.includes("afraid") || descLower.includes("anxious") || descLower.includes("scared")) {
-      sentiment = "Anxious";
-    }
-
-    // Heuristics for Fallbacks
-    let fallbackCategory = "Department Operations";
-    let fallbackPriority = "Medium";
-    let fallbackDepartment = "General Operations Support";
-    let fallbackSla = "24 Hours";
-    let fallbackRootCause = "Anomalous operation behavior identified requiring operations review.";
-    let fallbackRec = "Review incident parameters, check system logs, and dispatch to correct team.";
-    let fallbackConfidence = 85;
-
-    let detectedKeywords: string[] = [];
-    let matchedDeptReason = "General Operations Support";
-    let detectedIntent = "General Operations Query";
-    let similarityScore = 82;
-    let estimatedResolutionTime = "1-2 Business Days";
-
-    let clarificationNeeded = false;
-    let clarificationOptions: string[] = [];
-    let detectedIssues: Array<{title: string, category: string, priority: string, department: string}> = [];
-    let similarCases: Array<{title: string, status: string, resolution: string}> = [];
-
-    // Vague / Ambiguous Incident Detection
-    const cleanNoPunct = descLower.replace(/[^a-z\s]/g, "").trim();
-    const isVague = cleanNoPunct.length < 15 || 
-                    cleanNoPunct === "something is wrong" || 
-                    cleanNoPunct === "broken" || 
-                    cleanNoPunct === "help me" || 
-                    cleanNoPunct === "issue" || 
-                    cleanNoPunct === "it is broken" || 
-                    cleanNoPunct === "something wrong" || 
-                    cleanNoPunct === "please help" ||
-                    cleanNoPunct === "error occurred" ||
-                    cleanNoPunct === "not working" ||
-                    cleanNoPunct === "help" ||
-                    cleanNoPunct === "system issue";
-
-    if (isVague) {
-      clarificationNeeded = true;
-      fallbackCategory = "Other";
-      fallbackPriority = "Low";
-      fallbackDepartment = "General Service Desk";
-      fallbackSla = "48 Hours";
-      fallbackRootCause = "Incident description is too brief or ambiguous to automatically diagnose root cause.";
-      fallbackRec = "Present clarification prompts to gather additional context and identify precise user concern.";
-      fallbackConfidence = 65;
-      clarificationOptions = [
-        "💼 Salary, Payroll, or Bonus Delay",
-        "🌐 Office Wi-Fi, VPN, or Network Slow",
-        "🖨️ Office Printer, Jam, or Scanner Issue",
-        "🔒 Account Locked, Password Reset, or MFA",
-        "❄️ AC, Facilities, Light, or Desk Furniture",
-        "🛡️ Suspicious Email, Phishing, or Security Breach",
-        "💳 Purchase Order, Reimbursement, or License"
-      ];
-      detectedKeywords = ["help", "broken"];
-      matchedDeptReason = "General Service Desk Support";
-      detectedIntent = "Ambiguous System Query";
-      similarityScore = 65;
-      estimatedResolutionTime = "2 Business Days";
-    } else {
-      // 2. Multiple Issues Detection
-      const domains = [
-        {
-          name: "Salary & Payroll",
-          dept: "HR Payroll & Finance",
-          priority: "High",
-          keywords: ["salary", "salry", "pay", "payroll", "bonus", "payslip", "compensation", "increment", "pf", "gratuity", "appraisal"]
-        },
-        {
-          name: "IT Support",
-          dept: "IT Desktop Support Team",
-          priority: "Medium",
-          keywords: ["printer", "pritner", "xerox", "canon", "epson", "laserjet", "print", "scanner", "laptop", "mouse", "keyboard", "monitor", "screen", "hardware", "device"]
-        },
-        {
-          name: "Network & VPN",
-          dept: "IT Network Operations Center",
-          priority: "Urgent",
-          keywords: ["wifi", "wfi", "internet", "network", "vpn", "connection", "latency", "packet loss", "router"]
-        },
-        {
-          name: "Access & Permissions",
-          dept: "IT Identity & Access Management",
-          priority: "Urgent",
-          keywords: ["access", "password", "login", "credentials", "permission", "mfa", "sso", "2fa", "otp", "ldap"]
-        },
-        {
-          name: "Facility Management",
-          dept: "Workplace & Facilities Management",
-          priority: "Low",
-          keywords: ["ac ", "air cond", "light", "facilities", "office", "desk", "chair", "leak", "building", "temperature", "water", "room"]
-        },
-        {
-          name: "Security Concerns",
-          dept: "Information Security Response Desk",
-          priority: "Critical",
-          keywords: ["threat", "phish", "malware", "hack", "virus", "suspicious", "breach", "compromise"]
-        }
-      ];
-
-      const matchedDomains = domains.filter(domain => 
-        domain.keywords.some(kw => descLower.includes(kw))
-      );
-
-      if (matchedDomains.length > 1) {
-        clarificationNeeded = false;
-        detectedIssues = matchedDomains.map(d => ({
-          title: d.name + " Issue",
-          category: d.name === "Network & VPN" ? "IT Support" : d.name,
-          priority: d.priority,
-          department: d.dept
-        }));
-        fallbackCategory = "Other";
-        fallbackPriority = sentiment === "Frustrated" ? "Critical" : "Urgent";
-        fallbackDepartment = "Multi-Disciplinary Incident Team";
-        fallbackSla = "12 Hours";
-        fallbackRootCause = `Composite ticket containing multiple departmental incident triggers: ${matchedDomains.map(d => d.name).join(", ")}.`;
-        fallbackRec = "Dispatch sub-components of this incident to respective support queues and monitor cross-domain resolution progress.";
-        fallbackConfidence = 72;
-        detectedKeywords = matchedDomains.flatMap(d => d.keywords.filter(kw => descLower.includes(kw))).slice(0, 4);
-        matchedDeptReason = "Multi-Disciplinary Support Desk";
-        detectedIntent = "Multiple Concurrent Issues";
-        similarityScore = 72;
-        estimatedResolutionTime = "12 Hours";
-      } else {
-        // Single Issue - Detailed Branch Heuristics
-        // 1. Unpaid Salary
-        if (
-          (descLower.includes("salary") || descLower.includes("credited") || descLower.includes("pay") || descLower.includes("not received") || descLower.includes("unpaid")) &&
-          (descLower.includes("not credited") || descLower.includes("has not been credited") || descLower.includes("missing") || descLower.includes("delayed") || descLower.includes("june") || descLower.includes("not received") || descLower.includes("not credit")) &&
-          !descLower.includes("increment") && !descLower.includes("increased") && !descLower.includes("increase") && !descLower.includes("slip") && !descLower.includes("deduction") && !descLower.includes("late")
-        ) {
-          fallbackCategory = "Salary & Payroll";
-          fallbackPriority = "Critical";
-          fallbackDepartment = "Payroll";
-          fallbackSla = "4 Hours";
-          fallbackRootCause = "Salary payment failure";
-          fallbackRec = "Process pending salary immediately";
-          fallbackConfidence = 98;
-          detectedKeywords = ["salary", "credited", "June"];
-          matchedDeptReason = "Payroll Support";
-          detectedIntent = "Unpaid Salary";
-          similarityScore = 98;
-          estimatedResolutionTime = "< 4 Hours";
-        }
-        // 2. Salary Increment Missing
-        else if (
-          descLower.includes("increment") || 
-          descLower.includes("appraisal") || 
-          descLower.includes("increased") || 
-          descLower.includes("increase") ||
-          (descLower.includes("salary") && descLower.includes("missing") && (descLower.includes("increment") || descLower.includes("increase")))
-        ) {
-          fallbackCategory = "Salary & Payroll";
-          fallbackPriority = "High";
-          fallbackDepartment = "HR Compensation & Finance";
-          fallbackSla = "12 Hours";
-          fallbackRootCause = "Increment revision not reflected";
-          fallbackRec = "Verify appraisal and salary revision records";
-          fallbackConfidence = 97;
-          detectedKeywords = ["salary", "increment", "June"];
-          matchedDeptReason = "HR Compensation & Finance";
-          detectedIntent = "Salary Increment Issue";
-          similarityScore = 97;
-          estimatedResolutionTime = "1-2 Business Days";
-        }
-        // 3. Payslip Deduction Issue
-        else if (descLower.includes("deduction") || descLower.includes("slip") || descLower.includes("payslip") || descLower.includes("tax query")) {
-          fallbackCategory = "Payroll Discrepancy";
-          fallbackPriority = "Medium";
-          fallbackDepartment = "Payroll Support";
-          fallbackSla = "24 Hours";
-          fallbackRootCause = "Incorrect payroll deduction or misapplied tax bracket parameter mapping.";
-          fallbackRec = "Review payroll deductions, correct employee tax grade mapping, and reimburse if necessary.";
-          fallbackConfidence = 94;
-          detectedKeywords = ["salary slip", "deduction"];
-          matchedDeptReason = "Payroll Support";
-          detectedIntent = "Unplanned Payslip Deduction";
-          similarityScore = 94;
-          estimatedResolutionTime = "1 Business Day";
-        }
-        // 4. Received Salary Late
-        else if (descLower.includes("late") && (descLower.includes("received") || descLower.includes("salary") || descLower.includes("days late"))) {
-          fallbackCategory = "Salary & Payroll";
-          fallbackPriority = "Medium";
-          fallbackDepartment = "Payroll Operations";
-          fallbackSla = "24 Hours";
-          fallbackRootCause = "Delayed payroll processing or banking transaction clearing window mismatch.";
-          fallbackRec = "Investigate payroll schedule and release logs with partner bank to avoid future latency.";
-          fallbackConfidence = 92;
-          detectedKeywords = ["salary", "late", "three days"];
-          matchedDeptReason = "Payroll Operations";
-          detectedIntent = "Late Salary Processing";
-          similarityScore = 92;
-          estimatedResolutionTime = "1 Business Day";
-        }
-        // General Salary/Payroll
-        else if (descLower.includes("salary") || descLower.includes("payroll") || descLower.includes("pay") || descLower.includes("bonus") || descLower.includes("payslip") || descLower.includes("compensation")) {
-          fallbackCategory = "Salary & Payroll";
-          fallbackPriority = "Urgent";
-          fallbackDepartment = "HR Payroll & Finance";
-          fallbackSla = "12 Hours";
-          fallbackRootCause = "Possible automated ledger reconciliation delay or banking clearance bottleneck.";
-          fallbackRec = "Verify individual payroll records against the central ledger and execute manual credit clearance.";
-          fallbackConfidence = 94;
-          detectedKeywords = ["salary", "payroll"];
-          matchedDeptReason = "HR Payroll & Finance";
-          detectedIntent = "General Payroll Concern";
-          similarityScore = 94;
-          estimatedResolutionTime = "12 Hours";
-        }
-        // Leave & Attendance
-        else if (descLower.includes("leave") || descLower.includes("attendance") || descLower.includes("sick") || descLower.includes("absent") || descLower.includes("vacation")) {
-          fallbackCategory = "Leave & Attendance";
-          fallbackPriority = "Low";
-          fallbackDepartment = "HR Administration";
-          fallbackSla = "48 Hours";
-          fallbackRootCause = "Stale manager approval action or delay in attendance system database sync.";
-          fallbackRec = "Trigger immediate supervisor notification and manually sync the regional attendance calendar.";
-          fallbackConfidence = 91;
-          detectedKeywords = ["leave", "attendance"];
-          matchedDeptReason = "HR Administration";
-          detectedIntent = "Time Off Approval Delay";
-          similarityScore = 91;
-          estimatedResolutionTime = "2 Days";
-        }
-        // Access & Permissions
-        else if (descLower.includes("permission") || descLower.includes("access") || descLower.includes("password") || descLower.includes("login") || descLower.includes("credentials") || descLower.includes("vpn") || descLower.includes("account") || descLower.includes("mfa") || descLower.includes("sso") || descLower.includes("2fa")) {
-          fallbackCategory = "Access & Permissions";
-          fallbackPriority = "Urgent";
-          fallbackDepartment = "IT Identity & Access Management";
-          fallbackSla = "12 Hours";
-          fallbackRootCause = "Expired security session token, active directory mismatch, or missing group privileges.";
-          fallbackRec = "Revoke stale access tokens, execute credentials reset, and request automated privilege re-approval.";
-          fallbackConfidence = 95;
-          detectedKeywords = ["access", "permission", "password"];
-          matchedDeptReason = "IT Identity & Access Management";
-          detectedIntent = "Identity Authentication Barrier";
-          similarityScore = 95;
-          estimatedResolutionTime = "12 Hours";
-        }
-        // IT Support: Printer (xerox, canon, laserjet)
-        else if (descLower.includes("printer") || descLower.includes("jam") || descLower.includes("xerox") || descLower.includes("canon") || descLower.includes("epson") || descLower.includes("laserjet")) {
-          fallbackCategory = "IT Support";
-          fallbackPriority = "Medium";
-          fallbackDepartment = "IT Desktop Support Team";
-          fallbackSla = "24 Hours";
-          fallbackRootCause = "Physical hardware paper jam or toner cart sensor failure on local network printer.";
-          fallbackRec = "Schedule dispatch for onsite physical technical audit or queue standard peripheral replacement.";
-          fallbackConfidence = 89;
-          detectedKeywords = ["printer", "jam", "office"];
-          matchedDeptReason = "IT Desktop Support Team";
-          detectedIntent = "Hardware Malfunction";
-          similarityScore = 89;
-          estimatedResolutionTime = "1 Business Day";
-        }
-        // IT Support: Hardware general
-        else if (descLower.includes("mouse") || descLower.includes("keyboard") || descLower.includes("monitor") || descLower.includes("laptop") || descLower.includes("screen") || descLower.includes("hardware") || descLower.includes("device")) {
-          fallbackCategory = "IT Support";
-          fallbackPriority = "Medium";
-          fallbackDepartment = "IT Desktop Support Team";
-          fallbackSla = "24 Hours";
-          fallbackRootCause = "Localized hardware driver failure or suspected physical accessory defect.";
-          fallbackRec = "Dispatch an on-duty desk-side technician for device diagnosis or coordinate immediate equipment replacement.";
-          fallbackConfidence = 89;
-          detectedKeywords = ["laptop", "hardware"];
-          matchedDeptReason = "IT Desktop Support Team";
-          detectedIntent = "Workstation Hardware Issue";
-          similarityScore = 89;
-          estimatedResolutionTime = "1 Business Day";
-        }
-        // IT Support: Network/Wifi (internet, packet loss, connection)
-        else if (descLower.includes("internet") || descLower.includes("wifi") || descLower.includes("network") || descLower.includes("slow") || descLower.includes("connection") || descLower.includes("latency") || descLower.includes("packet loss")) {
-          fallbackCategory = "IT Support";
-          fallbackPriority = "Urgent";
-          fallbackDepartment = "IT Network Operations Center";
-          fallbackSla = "12 Hours";
-          fallbackRootCause = "Localized gateway congestion, packet routing anomalies, or DNS resolution failure.";
-          fallbackRec = "Instruct user to flush local DNS cache, cycle gateway power, and review active router telemetry.";
-          fallbackConfidence = 93;
-          detectedKeywords = ["wifi", "network", "slow"];
-          matchedDeptReason = "IT Network Operations Center";
-          detectedIntent = "Wireless Signal Congestion";
-          similarityScore = 93;
-          estimatedResolutionTime = "12 Hours";
-        }
-        // Security Concerns
-        else if (descLower.includes("security") || descLower.includes("threat") || descLower.includes("phish") || descLower.includes("leak") || descLower.includes("malware") || descLower.includes("virus") || descLower.includes("hack") || descLower.includes("suspicious")) {
-          fallbackCategory = "Security Concerns";
-          fallbackPriority = "Critical";
-          fallbackDepartment = "Information Security Response Desk";
-          fallbackSla = "4 Hours";
-          fallbackRootCause = "Potential intrusion threat vectors, unauthorized system login attempts, or malware signature trigger.";
-          fallbackRec = "Quarantine the target workstation, perform system-wide memory scan, and temporarily freeze affected account tokens.";
-          fallbackConfidence = 97;
-          detectedKeywords = ["phish", "suspicious", "threat"];
-          matchedDeptReason = "Information Security Response Desk";
-          detectedIntent = "Information Security Threat";
-          similarityScore = 97;
-          estimatedResolutionTime = "< 4 Hours";
-        }
-        // Facility Management
-        else if (descLower.includes("facility") || descLower.includes("building") || descLower.includes("light") || descLower.includes("air") || descLower.includes("ac") || descLower.includes("chair") || descLower.includes("desk") || descLower.includes("water") || descLower.includes("office") || descLower.includes("leak") || descLower.includes("room") || descLower.includes("temp")) {
-          fallbackCategory = "Facility Management";
-          fallbackPriority = "Low";
-          fallbackDepartment = "Workplace & Facilities Management";
-          fallbackSla = "48 Hours";
-          fallbackRootCause = "Localized workspace infrastructure wear or pending HVAC/building repair ticket.";
-          fallbackRec = "Assign an maintenance service order to the office engineering supervisor for onsite correction.";
-          fallbackConfidence = 88;
-          detectedKeywords = ["office", "facilities"];
-          matchedDeptReason = "Workplace & Facilities Management";
-          detectedIntent = "Workstation Maintenance Request";
-          similarityScore = 88;
-          estimatedResolutionTime = "2 Days";
-        }
-        // Procurement Requests
-        else if (descLower.includes("procure") || descLower.includes("buy") || descLower.includes("order") || descLower.includes("purchase") || descLower.includes("invoice") || descLower.includes("license") || descLower.includes("budget")) {
-          fallbackCategory = "Procurement Requests";
-          fallbackPriority = "Medium";
-          fallbackDepartment = "Purchasing & Financial Audit";
-          fallbackSla = "24 Hours";
-          fallbackRootCause = "Purchase order missing the designated department budget code or supervisor clearance.";
-          fallbackRec = "Request necessary cost-center authorization codes and queue transaction for final financial approval.";
-          fallbackConfidence = 90;
-          detectedKeywords = ["purchase", "procure"];
-          matchedDeptReason = "Purchasing & Financial Audit";
-          detectedIntent = "Hardware/Software Sourcing";
-          similarityScore = 90;
-          estimatedResolutionTime = "1 Business Day";
-        }
-        // Suggestions
-        else if (descLower.includes("suggest") || descLower.includes("improve") || descLower.includes("idea") || descLower.includes("feedback")) {
-          fallbackCategory = "Suggestions & Improvements";
-          fallbackPriority = "Low";
-          fallbackDepartment = "Business Performance & Operations";
-          fallbackSla = "48 Hours";
-          fallbackRootCause = "Voluntary workplace process suggestion or feedback submission.";
-          fallbackRec = "Log details into the Operations Innovation Registry for review during upcoming quarterly reviews.";
-          fallbackConfidence = 86;
-          detectedKeywords = ["suggest", "feedback"];
-          matchedDeptReason = "Business Performance & Operations";
-          detectedIntent = "Operational Optimization Feedback";
-          similarityScore = 86;
-          estimatedResolutionTime = "2 Days";
-        }
-        // Custom fallback
-        else {
-          const significantWords = description
-            .split(/\s+/)
-            .map(w => w.replace(/[^a-zA-Z]/g, ""))
-            .filter(w => w.length > 4);
-          const keySubject = significantWords.length > 0 ? significantWords[0].toLowerCase() : "incident";
-          fallbackRootCause = `Anomalous behavior identified concerning "${keySubject}" requiring operations assessment.`;
-          fallbackRec = `Examine incident log for pattern analysis relating to "${keySubject}" and route accordingly.`;
-          fallbackConfidence = 74;
-          detectedKeywords = significantWords.slice(0, 3).map(w => w.toLowerCase());
-          matchedDeptReason = "General Operations Support";
-          detectedIntent = "Custom Incident Inquiry";
-          similarityScore = 74;
-          estimatedResolutionTime = "1-2 Business Days";
-        }
-
-        if (detectedIssues.length === 0) {
-          detectedIssues = [{
-            title: detectedIntent,
-            category: fallbackCategory,
-            priority: fallbackPriority,
-            department: fallbackDepartment
-          }];
-        }
-      }
-    }
-
-    // Assign Past Similar Incidents list based on Category
-    if (fallbackCategory.includes("Salary") || fallbackCategory.includes("Payroll") || fallbackCategory.includes("Discrepancy")) {
-      similarCases = [
-        { title: "Salary Delay - June 2025", status: "Resolved", resolution: "Resolved bank batch clearance delay." },
-        { title: "Salary Increment Missing", status: "Resolved", resolution: "HR Compensation approved retroactive payroll ledgers." }
-      ];
-    } else if (fallbackCategory.includes("IT") || fallbackCategory.includes("Support") || fallbackCategory.includes("Access")) {
-      similarCases = [
-        { title: "Office Printer Jam", status: "Resolved", resolution: "Onsite desktop support cleared mechanical paper rollers." },
-        { title: "Wi-Fi Router Overload", status: "Resolved", resolution: "Reset regional channel gateway and flushed DNS." }
-      ];
-    } else if (fallbackCategory.includes("Security")) {
-      similarCases = [
-        { title: "Phishing Threat Quarantine", status: "Resolved", resolution: "Rogue domain blocked and company-wide security warning triggered." }
-      ];
-    } else if (fallbackCategory.includes("Facility")) {
-      similarCases = [
-        { title: "AC Calibration Failure", status: "Resolved", resolution: "Facilities technician adjusted central zone airflow." }
-      ];
-    } else {
-      similarCases = [
-        { title: "Past Operational Inquiry", status: "Resolved", resolution: "Triage complete, assigned task completed successfully." }
-      ];
-    }
-
-    // Elevate priority based on Frustrated Sentiment if not already critical
-    if (sentiment === "Frustrated" && fallbackPriority !== "Critical") {
-      if (fallbackPriority === "Low") fallbackPriority = "Medium";
-      else if (fallbackPriority === "Medium") fallbackPriority = "High";
-      else if (fallbackPriority === "High") fallbackPriority = "Urgent";
-    }
-
     const fallbackValue = {
-      category: fallbackCategory,
-      priority: fallbackPriority,
-      department: fallbackDepartment,
-      sla: fallbackSla,
-      rootCause: fallbackRootCause,
-      recommendation: fallbackRec,
-      confidence: fallbackConfidence,
-      correctedText,
-      sentiment,
-      clarificationNeeded,
-      clarificationOptions,
-      detectedIssues,
-      similarCases,
+      category: "Other",
+      priority: "Medium",
+      department: "General Operations",
+      sla: "24 Hours",
+      rootCause: "AI service is currently unavailable.",
+      recommendation: "Please review the ticket manually.",
+      confidence: 0,
+      correctedText: description,
+      sentiment: "Neutral",
+      clarificationNeeded: false,
+      clarificationOptions: [],
+      detectedIssues: [],
+      similarCases: [],
       aiReasoning: {
-        detectedKeywords,
-        matchedDepartment: matchedDeptReason,
-        detectedIntent,
-        similarityScore,
-        estimatedResolutionTime
+        detectedKeywords: [],
+        matchedDepartment: "Unknown",
+        detectedIntent: "Unknown",
+        similarityScore: 0,
+        estimatedResolutionTime: "Unknown"
       }
     };
 
@@ -1108,40 +637,8 @@ app.post("/api/gemini/resolve", async (req: express.Request, res: express.Respon
     }
 
     const descLower = description.toLowerCase();
-    let solutionList = [
-      "Inspect the client hardware logs and peripheral bus wiring connections.",
-      "Clear temporary session state caches and restart the local user terminal.",
-      "Liaise with workplace supervisor or technical services administrator."
-    ];
-
-    if (descLower.includes("network") || descLower.includes("internet") || descLower.includes("wifi") || descLower.includes("online") || descLower.includes("offline")) {
-      solutionList = [
-        "Reset local interface IP parameters and flush network DNS resolvers.",
-        "Verify direct RJ45 Ethernet port patch cables and hardware ethernet hubs.",
-        "Check overall central gateway routers status or contact ISP engineers."
-      ];
-    } else if (descLower.includes("login") || descLower.includes("password") || descLower.includes("permission") || descLower.includes("credentials") || descLower.includes("account")) {
-      solutionList = [
-        "Inquire with system supervisor to verify account license and access grants.",
-        "Perform secure password verification cycle via OTP or registration desk.",
-        "Clear cookies, browser session buffers, and retry secure single-sign-on."
-      ];
-    } else if (descLower.includes("printer") || descLower.includes("hardware") || descLower.includes("ac") || descLower.includes("lamp") || descLower.includes("screen") || descLower.includes("keyboard")) {
-      solutionList = [
-        "Unplug system power cords, await 30 seconds, and run cold sequence boot.",
-        "Confirm drivers under device registry are operating on release channels.",
-        "Draft facility request or procure backup peripheral set from inventory."
-      ];
-    } else if (descLower.includes("salary") || descLower.includes("payroll") || descLower.includes("payslip") || descLower.includes("pay")) {
-      solutionList = [
-        "Verify personal bank routing parameters and account numbers registry.",
-        "Consult monthly accounts ledger sheets directly with Payroll Specialist.",
-        "Open formal administration escalation ticket to audit payment batches."
-      ];
-    }
-
     const fallbackValue = {
-      solutions: solutionList
+      solutions: ["Rule-based preliminary classification: AI service is currently unavailable. Please check the ticket manually."]
     };
 
     const prompt = `Formulate standard engineering operations tasks to resolve this ticket. 
@@ -1498,10 +995,15 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
 
     // Construct Context Prompt
     let databaseContextPrompt = "";
+    let activeViewStr = "";
+    if (systemContext?.activeViewContext) {
+      activeViewStr = `\n\n--- CURRENTLY SELECTED COMPLAINT ---\nThe user is actively viewing this specific complaint in the UI:\nID: ${systemContext.activeViewContext.selectedTicketId}\nCategory: ${systemContext.activeViewContext.category}\nTitle: ${systemContext.activeViewContext.title}\nDescription: ${systemContext.activeViewContext.description}\n\nWhen the user refers to "this complaint", "the complaint", or "it", they mean this selected complaint. Analyze it in detail.`;
+    }
+
     if (role === "user") {
-      databaseContextPrompt = `ACTIVE ROLE: Personal Support Assistant\nLogged-in User Name: ${systemContext?.userProfile?.name || "User"}\n\n--- GROUND-TRUTH STATUS ---\nThese are your tickets:\n${fetchedTickets.map((c: any) => `- Ticket #${c.id.toString().substring(0, 8).toUpperCase()}: ${c.issue_type} (${c.status})`).join("\n") || "No tickets found."}`;
+      databaseContextPrompt = `ACTIVE ROLE: Personal Support Assistant\nLogged-in User Name: ${systemContext?.userProfile?.name || "User"}\n\n--- GROUND-TRUTH STATUS ---\nThese are your tickets:\n${fetchedTickets.map((c: any) => `- Ticket #${c.id.toString().substring(0, 8).toUpperCase()}: ${c.issue_type} (${c.status})`).join("\n") || "No tickets found."}` + activeViewStr;
     } else if (role === "admin") {
-      databaseContextPrompt = `ACTIVE ROLE: Administrative AI Assistant\nLogged-in Admin: ${systemContext?.userProfile?.name || "System Admin"}\n\n--- PRODUCTION DB METRICS ---\nTotal Tickets (Loaded): ${dbStats.totalTickets}\nPending: ${dbStats.pendingCount}\nIn Progress: ${dbStats.inProgressCount}\nResolved: ${dbStats.resolvedCount}\n\nRecent Tickets:\n${fetchedTickets.slice(0, 15).map((c: any) => `- Ticket #DCMS-${c.id.toString().substring(0, 5).toUpperCase()}: ${c.issue_type} | ${c.severity} | ${c.status}`).join("\n") || "No tickets."}`;
+      databaseContextPrompt = `ACTIVE ROLE: Administrative AI Assistant\nLogged-in Admin: ${systemContext?.userProfile?.name || "System Admin"}\n\n--- PRODUCTION DB METRICS ---\nTotal Tickets (Loaded): ${dbStats.totalTickets}\nPending: ${dbStats.pendingCount}\nIn Progress: ${dbStats.inProgressCount}\nResolved: ${dbStats.resolvedCount}\n\nRecent Tickets:\n${fetchedTickets.slice(0, 15).map((c: any) => `- Ticket #DCMS-${c.id.toString().substring(0, 5).toUpperCase()}: ${c.issue_type} | ${c.severity} | ${c.status}`).join("\n") || "No tickets."}` + activeViewStr;
     } else {
       databaseContextPrompt = `ACTIVE ROLE: General Workplace Hub AI Assistant\nNo dynamic system context was passed in the request. Give polite general website support.`;
     }
@@ -1544,8 +1046,8 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
     }
 
     const fallbackValue = {
-      text: "🟡 AI Prediction\n\nI am currently running in resilient offline mode because our primary AI channels are experiencing very high traffic. How can I help you?",
-      suggestedCategory: "Other", suggestedSeverity: "Low", quickActions: ["register_ticket"], suggestedQueries: ["How do I register a ticket?"]
+      text: "AI analysis is temporarily unavailable. Please try again.",
+      suggestedCategory: "Other", suggestedSeverity: "Low", quickActions: ["retry_analysis"], suggestedQueries: []
     };
 
     console.time("Gemini API Call");
@@ -1592,7 +1094,7 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
           required: ["text"],
         }
       }
-    }, fallbackValue, 15000); // 15s timeout
+    }, fallbackValue, 55000); // 55s timeout
     console.timeEnd("Gemini API Call");
 
     console.time("Response Formatting & Sending");
