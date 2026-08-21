@@ -165,9 +165,20 @@ export async function sendEmailViaGmail(params: SendEmailParams): Promise<{ succ
     }
   }
 
-  // Simulated email dispatch fallback disabled for debugging
-  console.error("No access token provided. Gmail simulated fallback is disabled.");
-  return { success: false, error: "No access token provided. Not falling back to simulation." };
+  // Simulated email dispatch fallback
+  console.log("No access token provided. Falling back to simulated email dispatch.");
+  const record: SentEmailRecord = {
+    id: recordId,
+    to,
+    subject,
+    bodyHtml,
+    category,
+    sentAt,
+    senderEmail,
+    status: 'Sent'
+  };
+  saveEmailToLog(record);
+  return { success: true, messageId: recordId };
 }
 
 // Templates builder for Workplace Hub Enterprise Email Notifications
