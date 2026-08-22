@@ -3,6 +3,7 @@ import { useAuth } from "../lib/AuthContext";
 import ResizeHandle from "../components/ResizeHandle";
 import ResizablePanel from "../components/ResizablePanel";
 import { supabase } from "../lib/supabase";
+import * as chatDb from "../lib/teamChatDb";
 
 
 
@@ -81,6 +82,10 @@ interface ChatMessage {
     joinedParticipantEmails?: string[];
     organizerId?: string;
     organizerName?: string;
+    space_name?: string;
+    conference_record?: string;
+    started_at?: string;
+    ended_at?: string;
     organizerEmail?: string;
     createdAt?: string;
     startedAt?: string;
@@ -105,9 +110,9 @@ export default function AdminTeamChat() {
   const { user, dbUser } = useAuth();
 
   const handleCreateGoogleMeet = async (title: string, participants: string[]) => {
-    const isConnected = !!sessionStorage.getItem("google_workspace_access_token");
+    const accessToken = sessionStorage.getItem("google_workspace_access_token");
     
-    if (!isConnected) {
+    if (!accessToken) {
       sessionStorage.setItem("pendingMeetRoomId", activeRoomId);
       sessionStorage.setItem("pendingMeetTitle", title);
       sessionStorage.setItem("pendingMeetParticipants", JSON.stringify(participants));
@@ -116,29 +121,20 @@ export default function AdminTeamChat() {
     }
 
     try {
-      const { createGoogleCalendarEvent } = await import('../lib/google/calendar');
-      const startTime = new Date();
-      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+      const { createMeetSpace } = await import('../lib/google/meet_api');
+      const spaceData = await createMeetSpace(accessToken);
       
-      const newEvent = await createGoogleCalendarEvent({
-        summary: title,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        addGoogleMeet: true,
-        type: 'Team',
-        visibility: 'Team',
-        userId: user?.id
-      });
-      
-      const meetLink = newEvent.hangoutLink;
+      const meetLink = spaceData.meetingUri;
       if (meetLink) {
         window.open(meetLink, '_blank');
-        finalizeMeetingCreation(title, participants, user?.name || "Admin", activeRoomId, meetLink);
+        finalizeMeetingCreation(title, participants, user?.name || "Admin", activeRoomId, meetLink, spaceData.name);
       } else {
         console.error("Failed to generate meet link.");
       }
     } catch (e) {
       console.error("Error creating Google Meet:", e);
+      alert("Google authorization failed. We couldn't connect your Google account. Please try again or choose another Google account.");
+      sessionStorage.removeItem("google_workspace_access_token");
     }
   };
 
@@ -201,6 +197,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
   const [editInput, setEditInput] = useState<string>("");
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [showGmailCenter, setShowGmailCenter] = useState<boolean>(false);
+  const [participantsModalMessage, setParticipantsModalMessage] = useState<ChatMessage | null>(null);
   const [gmailInitialData, setGmailInitialData] = useState<{tab: 'log'|'compose', template?: 'meeting_invite', title?: string, link?: string} | null>(null);
   const [showAiMenu, setShowAiMenu] = useState<boolean>(false);
   const [loadingImprove, setLoadingImprove] = useState<boolean>(false);
@@ -412,6 +409,31 @@ const [membersWidth, setMembersWidth] = useState(() => {
     loadWorkspaceRooms();
     loadWorkspaceMessages();
     fetchMeetingsFromSupabase();
+
+    const msgSub = supabase.channel('team_messages_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_messages' }, (payload) => {
+        if (payload.eventType === 'INSERT' && payload.new.sender_id !== currentAdminId) {
+          if ("Notification" in window) {
+            if (Notification.permission === "granted") {
+              const body = payload.new.text.length > 50 ? payload.new.text.substring(0, 50) + '...' : payload.new.text;
+              new Notification("New Message from " + payload.new.sender_name, { body });
+            }
+          }
+        }
+        loadWorkspaceMessages();
+      })
+      .subscribe();
+
+    const roomSub = supabase.channel('team_channels_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_channels' }, () => {
+        loadWorkspaceRooms();
+      })
+      .subscribe();
+
+    return () => {
+      msgSub.unsubscribe();
+      roomSub.unsubscribe();
+    };
   }, []);
 
   // Update messages feed when active room switches
@@ -430,9 +452,17 @@ const [membersWidth, setMembersWidth] = useState(() => {
   }, [activeRoomId]);
 
   // Load Rooms
-  const loadWorkspaceRooms = () => {
-    const saved = localStorage.getItem("dcms_chat_rooms_v4");
-    let loadedRooms: ChatRoom[] = saved ? JSON.parse(saved) : [];
+  const loadWorkspaceRooms = async () => {
+    let loadedRooms: ChatRoom[] = [];
+    const dbRooms = await chatDb.getRooms();
+    if (dbRooms) {
+      loadedRooms = dbRooms;
+      localStorage.setItem("dcms_chat_rooms_v4", JSON.stringify(dbRooms));
+    } else {
+      const saved = localStorage.getItem("dcms_chat_rooms_v4");
+      loadedRooms = saved ? JSON.parse(saved) : [];
+    }
+
     setRooms(loadedRooms);
     
     setActiveRoomId(prev => {
@@ -442,11 +472,17 @@ const [membersWidth, setMembersWidth] = useState(() => {
     });
   };
 
-  const loadWorkspaceMessages = () => {
-    const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
-    let loadedMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : [];
-    
-    // Strict deduplication by message ID
+  const loadWorkspaceMessages = async () => {
+    let loadedMessages: ChatMessage[] = [];
+    const dbMsgs = await chatDb.getMessages();
+    if (dbMsgs) {
+      loadedMessages = dbMsgs;
+      localStorage.setItem("dcms_chat_messages_v4", JSON.stringify(dbMsgs));
+    } else {
+      const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
+      loadedMessages = savedMsg ? JSON.parse(savedMsg) : [];
+    }
+
     const uniqueMsgMap = new Map<string, ChatMessage>();
     loadedMessages.forEach(m => {
       if (m && m.id) {
@@ -466,10 +502,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
     setMessages(readUpdated);
 
     // Sync and populate Meeting History state from all logged call messages
-    // Ensure we only show meetings for THIS channel
     const callMessages = filtered.filter(m => m.call_summary);
-    
-    // Filter out meetings that this user has cleared for this channel
     const clearedMeetingsStr = localStorage.getItem("dcms_cleared_meetings") || "[]";
     let clearedMeetings = [];
     try { clearedMeetings = JSON.parse(clearedMeetingsStr); } catch (e) {}
@@ -504,13 +537,27 @@ const [membersWidth, setMembersWidth] = useState(() => {
     setIsFetchingMeetings(false);
   };
 
-  const saveRoomsToStorage = (updatedRooms: ChatRoom[]) => {
+  const saveRoomsToStorage = async (updatedRooms: ChatRoom[]) => {
+    const oldRooms = JSON.parse(localStorage.getItem("dcms_chat_rooms_v4") || "[]");
     localStorage.setItem("dcms_chat_rooms_v4", JSON.stringify(updatedRooms));
+    
+    const promises = [];
+    for (const r of updatedRooms) {
+      const old = oldRooms.find((oldR: any) => oldR.id === r.id);
+      if (!old || JSON.stringify(old) !== JSON.stringify(r)) {
+        promises.push(chatDb.saveRoom(r));
+      }
+    }
+    for (const old of oldRooms) {
+      if (!updatedRooms.find(r => r.id === old.id)) {
+        promises.push(chatDb.deleteRoom(old.id));
+      }
+    }
+    await Promise.all(promises);
     setRooms(updatedRooms);
   };
 
-  const saveMessagesToStorage = (updatedMessages: ChatMessage[]) => {
-    // Deduplicate messages by ID before persisting to storage
+  const saveMessagesToStorage = async (updatedMessages: ChatMessage[]) => {
     const uniqueMap = new Map<string, ChatMessage>();
     updatedMessages.forEach(m => {
       if (m && m.id) {
@@ -518,7 +565,22 @@ const [membersWidth, setMembersWidth] = useState(() => {
       }
     });
     const deduplicated = Array.from(uniqueMap.values());
+    const oldMsgs = JSON.parse(localStorage.getItem("dcms_chat_messages_v4") || "[]");
     localStorage.setItem("dcms_chat_messages_v4", JSON.stringify(deduplicated));
+    
+    const promises = [];
+    for (const m of deduplicated) {
+      const old = oldMsgs.find((oldM: any) => oldM.id === m.id);
+      if (!old || JSON.stringify(old) !== JSON.stringify(m)) {
+        promises.push(chatDb.saveMessage(m));
+      }
+    }
+    for (const old of oldMsgs) {
+      if (!deduplicated.find(m => m.id === old.id)) {
+        promises.push(chatDb.deleteMessage(old.id));
+      }
+    }
+    await Promise.all(promises);
     loadWorkspaceMessages();
     window.dispatchEvent(new CustomEvent("dcms_messages_updated"));
   };
@@ -635,7 +697,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
     const saved = localStorage.getItem("dcms_chat_messages_v4");
     const allMsg: ChatMessage[] = saved ? JSON.parse(saved) : [];
     const combined = [...allMsg, newMsg];
-    localStorage.setItem("dcms_chat_messages_v4", JSON.stringify(combined));
+    saveMessagesToStorage(combined);
     loadWorkspaceMessages();
     setTimeout(() => scrollToBottom("smooth"), 50);
     if (customMsgText === undefined) {
@@ -650,7 +712,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
       const activeSaved = localStorage.getItem("dcms_chat_messages_v4");
       const currentMsgs: ChatMessage[] = activeSaved ? JSON.parse(activeSaved) : [];
       const updated = currentMsgs.map(m => m.id === messageId ? { ...m, message_status: "delivered" as const } : m);
-      localStorage.setItem("dcms_chat_messages_v4", JSON.stringify(updated));
+      saveMessagesToStorage(updated);
       loadWorkspaceMessages();
 
       // Simulate read (double blue tick) after 1500ms
@@ -658,7 +720,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
         const afterSaved = localStorage.getItem("dcms_chat_messages_v4");
         const currentMsgs2: ChatMessage[] = afterSaved ? JSON.parse(afterSaved) : [];
         const updated2 = currentMsgs2.map(m => m.id === messageId ? { ...m, message_status: "read" as const } : m);
-        localStorage.setItem("dcms_chat_messages_v4", JSON.stringify(updated2));
+        saveMessagesToStorage(updated2);
         loadWorkspaceMessages();
       }, 900);
 
@@ -749,7 +811,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
       const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
       let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : [];
       const keptMessages = allMessages.filter(m => m.room_id !== deleteConfRoom.id);
-      localStorage.setItem("dcms_chat_messages_v4", JSON.stringify(keptMessages));
+      saveMessagesToStorage(keptMessages);
 
       if (activeRoomId === deleteConfRoom.id) {
         setActiveRoomId("ch_general");
@@ -969,7 +1031,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
       }
     }
   });
-  const finalizeMeetingCreation = (title: string, participants: string[], adminName: string, roomId: string, link: string) => {
+  const finalizeMeetingCreation = (title: string, participants: string[], adminName: string, roomId: string, link: string, spaceName?: string) => {
     const msgId = "meet_" + Date.now();
     const newMsg: ChatMessage = {
       id: msgId,
@@ -986,13 +1048,15 @@ const [membersWidth, setMembersWidth] = useState(() => {
         meet_link: link,
         meet_status: "Waiting",
         participants: participants,
-        duration: "0:00"
+        duration: "0:00",
+        space_name: spaceName,
+        started_at: new Date().toISOString()
       }
     };
     const saved = localStorage.getItem("dcms_chat_messages_v4");
     const allMsg = saved ? JSON.parse(saved) : [];
     const combined = [...allMsg, newMsg];
-    localStorage.setItem("dcms_chat_messages_v4", JSON.stringify(combined));
+    saveMessagesToStorage(combined);
     loadWorkspaceMessages();
     setTimeout(() => scrollToBottom("smooth"), 50);
   };
@@ -1055,7 +1119,7 @@ const [membersWidth, setMembersWidth] = useState(() => {
     const savedMsg = localStorage.getItem("dcms_chat_messages_v4");
     let allMessages: ChatMessage[] = savedMsg ? JSON.parse(savedMsg) : [];
     const combined = [...allMessages, newMsg];
-    localStorage.setItem("dcms_chat_messages_v4", JSON.stringify(combined));
+    saveMessagesToStorage(combined);
 
     setForwardDialogMsg(null);
     setActiveRoomId(roomId);
@@ -1614,7 +1678,52 @@ const [membersWidth, setMembersWidth] = useState(() => {
 
 
       {/* GOOGLE MEET CREATION DIALOG */}
-      {isNewCallDialogOpen && (
+      
+      {/* PARTICIPANTS MODAL */}
+      {participantsModalMessage && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-slate-950 border border-slate-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl relative">
+            <button onClick={() => setParticipantsModalMessage(null)} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors border-none bg-transparent cursor-pointer">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Users className="w-6 h-6 text-indigo-400" />
+                Participants
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">{participantsModalMessage.call_summary?.title}</p>
+            </div>
+            
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+              {participantsModalMessage.call_summary?.joinedParticipants?.length ? (
+                participantsModalMessage.call_summary.joinedParticipants.map((p, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-900 border border-slate-800">
+                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                      {p.charAt(0)}
+                    </div>
+                    <div className="text-sm text-slate-200 font-semibold truncate">{p}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 text-center text-sm text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                  No participants yet
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-6">
+              <button 
+                 onClick={() => setParticipantsModalMessage(null)}
+                 className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl p-3 text-sm transition-colors cursor-pointer"
+              >
+                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+{isNewCallDialogOpen && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-slate-950 border border-slate-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl relative">
             <button onClick={() => setIsNewCallDialogOpen(false)} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors border-none bg-transparent cursor-pointer">
@@ -2430,13 +2539,14 @@ const [membersWidth, setMembersWidth] = useState(() => {
                           className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-sm"
                           title="Google Meet"
                         >
-                          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                            <path fill="#00875A" d="M15 12l4.5-3.6a1 1 0 0 1 1.5.8v5.6a1 1 0 0 1-1.5.8L15 12z"/>
-                            <rect fill="#00A86B" x="3" y="6" width="11" height="12" rx="2"/>
-                            <path fill="#4285F4" d="M3 8a2 2 0 0 1 2-2h4v12H5a2 2 0 0 1-2-2V8z"/>
-                            <path fill="#EA4335" d="M3 16a2 2 0 0 0 2 2h4v-3H3v1z"/>
-                            <path fill="#FFBA00" d="M3 8a2 2 0 0 1 2-2h4v3H3V8z"/>
-                          </svg>
+                          <svg className="w-5 h-5 shrink-0" viewBox="0 0 87.5 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Google Meet" role="img">
+  <path fill="#00832d" d="M49.5 36l8.53 9.75 11.47 7.33 2-17.02-2-16.64-11.69 6.44z"/>
+  <path fill="#0066da" d="M0 51.5V66c0 3.315 2.685 6 6 6h14.5l3-10.96-3-9.54-9.95-3z"/>
+  <path fill="#e94235" d="M20.5 0L0 20.5l10.55 3 9.95-3 2.95-9.41z"/>
+  <path fill="#2684fc" d="M20.5 20.5H0v31h20.5z"/>
+  <path fill="#00ac47" d="M82.6 8.68L69.5 19.42v33.66l13.16 10.79c1.97 1.54 4.85.135 4.85-2.37V11c0-2.535-2.945-3.925-4.91-2.32zM49.5 36v15.5h-29V72h43c3.315 0 6-2.685 6-6V53.08z"/>
+  <path fill="#ffba00" d="M63.5 0h-43v20.5h29V36l20-16.57V6c0-3.315-2.685-6-6-6z"/>
+</svg>
                         </button>
                       );
                     }
@@ -2445,17 +2555,18 @@ const [membersWidth, setMembersWidth] = useState(() => {
                     if (status === "Waiting") {
                       return (
                         <button
-                          onClick={() => handleJoinGoogleMeet(activeMeeting.id)}
+                          onClick={() => { if (activeMeeting.call_summary?.meet_link) window.open(activeMeeting.call_summary.meet_link, "_blank"); }}
                           className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-amber-500/10 border border-amber-500/50 hover:bg-amber-500/20 animate-pulse relative shadow-sm"
                           title="Google Meet (Waiting to Join)"
                         >
-                          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                            <path fill="#00875A" d="M15 12l4.5-3.6a1 1 0 0 1 1.5.8v5.6a1 1 0 0 1-1.5.8L15 12z"/>
-                            <rect fill="#00A86B" x="3" y="6" width="11" height="12" rx="2"/>
-                            <path fill="#4285F4" d="M3 8a2 2 0 0 1 2-2h4v12H5a2 2 0 0 1-2-2V8z"/>
-                            <path fill="#EA4335" d="M3 16a2 2 0 0 0 2 2h4v-3H3v1z"/>
-                            <path fill="#FFBA00" d="M3 8a2 2 0 0 1 2-2h4v3H3V8z"/>
-                          </svg>
+                          <svg className="w-5 h-5 shrink-0" viewBox="0 0 87.5 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Google Meet" role="img">
+  <path fill="#00832d" d="M49.5 36l8.53 9.75 11.47 7.33 2-17.02-2-16.64-11.69 6.44z"/>
+  <path fill="#0066da" d="M0 51.5V66c0 3.315 2.685 6 6 6h14.5l3-10.96-3-9.54-9.95-3z"/>
+  <path fill="#e94235" d="M20.5 0L0 20.5l10.55 3 9.95-3 2.95-9.41z"/>
+  <path fill="#2684fc" d="M20.5 20.5H0v31h20.5z"/>
+  <path fill="#00ac47" d="M82.6 8.68L69.5 19.42v33.66l13.16 10.79c1.97 1.54 4.85.135 4.85-2.37V11c0-2.535-2.945-3.925-4.91-2.32zM49.5 36v15.5h-29V72h43c3.315 0 6-2.685 6-6V53.08z"/>
+  <path fill="#ffba00" d="M63.5 0h-43v20.5h29V36l20-16.57V6c0-3.315-2.685-6-6-6z"/>
+</svg>
                           <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-slate-900" />
                         </button>
                       );
@@ -2464,17 +2575,18 @@ const [membersWidth, setMembersWidth] = useState(() => {
                     if (status === "Live") {
                       return (
                         <button
-                          onClick={() => handleJoinGoogleMeet(activeMeeting.id)}
+                          onClick={() => { if (activeMeeting.call_summary?.meet_link) window.open(activeMeeting.call_summary.meet_link, "_blank"); }}
                           className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-emerald-500/10 border border-emerald-500/50 hover:bg-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.3)] relative"
                           title="Google Meet (Live Call)"
                         >
-                          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                            <path fill="#00875A" d="M15 12l4.5-3.6a1 1 0 0 1 1.5.8v5.6a1 1 0 0 1-1.5.8L15 12z"/>
-                            <rect fill="#00A86B" x="3" y="6" width="11" height="12" rx="2"/>
-                            <path fill="#4285F4" d="M3 8a2 2 0 0 1 2-2h4v12H5a2 2 0 0 1-2-2V8z"/>
-                            <path fill="#EA4335" d="M3 16a2 2 0 0 0 2 2h4v-3H3v1z"/>
-                            <path fill="#FFBA00" d="M3 8a2 2 0 0 1 2-2h4v3H3V8z"/>
-                          </svg>
+                          <svg className="w-5 h-5 shrink-0" viewBox="0 0 87.5 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Google Meet" role="img">
+  <path fill="#00832d" d="M49.5 36l8.53 9.75 11.47 7.33 2-17.02-2-16.64-11.69 6.44z"/>
+  <path fill="#0066da" d="M0 51.5V66c0 3.315 2.685 6 6 6h14.5l3-10.96-3-9.54-9.95-3z"/>
+  <path fill="#e94235" d="M20.5 0L0 20.5l10.55 3 9.95-3 2.95-9.41z"/>
+  <path fill="#2684fc" d="M20.5 20.5H0v31h20.5z"/>
+  <path fill="#00ac47" d="M82.6 8.68L69.5 19.42v33.66l13.16 10.79c1.97 1.54 4.85.135 4.85-2.37V11c0-2.535-2.945-3.925-4.91-2.32zM49.5 36v15.5h-29V72h43c3.315 0 6-2.685 6-6V53.08z"/>
+  <path fill="#ffba00" d="M63.5 0h-43v20.5h29V36l20-16.57V6c0-3.315-2.685-6-6-6z"/>
+</svg>
                           <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-slate-900 animate-ping" />
                         </button>
                       );
@@ -2486,13 +2598,14 @@ const [membersWidth, setMembersWidth] = useState(() => {
                         className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-sm"
                         title="Google Meet"
                       >
-                        <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                          <path fill="#00875A" d="M15 12l4.5-3.6a1 1 0 0 1 1.5.8v5.6a1 1 0 0 1-1.5.8L15 12z"/>
-                          <rect fill="#00A86B" x="3" y="6" width="11" height="12" rx="2"/>
-                          <path fill="#4285F4" d="M3 8a2 2 0 0 1 2-2h4v12H5a2 2 0 0 1-2-2V8z"/>
-                          <path fill="#EA4335" d="M3 16a2 2 0 0 0 2 2h4v-3H3v1z"/>
-                          <path fill="#FFBA00" d="M3 8a2 2 0 0 1 2-2h4v3H3V8z"/>
-                        </svg>
+                        <svg className="w-5 h-5 shrink-0" viewBox="0 0 87.5 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Google Meet" role="img">
+  <path fill="#00832d" d="M49.5 36l8.53 9.75 11.47 7.33 2-17.02-2-16.64-11.69 6.44z"/>
+  <path fill="#0066da" d="M0 51.5V66c0 3.315 2.685 6 6 6h14.5l3-10.96-3-9.54-9.95-3z"/>
+  <path fill="#e94235" d="M20.5 0L0 20.5l10.55 3 9.95-3 2.95-9.41z"/>
+  <path fill="#2684fc" d="M20.5 20.5H0v31h20.5z"/>
+  <path fill="#00ac47" d="M82.6 8.68L69.5 19.42v33.66l13.16 10.79c1.97 1.54 4.85.135 4.85-2.37V11c0-2.535-2.945-3.925-4.91-2.32zM49.5 36v15.5h-29V72h43c3.315 0 6-2.685 6-6V53.08z"/>
+  <path fill="#ffba00" d="M63.5 0h-43v20.5h29V36l20-16.57V6c0-3.315-2.685-6-6-6z"/>
+</svg>
                       </button>
                     );
                   })()}
@@ -2503,12 +2616,19 @@ const [membersWidth, setMembersWidth] = useState(() => {
                     className="cursor-pointer p-2 rounded-xl transition-all flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 shadow-sm"
                     title="Google Calendar"
                   >
-                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                      <rect x="3" y="4" width="18" height="17" rx="3" fill="#FFFFFF" stroke="#4285F4" strokeWidth="2" />
-                      <path d="M3 7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v3H3V7z" fill="#4285F4" />
-                      <path d="M18 4v3M6 4v3" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
-                      <text x="12" y="18" textAnchor="middle" fill="#4285F4" fontSize="8" fontWeight="bold" fontFamily="sans-serif">31</text>
-                    </svg>
+                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 200 200" aria-label="Google Calendar" role="img">
+  <g transform="translate(3.75 3.75)">
+    <path fill="#FFFFFF" d="M148.882,43.618l-47.368-5.263l-57.895,5.263L38.355,96.25l5.263,52.632l52.632,6.579l52.632-6.579l5.263-53.947L148.882,43.618z"/>
+    <path fill="#1A73E8" d="M65.211,125.276c-3.934-2.658-6.658-6.539-8.145-11.671l9.132-3.763c0.829,3.158,2.276,5.605,4.342,7.342c2.053,1.737,4.553,2.592,7.474,2.592c2.987,0,5.553-0.908,7.697-2.724s3.224-4.132,3.224-6.934c0-2.868-1.132-5.211-3.395-7.026s-5.105-2.724-8.5-2.724h-5.276v-9.039H76.5c2.921,0,5.382-0.789,7.382-2.368c2-1.579,3-3.737,3-6.487c0-2.447-0.895-4.395-2.684-5.855s-4.053-2.197-6.803-2.197c-2.684,0-4.816,0.711-6.395,2.145s-2.724,3.197-3.447,5.276l-9.039-3.763c1.197-3.395,3.395-6.395,6.618-8.987c3.224-2.592,7.342-3.895,12.342-3.895c3.697,0,7.026,0.711,9.974,2.145c2.947,1.434,5.263,3.421,6.934,5.947c1.671,2.539,2.5,5.382,2.5,8.539c0,3.224-0.776,5.947-2.329,8.184c-1.553,2.237-3.461,3.947-5.724,5.145v0.539c2.987,1.25,5.421,3.158,7.342,5.724c1.908,2.566,2.868,5.632,2.868,9.211s-0.908,6.776-2.724,9.579c-1.816,2.803-4.329,5.013-7.513,6.618c-3.197,1.605-6.789,2.421-10.776,2.421C73.408,129.263,69.145,127.934,65.211,125.276z"/>
+    <path fill="#1A73E8" d="M121.25,79.961l-9.974,7.25l-5.013-7.605l17.987-12.974h6.895v61.197h-9.895L121.25,79.961z"/>
+    <path fill="#EA4335" d="M148.882,196.25l47.368-47.368l-23.684-10.526l-23.684,10.526l-10.526,23.684L148.882,196.25z"/>
+    <path fill="#34A853" d="M33.092,172.566l10.526,23.684h105.263v-47.368H43.618L33.092,172.566z"/>
+    <path fill="#4285F4" d="M12.039-3.75C3.316-3.75-3.75,3.316-3.75,12.039v136.842l23.684,10.526l23.684-10.526V43.618h105.263l10.526-23.684L148.882-3.75H12.039z"/>
+    <path fill="#188038" d="M-3.75,148.882v31.579c0,8.724,7.066,15.789,15.789,15.789h31.579v-47.368H-3.75z"/>
+    <path fill="#FBBC04" d="M148.882,43.618v105.263h47.368V43.618l-23.684-10.526L148.882,43.618z"/>
+    <path fill="#1967D2" d="M196.25,43.618V12.039c0-8.724-7.066-15.789-15.789-15.789h-31.579v47.368H196.25z"/>
+  </g>
+</svg>
                   </button>
                   
 
@@ -2707,24 +2827,40 @@ const [membersWidth, setMembersWidth] = useState(() => {
 
                               {m.call_summary && (
                                 <div className={`mt-1 mb-2 rounded-xl bg-slate-900 border border-slate-800 shadow-md max-w-sm flex flex-col text-left text-xs animate-fade-in relative overflow-hidden text-white w-full ${isSelf ? 'self-end' : 'self-start'}`}>
-                                  {/* Call Summary Content - Keeping minimal for brevity */}
                                   <div className="flex items-center gap-2 p-3 border-b border-slate-800/80 bg-slate-800/20">
-                                    <span className="font-bold text-slate-200">Google Meet</span>
+                                    <span className="font-bold text-slate-200">
+                                      {m.call_summary.meet_status !== "Ended" ? "🟢 Google Meet ongoing" : "⚫ Google Meet ended"}
+                                    </span>
                                   </div>
                                   <div className="p-3">
                                     <div className="font-bold text-sm text-white leading-tight">
                                       {m.call_summary.title || "Google Meet"}
                                     </div>
-                                    <div className="mt-2 text-emerald-400 font-medium">
-                                      {m.call_summary.meet_status}
+                                    <div className="mt-2 text-slate-400 font-medium flex items-center gap-1.5 flex-wrap">
+                                      <span>{m.call_summary.joinedParticipants?.length || 0} participants</span>
+                                      <span>&middot;</span>
+                                      {m.call_summary.meet_status !== "Ended" ? (
+                                        <span>Started {m.call_summary.started_at ? new Date(m.call_summary.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : m.time}</span>
+                                      ) : (
+                                        <>
+                                          <span>{m.call_summary.duration}</span>
+                                        </>
+                                      )}
                                     </div>
+                                    {m.call_summary.meet_status === "Ended" && m.call_summary.started_at && m.call_summary.ended_at && (
+                                      <div className="mt-1 text-slate-500 font-medium">
+                                        {new Date(m.call_summary.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} &ndash; {new Date(m.call_summary.ended_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      </div>
+                                    )}
                                   </div>
-                                  {m.call_summary.meet_status !== "Ended" && (
-                                    <div className="flex items-center border-t border-slate-800/80 bg-slate-950/30">
-                                      <button onClick={() => handleJoinGoogleMeet(m.id)} className="flex-1 py-2 text-emerald-400 font-bold border-r border-slate-800/80">Join</button>
-                                      <button onClick={() => navigator.clipboard.writeText(m.call_summary?.meet_link || "")} className="flex-1 py-2 text-slate-400 hover:text-white">Copy Link</button>
-                                    </div>
-                                  )}
+                                  <div className="flex items-center border-t border-slate-800/80 bg-slate-950/30">
+                                    {m.call_summary.meet_status !== "Ended" && (
+                                      <button onClick={() => { window.open(m.call_summary?.meet_link || "", "_blank"); }} className="flex-1 py-2 text-emerald-400 font-bold border-r border-slate-800/80 cursor-pointer hover:bg-slate-800/50">Join meeting</button>
+                                    )}
+                                    <button onClick={() => { setParticipantsModalMessage(m); }} className="flex-1 py-2 text-slate-300 font-bold cursor-pointer hover:bg-slate-800/50 hover:text-white">
+                                      {m.call_summary.meet_status !== "Ended" ? `Participants (${m.call_summary.joinedParticipants?.length || 0})` : `View participants (${m.call_summary.joinedParticipants?.length || 0})`}
+                                    </button>
+                                  </div>
                                 </div>
                               )}
 
