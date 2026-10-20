@@ -494,13 +494,15 @@ export function RegisterTicket() {
     }
   }, []);
 
-  // Autosave when form values modify
-  useEffect(() => {
+  // Cleanup voice recording interval on unmount
   useEffect(() => {
     return () => {
       if (voiceIntervalRef.current) clearInterval(voiceIntervalRef.current);
     };
   }, []);
+
+  // Autosave when form values modify
+  useEffect(() => {
 
     // Avoid autosaving if user is editing an existing ticket (which has editTicketId)
     const stateObj = location.state as any;
