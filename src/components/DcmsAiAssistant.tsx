@@ -4,6 +4,15 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext.tsx";
 import { supabase } from "../lib/supabase.ts";
 import { 
+  fetchUserConversations, 
+  fetchConversationMessages, 
+  saveConversation, 
+  saveMessage, 
+  updateConversationTitle, 
+  updateConversationPin, 
+  deleteConversation 
+} from "../lib/aiChatDb.ts";
+import { 
   MessageSquare, X, Send, Sparkles, RefreshCw, Cpu, Globe, AppWindow, 
   HardDrive, Info, Plus, ChevronRight, AlertTriangle, Check, BookOpen, Settings, User as UserIcon, Bell, Shield, ArrowRight, CornerDownLeft,
   Paperclip, Mic, MicOff, Trash2, HelpCircle, FileText, ImageIcon, Lightbulb, Pin, DownloadCloud, Edit3, Search, Copy, CheckCircle2, Minus,
@@ -307,8 +316,9 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
 
   // Threads system for Chat History persistence
   const [threads, setThreads] = useState<ChatThread[]>([]);
-
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
+  const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   // User response preference (Brief vs. Detailed) - Defaulting to true (Brief)
   const [isBrief, setIsBrief] = useState<boolean>(() => {
@@ -371,19 +381,64 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       }, 50);
     }
   };
-  const handleRenameThread = (id: string, e: React.MouseEvent) => {
+
+  const handleSelectThread = async (threadId: string) => {
+    setActiveThreadId(threadId);
+    const existing = threads.find(t => t.id === threadId);
+    if (existing && existing.messages && existing.messages.length > 0) {
+      setMessages(existing.messages);
+    } else {
+      try {
+        const dbMsgs = await fetchConversationMessages(threadId);
+        if (dbMsgs && dbMsgs.length > 0) {
+          setMessages(dbMsgs);
+          setThreads(prev => prev.map(t => t.id === threadId ? { ...t, messages: dbMsgs } : t));
+        } else if (existing?.messages) {
+          setMessages(existing.messages);
+        } else {
+          setMessages([]);
+        }
+      } catch (err) {
+        console.error("Error restoring messages for thread:", err);
+      }
+    }
+  };
+
+  const handleRenameThread = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const t = threads.find(x => x.id === id);
     if (!t) return;
     const newName = prompt("Enter new chat name:", t.title);
-    if (newName && newName.trim()) {
-      setThreads(threads.map(x => x.id === id ? { ...x, title: newName.trim() } : x));
+    if (newName && newName.trim() && newName.trim() !== t.title) {
+      const trimmed = newName.trim();
+      setThreads(prev => prev.map(x => x.id === id ? { ...x, title: trimmed } : x));
+      setSavingStatus("saving");
+      try {
+        await updateConversationTitle(id, trimmed);
+        setSavingStatus("saved");
+      } catch (err) {
+        console.error("Failed to rename conversation in DB:", err);
+      } finally {
+        setTimeout(() => setSavingStatus("idle"), 2000);
+      }
     }
   };
 
-  const handlePinThread = (id: string, e: React.MouseEvent) => {
+  const handlePinThread = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setThreads(threads.map(x => x.id === id ? { ...x, is_pinned: !x.is_pinned } : x));
+    const t = threads.find(x => x.id === id);
+    if (!t) return;
+    const nextPinned = !t.is_pinned;
+    setThreads(prev => prev.map(x => x.id === id ? { ...x, is_pinned: nextPinned } : x));
+    setSavingStatus("saving");
+    try {
+      await updateConversationPin(id, nextPinned);
+      setSavingStatus("saved");
+    } catch (err) {
+      console.error("Failed to update pin status in DB:", err);
+    } finally {
+      setTimeout(() => setSavingStatus("idle"), 2000);
+    }
   };
   
   const handleExportChat = (thread: ChatThread) => {
@@ -499,107 +554,94 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
   };
 
   
-  // Sync logic to Supabase Memory
+  // Auto-update active thread messages in current view
   useEffect(() => {
-    // Auto-update active thread messages
     if (activeThreadId) {
       const current = threads.find((t) => t.id === activeThreadId);
-      if (current) {
+      if (current && current.messages) {
         setMessages(current.messages);
-      } else {
-        setMessages([]);
       }
-    } else {
-      setMessages([]);
     }
+  }, [threads, activeThreadId]);
 
-    // Performance Optimization: Skip expensive Supabase database write operations while typing animation is active
-    if (!dbUser || threads.length === 0 || loading) return;
-    
-    // Save current threads to DB in background
-    Promise.all(threads.map(async (t) => {
-       await supabase.from("ai_conversations").upsert({
-         id: t.id,
-         user_id: dbUser.id,
-         title: t.title,
-         is_pinned: t.is_pinned || false,
-         is_admin_record: dbUser.role === 'admin',
-         created_at: new Date(t.timestamp).toISOString(),
-         updated_at: new Date().toISOString()
-       });
-       
-       if (t.messages && t.messages.length > 0) {
-         const outMsgs = t.messages.map(m => ({
-           id: m.id,
-           conversation_id: t.id,
-           role: m.sender,
-           content: JSON.stringify({
-              text: m.text,
-              suggestedCategory: m.suggestedCategory,
-              suggestedSeverity: m.suggestedSeverity,
-              quickActions: m.quickActions,
-              file: m.file
-           }),
-           created_at: new Date(m.timestamp).toISOString()
-         }));
-         await supabase.from("ai_messages").upsert(outMsgs);
-       }
-    })).catch(console.error);
-    
-  }, [threads, activeThreadId, dbUser, loading]);
-
-  // Load from Supabase on init
+  // Load saved conversations and messages from Supabase on startup
   useEffect(() => {
-    if (!dbUser) return;
-    
-    const loadThreads = async () => {
+    let isCancelled = false;
+
+    const loadUserHistory = async () => {
+      if (!dbUser) {
+        setIsHistoryLoaded(true);
+        return;
+      }
+
       try {
-        const { data: convos } = await supabase.from('ai_conversations')
-          .select('*')
-          .eq('user_id', dbUser.id)
-          .eq('is_admin_record', dbUser.role === 'admin')
-          .order('created_at', { ascending: false });
-        if (convos && convos.length > 0) {
-          const { data: msgs } = await supabase.from('ai_messages').select('*').in('conversation_id', convos.map(c => c.id)).order('created_at', { ascending: true });
-          
-          const loadedThreads = convos.map(c => {
-             return {
-                 id: c.id,
-                 title: c.title,
-                 timestamp: new Date(c.created_at).getTime(),
-                 is_pinned: c.is_pinned || false,
-                 messages: (msgs || []).filter(m => m.conversation_id === c.id).map(m => {
-                     let parsedContent = { text: m.content };
-                     try { parsedContent = JSON.parse(m.content); } catch (e) {}
-                     return {
-                         id: m.id,
-                         sender: m.role,
-                         text: parsedContent.text || m.content,
-                         timestamp: new Date(m.created_at).getTime(),
-                         ...parsedContent
-                     };
-                 })
-             };
-          });
-          setThreads(loadedThreads);
-          if (!activeThreadId) {
-             setActiveThreadId(loadedThreads[0].id);
+        const loadedConversations = await fetchUserConversations(dbUser.id);
+        if (isCancelled) return;
+
+        if (loadedConversations && loadedConversations.length > 0) {
+          // Retrieve complete message history for the first conversation before allowing interaction
+          const firstConvo = loadedConversations[0];
+          const firstConvoMsgs = await fetchConversationMessages(firstConvo.id);
+          if (isCancelled) return;
+
+          firstConvo.messages = firstConvoMsgs;
+          setThreads(loadedConversations);
+          setActiveThreadId(firstConvo.id);
+          setMessages(firstConvoMsgs);
+        } else {
+          // If Supabase returned zero records, check local device cache fallback for this user
+          try {
+            const cached = localStorage.getItem(`dcms_ai_threads_${dbUser.id}`);
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setThreads(parsed);
+                setActiveThreadId(parsed[0].id);
+                setMessages(parsed[0].messages || []);
+                // Save to authoritative database in background
+                for (const t of parsed) {
+                  await saveConversation(t, dbUser.id, dbUser.role === "admin");
+                  for (const m of (t.messages || [])) {
+                    await saveMessage(m, t.id, dbUser.id, dbUser.name || "User");
+                  }
+                }
+              }
+            }
+          } catch (storageErr) {
+            console.error("Local storage recovery error:", storageErr);
           }
         }
       } catch (err) {
-        console.error("Failed to load DB threads", err);
+        console.error("Failed to load chat history from database:", err);
+      } finally {
+        if (!isCancelled) {
+          setIsHistoryLoaded(true);
+        }
       }
     };
-    loadThreads();
+
+    loadUserHistory();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [dbUser]);
 
-
-  // If page layout mounts, ensure we have at least one clean thread initialized
+  // Keep local device cache in sync as resilient offline backup
   useEffect(() => {
-    if (mode === "page" && threads.length === 0) {
+    if (dbUser && threads.length > 0 && isHistoryLoaded) {
+      try {
+        localStorage.setItem(`dcms_ai_threads_${dbUser.id}`, JSON.stringify(threads));
+      } catch (e) {}
+    }
+  }, [threads, dbUser, isHistoryLoaded]);
+
+  // Ensure an initial conversation exists once history loading has completed
+  useEffect(() => {
+    if (isHistoryLoaded && threads.length === 0) {
       handleCreateNewThread();
     }
-  }, [mode, threads]);
+  }, [isHistoryLoaded, threads.length]);
 
   // Scroll downwards when new messages arrive or thread changes
   useEffect(() => {
@@ -634,7 +676,6 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       const customEvent = e as CustomEvent;
       setIsOpen(true);
       if (customEvent.detail?.query) {
-        // If no active thread, make one
         if (!activeThreadId) {
           handleCreateNewThread();
         }
@@ -647,7 +688,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     return () => window.removeEventListener("dcms_open_chat", handleOpenGlobal);
   }, [threads, activeThreadId]);
 
-  const handleCreateNewThread = () => {
+  const handleCreateNewThread = async () => {
     let greetingText = "";
     if (chatbotMode === "admin") {
       greetingText = `Hello ${dbUser?.name || "System Admin"}! 👋 Welcome to **Workplace Hub AI Assistant (Admin Mode)**.\n\nI am dynamically paired with the Live Database. I can help you monitor SLA metrics, review urgent tickets, or compile overdue ticket summaries.\n\nType **Show urgent tickets** or ask **Which tickets are overdue?** to begin.`;
@@ -672,19 +713,45 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       messages: [defaultMsg]
     };
 
-    setThreads([newThread, ...threads]);
+    setThreads((prev) => [newThread, ...prev]);
     setActiveThreadId(newThread.id);
+    setMessages([defaultMsg]);
+
+    if (dbUser) {
+      setSavingStatus("saving");
+      try {
+        await saveConversation(newThread, dbUser.id, dbUser.role === "admin");
+        await saveMessage(defaultMsg, newThread.id, dbUser.id, "Workplace Hub AI Assistant");
+        setSavingStatus("saved");
+      } catch (err) {
+        console.error("Failed to save new thread to DB:", err);
+      } finally {
+        setTimeout(() => setSavingStatus("idle"), 2000);
+      }
+    }
   };
 
-  const handleDeleteThread = (threadId: string, e: React.MouseEvent) => {
+  const handleDeleteThread = async (threadId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const updated = threads.filter((t) => t.id !== threadId);
     setThreads(updated);
     if (activeThreadId === threadId) {
       if (updated.length > 0) {
-        setActiveThreadId(updated[0].id);
+        handleSelectThread(updated[0].id);
       } else {
         setActiveThreadId(null);
+        setMessages([]);
+      }
+    }
+    if (dbUser) {
+      setSavingStatus("saving");
+      try {
+        await deleteConversation(threadId);
+        setSavingStatus("saved");
+      } catch (err) {
+        console.error("Failed to delete thread from DB:", err);
+      } finally {
+        setTimeout(() => setSavingStatus("idle"), 2000);
       }
     }
   };
@@ -1049,6 +1116,21 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         messages: updatedMessages
       };
       setThreads(currentThreads);
+
+      if (dbUser && targetThreadId) {
+        setSavingStatus("saving");
+        saveConversation(
+          {
+            id: targetThreadId,
+            title,
+            timestamp: Date.now(),
+            is_pinned: thread.is_pinned
+          },
+          dbUser.id,
+          dbUser.role === "admin"
+        );
+        saveMessage(userMsg, targetThreadId, dbUser.id, dbUser.name || "User");
+      }
     }
 
 
@@ -1126,6 +1208,16 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
           }
           if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
           setLoading(false);
+          if (dbUser && targetThreadId) {
+            saveMessage(
+              { ...assistantMsg, text: localRuleResponse.text },
+              targetThreadId,
+              dbUser.id,
+              "Workplace Hub AI Assistant"
+            );
+            setSavingStatus("saved");
+            setTimeout(() => setSavingStatus("idle"), 2000);
+          }
         }
       }, 15);
       return;
@@ -1252,6 +1344,16 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
             clearInterval(typingIntervalRef.current);
             typingIntervalRef.current = null;
           }
+          if (dbUser && targetThreadId) {
+            saveMessage(
+              { ...assistantMsg, text: fullText },
+              targetThreadId,
+              dbUser.id,
+              "Workplace Hub AI Assistant"
+            );
+            setSavingStatus("saved");
+            setTimeout(() => setSavingStatus("idle"), 2000);
+          }
         }
       }, 10); // ultra high response speed
     } catch (err: any) {
@@ -1272,13 +1374,16 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         reLoadedThreads[targetIdx].messages = [...reLoadedThreads[targetIdx].messages, assistantMsg];
         setThreads(reLoadedThreads);
       }
+      if (dbUser && targetThreadId) {
+        saveMessage(assistantMsg, targetThreadId, dbUser.id, "Workplace Hub AI Assistant");
+      }
     } finally {
       if (loadingIntervalRef.current) clearInterval(loadingIntervalRef.current);
           setLoading(false);
     }
   };
 
-  const handleTriggerQuickAction = (action: string) => {
+  const handleTriggerQuickAction = async (action: string) => {
     switch (action) {
       case "register_ticket":
         navigate(dbUser?.role === "admin" ? "/admin/complaints" : "/dashboard/register");
@@ -1293,47 +1398,64 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       case "update_profile":
         navigate(dbUser?.role === "admin" ? "/admin/profile" : "/dashboard/profile");
         break;
-      case "export_pdf": {
-        const docText = `DCMS SYSTEM REPORT - WEEKLY OPERATIONS REPORT\n\nPeriod: 10 June - 17 June 2026\n\nTickets Created: 89\nResolved: 72\nPending: 17\nResolution Rate: 80.9%\n\nMost Frequent Issue: Network Connectivity\n\nRecommendations:\n1. Increase staffing during peak operations hours.\n2. Scheduled preventive network router maintenance.\n\nFile status: Verified Digital Copy\nGenerated: Wednesday, June 17, 2026`;
-        const blob = new Blob([docText], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "dcms_weekly_operations_report_verified.pdf";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        alert(`📊 PDF Download Initiated!\nYour verified Weekly Operations Report has been saved locally as 'dcms_weekly_operations_report_verified.pdf'.`);
-        return; // don't close helper modal
-      }
-      case "export_docx": {
-        const docText = `DCMS SYSTEM REPORT - WEEKLY OPERATIONS REPORT\n\nPeriod: 10 June - 17 June 2026\n\nTickets Created: 89\nResolved: 72\nPending: 17\nResolution Rate: 80.9%\n\nMost Frequent Issue: Network Connectivity\n\nRecommendations:\n1. Increase staffing during peak operations hours.\n2. Scheduled preventive network router maintenance.\n\nFile status: Verified Digital Copy\nGenerated: Wednesday, June 17, 2026`;
-        const blob = new Blob([docText], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "dcms_weekly_operations_report_verified.docx";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        alert(`📊 Word DOCX Export Initiated!\nYour verified Weekly Operations Report has been saved locally as 'dcms_weekly_operations_report_verified.docx'.`);
-        return; // don't close helper modal
-      }
+      case "export_pdf":
+      case "export_docx":
       case "export_csv": {
-        const docText = `"Period","Tickets Created","Resolved","Pending","Resolution Rate","Frequent Category"\n"10 June - 17 June 2026","89","72","17","80.9%","Network Connectivity"`;
-        const blob = new Blob([docText], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "dcms_weekly_operations_report_data.csv";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        alert(`📊 CSV Export Initiated!\nYour statistical report dataset has been saved locally as 'dcms_weekly_operations_report_data.csv'.`);
-        return; // don't close helper modal
+        try {
+          // Fetch live complaints from authoritative database matching permissions
+          let query = supabase.from("tickets").select("id, issue_type, severity, description, status, created_at");
+          if (dbUser?.role !== "admin" && dbUser?.id) {
+            query = query.eq("user_id", dbUser.id);
+          }
+          const { data: liveTickets } = await query.order("created_at", { ascending: false });
+          const tickets = liveTickets || [];
+
+          const total = tickets.length;
+          const pending = tickets.filter((t: any) => t.status === "Pending").length;
+          const inProgress = tickets.filter((t: any) => t.status === "In Progress").length;
+          const resolved = tickets.filter((t: any) => t.status === "Resolved").length;
+          const unresolved = tickets.filter((t: any) => t.status !== "Resolved").length;
+          const resolutionRate = total > 0 ? ((resolved / total) * 100).toFixed(1) : "0.0";
+          const todayStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+          if (action === "export_csv") {
+            let csvText = `"Ticket ID","Category","Severity","Status","Created At","Description"\n`;
+            tickets.forEach((t: any) => {
+              const desc = (t.description || "").replace(/"/g, '""').replace(/\n/g, ' ');
+              csvText += `"${t.id}","${t.issue_type || 'General'}","${t.severity || 'Normal'}","${t.status}","${t.created_at || ''}","${desc}"\n`;
+            });
+            const blob = new Blob([csvText], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `workplace_complaints_report_${Date.now()}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert(`📊 Live CSV Export Complete!\n\nMetrics:\n• Total Complaints: ${total}\n• Exact Pending: ${pending}\n• In Progress: ${inProgress}\n• Total Unresolved: ${unresolved}\n• Resolved: ${resolved}\n\nFile downloaded.`);
+            return;
+          }
+
+          const docText = `WORKPLACE HUB - AUTHORITATIVE COMPLAINTS OPERATIONS REPORT\n\nGenerated: ${todayStr}\nScope: ${dbUser?.role === "admin" ? "All System Complaints" : `Personal Complaints (${dbUser?.name || "User"})`}\n\nLIVE DATABASE METRICS:\n- Total Complaints: ${total}\n- Exact Pending: ${pending}\n- In Progress: ${inProgress}\n- Total Unresolved: ${unresolved}\n- Resolved: ${resolved}\n- Resolution Rate: ${resolutionRate}%\n\nCOMPLAINT RECORDS:\n${tickets.map((t: any) => `• [${t.status.toUpperCase()}] #${t.id.substring(0, 8)} - ${t.issue_type} (${t.severity}): ${(t.description || '').substring(0, 80)}`).join('\n') || "No complaints found in database."}\n\nFile status: Verified Authoritative Database Extract\nGenerated at: ${new Date().toISOString()}`;
+
+          const ext = action === "export_pdf" ? "pdf" : "docx";
+          const blob = new Blob([docText], { type: "text/plain" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `workplace_complaints_report_${Date.now()}.${ext}`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          alert(`📊 ${action === "export_pdf" ? "PDF" : "Word DOCX"} Download Complete!\n\nAuthoritative Live Metrics:\n• Total: ${total}\n• Pending: ${pending}\n• In Progress: ${inProgress}\n• Unresolved: ${unresolved}\n• Resolved: ${resolved}`);
+          return;
+        } catch (err: any) {
+          console.error("Export report error:", err);
+          alert("Failed to export live report: " + (err?.message || err));
+          return;
+        }
       }
       case "contact_support":
         // For Support we can just insert a message into chat or navigate to profile
@@ -1473,22 +1595,26 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     });
   };
 
-  // Group threads by timestamp for ChatGPT-style history navigation
-  
+  // Group threads by timestamp for ChatGPT-style history navigation (Today, Yesterday, Previous 7 Days, Older, and Pinned)
   const groupThreads = (threadsList: ChatThread[]) => {
     const pinned: ChatThread[] = [];
     const today: ChatThread[] = [];
     const yesterday: ChatThread[] = [];
+    const previous7Days: ChatThread[] = [];
     const older: ChatThread[] = [];
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     const oneDay = 24 * 60 * 60 * 1000;
     const startOfYesterday = startOfToday - oneDay;
+    const startOf7DaysAgo = startOfToday - (7 * oneDay);
 
     let searchFiltered = threadsList;
     if (searchQuery.trim()) {
-      searchFiltered = threadsList.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.messages.some(m => m.text.toLowerCase().includes(searchQuery.toLowerCase())));
+      searchFiltered = threadsList.filter(t => 
+        t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        t.messages.some(m => m.text?.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
     }
 
     searchFiltered.forEach((t) => {
@@ -1498,22 +1624,22 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         today.push(t);
       } else if (t.timestamp >= startOfYesterday) {
         yesterday.push(t);
+      } else if (t.timestamp >= startOf7DaysAgo) {
+        previous7Days.push(t);
       } else {
         older.push(t);
       }
     });
 
-    return { pinned, today, yesterday, older };
+    return { pinned, today, yesterday, previous7Days, older };
   };
 
-
-  
   const renderThreadLink = (thread: ChatThread) => {
     const isActive = thread.id === activeThreadId;
     return (
       <div
         key={thread.id}
-        onClick={() => setActiveThreadId(thread.id)}
+        onClick={() => handleSelectThread(thread.id)}
         className={`w-full group text-left px-3.5 py-2.5 rounded-xl cursor-pointer transition-all flex flex-col justify-center gap-1.5 ${
           isActive 
             ? "bg-blue-500/10 dark:bg-blue-500/10 border-l-4 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 font-extrabold" 
@@ -1522,7 +1648,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       >
         <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2 min-w-0">
-              {thread.is_pinned ? <Pin className="w-3.5 h-3.5 shrink-0" /> : <MessageSquare className="w-3.5 h-3.5 shrink-0 text-slate-400 dark:text-slate-500" />}
+              {thread.is_pinned ? <Pin className="w-3.5 h-3.5 shrink-0 text-blue-600 dark:text-blue-400" /> : <MessageSquare className="w-3.5 h-3.5 shrink-0 text-slate-400 dark:text-slate-500" />}
               <span className="text-xs font-bold truncate block">{thread.title}</span>
             </div>
             {isActive && (
@@ -1542,7 +1668,6 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
       </div>
     );
   };
-
 
   const lastAssistantMsg = [...messages].reverse().find(m => m.sender === "assistant" && m.suggestedQueries && m.suggestedQueries.length > 0);
   const currentSuggestions = (lastAssistantMsg && lastAssistantMsg.suggestedQueries)
@@ -1585,7 +1710,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
     <div className="flex-1 overflow-y-auto p-2.5 space-y-4 pb-10">
       {grouped.pinned.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 flex items-center gap-1"><Pin className="w-2.5 h-2.5" /> {"Pinned"}</p>
+          <p className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 flex items-center gap-1"><Pin className="w-2.5 h-2.5 text-blue-500" /> {"Pinned"}</p>
           {grouped.pinned.map(renderThreadLink)}
         </div>
       )}
@@ -1603,6 +1728,13 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
           {grouped.yesterday.map(renderThreadLink)}
         </div>
       )}
+
+      {grouped.previous7Days.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2">{"Previous 7 Days"}</p>
+          {grouped.previous7Days.map(renderThreadLink)}
+        </div>
+      )}
       
       {grouped.older.length > 0 && (
         <div className="space-y-1">
@@ -1615,7 +1747,9 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
         <div className="text-center p-6 text-2xs text-slate-400 dark:text-slate-600">{"No previous chats. Click \"New\" to begin."}</div>
       )}
     </div>
-  </div>{"\n\n"}{/* AI Chat workspace */}
+  </div>
+
+  {/* AI Chat workspace */}
         <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#070A13] lg:h-full min-h-0 overflow-hidden relative">
           
           {/* Header */}
@@ -1625,9 +1759,21 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
                 🤖
               </div>
               <div className="flex flex-col gap-0.5">
-                <h4 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <span className="md:hidden">🤖</span> {"Workplace Hub AI Assistant"}{getRoleBadge()}
-                </h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span className="md:hidden">🤖</span> {"Workplace Hub AI Assistant"}{getRoleBadge()}
+                  </h4>
+                  {savingStatus === "saving" && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-bold text-amber-500 bg-amber-500/10 animate-pulse">
+                      <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Saving...
+                    </span>
+                  )}
+                  {savingStatus === "saved" && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-bold text-emerald-500 bg-emerald-500/10">
+                      <Check className="w-2.5 h-2.5" /> Saved
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-col gap-0.5 mt-0.5">
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-tight">{"Your Smart Support Assistant"}</p>
                   <span className="hidden lg:block text-[8px] text-slate-400 font-black dark:text-slate-500 tracking-wider">{"SANDBOX DIRECT GROUNDING"}</span>
@@ -1659,6 +1805,7 @@ export default function DcmsAiAssistant({ mode = "floating" }: DcmsAiAssistantPr
               </div>
             </div>
           </div>
+
 
           {/* Messages block */}
           <div className="flex-1 overflow-y-auto p-6 pb-24 space-y-6 bg-slate-50/30 dark:bg-[#060912] scroll-smooth">

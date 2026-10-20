@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 
 export const getRooms = async () => {
-  const { data, error } = await supabase.from('team_channels').select('*');
+  const { data, error } = await supabase.from('team_channels').select('*').neq('description', 'ai_assistant');
   if (error) {
      if (error.code === 'PGRST205') console.warn('Supabase DB missing team_channels schema');
      return null;

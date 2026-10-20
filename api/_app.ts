@@ -176,9 +176,9 @@ async function callGeminiWithFallback(
     return { text: JSON.stringify({ ...fallbackValue, text: "Error: " + (lastError ? String(lastError.message || lastError) : "Unknown error") }) };
   }
 
-  // Multi-tier model array to maximize availability across different quotas
-  // Dynamic models array
-  const models = params.model ? [params.model, "gemini-2.5-flash", "gemini-3.1-pro-preview"] : ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
+  // Use reliable flash models to avoid 429 quota exhaustion (pro models have 0 free-tier quota)
+  const safeModel = (params.model && !params.model.includes("pro")) ? params.model : "gemini-2.5-flash";
+  const models = Array.from(new Set([safeModel, "gemini-2.5-flash"]));
 
   for (const model of models) {
     try {
@@ -198,11 +198,8 @@ async function callGeminiWithFallback(
         return response as any;
       }
     } catch (error: any) {
-      // Suppressed console.warn to avoid false positive error logs in AI Studio
-      console.error("Model", model, "failed:", error.message || error);
-      // removed
+      console.warn("Model fallback notice:", model, error?.message || error);
       lastError = error;
-      console.error("Model " + model + " failed with: " + String(error.message || error));
     }
   }
 
@@ -925,73 +922,97 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
       });
     }
 
-    // --- PARALLEL DATABASE FETCHING WITH CACHE ---
-    console.time("Parallel DB Fetch");
-    let fetchedTickets = [];
-    let fetchedNotices = [];
-    let fetchedFeedback = [];
-    let dbStats = { totalTickets: 0, pendingCount: 0, inProgressCount: 0, resolvedCount: 0 };
-    
+    // --- LIVE DATABASE FETCHING ---
+    // Queries the authoritative complaints database for all records matching the user's role and permissions
+    // Removes artificial single-record/page limits (limit 10/20/100) and ensures live data ground truth
+    console.time("Authoritative DB Fetch");
+    let fetchedTickets: any[] = [];
+    let fetchedNotices: any[] = [];
+    let fetchedFeedback: any[] = [];
+    let dbQueryError: string | null = null;
+
     if (supabase) {
-      const now = Date.now();
-      if (intent === "user_query" && systemContext?.userProfile?.id) {
-        const fetchPromises: any[] = [
-          supabase.from("tickets").select("id, issue_type, severity, description, status, created_at").eq("user_id", systemContext.userProfile.id).order("created_at", { ascending: false }).limit(10)
-        ];
-        
-        if (!globalCache.notices || now - globalCache.noticesFetchedAt > CACHE_TTL_MS) {
-          fetchPromises.push(supabase.from("notices").select("id, title, message, created_at").order("created_at", { ascending: false }).limit(5));
-        } else {
-          fetchPromises.push(Promise.resolve({ data: globalCache.notices }));
-        }
+      try {
+        if (role === "admin" || systemContext?.permissions?.includes("tickets.read")) {
+          // Admin has access to all complaints across the organization
+          const { data, error } = await supabase
+            .from("tickets")
+            .select("id, issue_type, severity, description, status, user_id, created_at, updated_at")
+            .order("created_at", { ascending: false });
 
-        const [ticketsRes, noticesRes] = await Promise.all(fetchPromises);
-        fetchedTickets = ticketsRes.data || [];
-        fetchedNotices = noticesRes.data || [];
-        
-        if (now - globalCache.noticesFetchedAt > CACHE_TTL_MS && noticesRes && noticesRes.data) {
-          globalCache.notices = noticesRes.data;
-          globalCache.noticesFetchedAt = now;
-        }
-      } else if (intent === "admin_query" || intent === "admin_analytics") {
-        const limit = intent === "admin_analytics" ? 100 : 20;
-        const fetchPromises: any[] = [
-          supabase.from("tickets").select("id, issue_type, severity, description, status, created_at").order("created_at", { ascending: false }).limit(limit)
-        ];
+          if (error) {
+            console.warn("Tickets fetch error (admin):", error.message);
+            dbQueryError = error.message;
+          } else {
+            fetchedTickets = data || [];
+          }
 
-        if (!globalCache.notices || now - globalCache.noticesFetchedAt > CACHE_TTL_MS) {
-          fetchPromises.push(supabase.from("notices").select("id, title, message, created_at").order("created_at", { ascending: false }).limit(5));
-        } else {
-          fetchPromises.push(Promise.resolve({ data: globalCache.notices }));
-        }
+          // Fetch notices & feedback for admin operations
+          const [noticesRes, feedbackRes] = await Promise.all([
+            supabase.from("notices").select("id, title, message, created_at").order("created_at", { ascending: false }).limit(10),
+            supabase.from("feedback").select("id, rating, message, created_at").order("created_at", { ascending: false }).limit(10)
+          ]);
+          fetchedNotices = noticesRes.data || [];
+          fetchedFeedback = feedbackRes.data || [];
+        } else if (role === "user" || systemContext?.permissions?.includes("ownTickets.read")) {
+          // Regular user has access to their own complaints
+          const userId = systemContext?.userProfile?.id;
+          if (userId) {
+            const { data, error } = await supabase
+              .from("tickets")
+              .select("id, issue_type, severity, description, status, user_id, created_at, updated_at")
+              .eq("user_id", userId)
+              .order("created_at", { ascending: false });
 
-        if (!globalCache.feedback || now - globalCache.feedbackFetchedAt > CACHE_TTL_MS) {
-          fetchPromises.push(supabase.from("feedback").select("id, rating, message, created_at").order("created_at", { ascending: false }).limit(10));
-        } else {
-          fetchPromises.push(Promise.resolve({ data: globalCache.feedback }));
-        }
+            if (error) {
+              console.warn("Tickets fetch error (user):", error.message);
+              dbQueryError = error.message;
+            } else {
+              fetchedTickets = data || [];
+            }
+          }
 
-        const [ticketsRes, noticesRes, feedbackRes] = await Promise.all(fetchPromises);
-        fetchedTickets = ticketsRes.data || [];
-        fetchedNotices = noticesRes.data || [];
-        fetchedFeedback = feedbackRes.data || [];
-        
-        if (now - globalCache.noticesFetchedAt > CACHE_TTL_MS && noticesRes && noticesRes.data) {
-          globalCache.notices = noticesRes.data;
-          globalCache.noticesFetchedAt = now;
+          // Fetch active broadcast notices
+          const noticesRes = await supabase.from("notices").select("id, title, message, created_at").order("created_at", { ascending: false }).limit(5);
+          fetchedNotices = noticesRes.data || [];
         }
-        if (now - globalCache.feedbackFetchedAt > CACHE_TTL_MS && feedbackRes && feedbackRes.data) {
-          globalCache.feedback = feedbackRes.data;
-          globalCache.feedbackFetchedAt = now;
-        }
-        
-        dbStats.totalTickets = fetchedTickets.length;
-        dbStats.pendingCount = fetchedTickets.filter((c: any) => c.status === "Pending").length;
-        dbStats.inProgressCount = fetchedTickets.filter((c: any) => c.status === "In Progress").length;
-        dbStats.resolvedCount = fetchedTickets.filter((c: any) => c.status === "Resolved").length;
+      } catch (err: any) {
+        console.warn("Database retrieval exception:", err?.message || err);
+        dbQueryError = err?.message || "Failed to query database";
       }
     }
-    console.timeEnd("Parallel DB Fetch");
+    console.timeEnd("Authoritative DB Fetch");
+
+    // --- ACCURATE DETERMINISTIC COUNTING ---
+    // Deterministic calculation strictly distinguishing Pending, In Progress, Resolved, and Unresolved
+    const totalTickets = fetchedTickets.length;
+    const pendingTickets = fetchedTickets.filter((c: any) => c.status === "Pending");
+    const inProgressTickets = fetchedTickets.filter((c: any) => c.status === "In Progress");
+    const resolvedTickets = fetchedTickets.filter((c: any) => c.status === "Resolved");
+    const otherTickets = fetchedTickets.filter((c: any) => !["Pending", "In Progress", "Resolved"].includes(c.status));
+    const unresolvedTickets = fetchedTickets.filter((c: any) => c.status !== "Resolved");
+
+    const pendingCount = pendingTickets.length;
+    const inProgressCount = inProgressTickets.length;
+    const resolvedCount = resolvedTickets.length;
+    const otherCount = otherTickets.length;
+    const unresolvedCount = unresolvedTickets.length; // Pending + In Progress + any other non-resolved status
+
+    const dbStats = {
+      totalTickets,
+      pendingCount,
+      inProgressCount,
+      resolvedCount,
+      otherCount,
+      unresolvedCount
+    };
+
+    // Construct Ground-Truth Representation
+    const ticketsGroundTruthStr = fetchedTickets.length > 0
+      ? fetchedTickets.map((c: any) => 
+          `- ID: "${c.id}" | Type: ${c.issue_type || "General"} | Severity: ${c.severity || "Normal"} | Status: "${c.status}" | Created: ${c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : 'N/A'} | Summary: ${(c.description || '').replace(/\s+/g, ' ').substring(0, 100)}`
+        ).join("\n")
+      : "No complaint records found matching this user's permissions in the database (Count: 0).";
 
     // Construct Context Prompt
     let databaseContextPrompt = "";
@@ -1000,12 +1021,40 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
       activeViewStr = `\n\n--- CURRENTLY SELECTED COMPLAINT ---\nThe user is actively viewing this specific complaint in the UI:\nID: ${systemContext.activeViewContext.selectedTicketId}\nCategory: ${systemContext.activeViewContext.category}\nTitle: ${systemContext.activeViewContext.title}\nDescription: ${systemContext.activeViewContext.description}\n\nWhen the user refers to "this complaint", "the complaint", or "it", they mean this selected complaint. Analyze it in detail.`;
     }
 
-    if (role === "user") {
-      databaseContextPrompt = `ACTIVE ROLE: Personal Support Assistant\nLogged-in User Name: ${systemContext?.userProfile?.name || "User"}\n\n--- GROUND-TRUTH STATUS ---\nThese are your tickets:\n${fetchedTickets.map((c: any) => `- Ticket #${c.id.toString().substring(0, 8).toUpperCase()}: ${c.issue_type} (${c.status})`).join("\n") || "No tickets found."}` + activeViewStr;
+    if (dbQueryError) {
+      databaseContextPrompt = `DATABASE RETRIEVAL STATUS:
+The live database query failed with error: "${dbQueryError}". Live complaint records could not be retrieved from the database. Do NOT guess or invent fake complaint data. Clearly state that live records are unavailable due to a database retrieval error.`;
     } else if (role === "admin") {
-      databaseContextPrompt = `ACTIVE ROLE: Administrative AI Assistant\nLogged-in Admin: ${systemContext?.userProfile?.name || "System Admin"}\n\n--- PRODUCTION DB METRICS ---\nTotal Tickets (Loaded): ${dbStats.totalTickets}\nPending: ${dbStats.pendingCount}\nIn Progress: ${dbStats.inProgressCount}\nResolved: ${dbStats.resolvedCount}\n\nRecent Tickets:\n${fetchedTickets.slice(0, 15).map((c: any) => `- Ticket #DCMS-${c.id.toString().substring(0, 5).toUpperCase()}: ${c.issue_type} | ${c.severity} | ${c.status}`).join("\n") || "No tickets."}` + activeViewStr;
+      databaseContextPrompt = `ACTIVE ROLE: Administrative AI Assistant
+Logged-in Admin: ${systemContext?.userProfile?.name || "System Admin"}
+
+=== AUTHORITATIVE DATABASE METRICS (STRICT GROUND TRUTH) ===
+- Total Complaints in Database: ${totalTickets}
+- Exact "Pending" Complaints: ${pendingCount}
+- Exact "In Progress" Complaints: ${inProgressCount}
+- Total Unresolved Complaints: ${unresolvedCount} (${pendingCount} Pending + ${inProgressCount} In Progress${otherCount > 0 ? ` + ${otherCount} other` : ""})
+- Exact "Resolved" Complaints: ${resolvedCount}
+${otherCount > 0 ? `- Other Status Complaints: ${otherCount}\n` : ""}
+
+=== LIVE DATABASE RECORDS (${totalTickets} Total) ===
+${ticketsGroundTruthStr}` + activeViewStr;
+    } else if (role === "user") {
+      databaseContextPrompt = `ACTIVE ROLE: Personal Support Assistant
+Logged-in User: ${systemContext?.userProfile?.name || "User"} (User ID: ${systemContext?.userProfile?.id || "N/A"})
+
+=== AUTHORITATIVE DATABASE METRICS (STRICT GROUND TRUTH) ===
+- Total Complaints Filed by You: ${totalTickets}
+- Exact "Pending" Complaints: ${pendingCount}
+- Exact "In Progress" Complaints: ${inProgressCount}
+- Total Unresolved Complaints: ${unresolvedCount} (${pendingCount} Pending + ${inProgressCount} In Progress${otherCount > 0 ? ` + ${otherCount} other` : ""})
+- Exact "Resolved" Complaints: ${resolvedCount}
+${otherCount > 0 ? `- Other Status Complaints: ${otherCount}\n` : ""}
+
+=== YOUR COMPLAINT RECORDS (${totalTickets} Total) ===
+${ticketsGroundTruthStr}` + activeViewStr;
     } else {
-      databaseContextPrompt = `ACTIVE ROLE: General Workplace Hub AI Assistant\nNo dynamic system context was passed in the request. Give polite general website support.`;
+      databaseContextPrompt = `ACTIVE ROLE: General Workplace Hub AI Assistant (Visitor Mode)
+No logged-in user profile. Visitors do not have access to private complaint records.`;
     }
 
     const { emotion, personaModifier } = emotionDetection(lastUserText, role === "admin");
@@ -1020,7 +1069,22 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
       formattingInstruction = "RESPONSE FORMATTING MANDATES (DETAILED):\n- Provide beautifully formatted, detailed answers utilizing bullet lists.\n- Avoid unrequested telemetry lines.";
     }
 
-    const systemInstruction = "You are '🤖 Workplace Hub AI Operations Assistant'.\n" + personaModifier + "\n\nCURRENT CONTEXT:\n" + databaseContextPrompt + "\n\n" + formattingInstruction + "\n\n" +
+    const truthfulnessRules = `
+CRITICAL TRUTHFULNESS & COUNTING RULES (NEVER VIOLATE):
+1. ACCURATE PENDING & UNRESOLVED COUNTING:
+   - When asked how many complaints/tickets are pending: ALWAYS report the exact Pending count (${pendingCount}), and separately provide the total unresolved count (${unresolvedCount}), explicitly stating that it includes ${inProgressCount} in progress.
+   - NEVER redefine 'Pending' to mean 'In Progress'. Pending and In Progress are distinct statuses in the database schema.
+   - If pending count is 0, explicitly say 0 pending complaints (and mention ${inProgressCount} in progress, total ${unresolvedCount} unresolved).
+2. PREVENT HALLUCINATIONS:
+   - Never invent ticket IDs, counts, status definitions, agent activity, or database records.
+   - ONLY reference tickets that exist in the LIVE DATABASE RECORDS above. If a user asks about a ticket that does not exist in the list, state clearly that it was not found in the database.
+   - If there are zero records, state that zero records were found.
+   - Never claim that AI cannot hallucinate or is infallible.
+3. DATABASE TRANSPARENCY:
+   - If query failed, clearly report the database query failure rather than guessing.
+`;
+
+    const systemInstruction = "You are '🤖 Workplace Hub AI Operations Assistant'.\n" + personaModifier + "\n\nCURRENT CONTEXT:\n" + databaseContextPrompt + "\n\n" + truthfulnessRules + "\n\n" + formattingInstruction + "\n\n" +
       "UI INSTRUCTION: If user requests tabular formats, reports, stats, metrics, you MUST return a 'table', 'chart', or 'kpi_cards' inside the 'structuredData' JSON object.";
 
     const recentMessages = messages.slice(-10).map((m: any) => ({
@@ -1046,15 +1110,14 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
     }
 
     const fallbackValue = {
-      text: "AI analysis is temporarily unavailable. Please try again.",
-      suggestedCategory: "Other", suggestedSeverity: "Low", quickActions: ["retry_analysis"], suggestedQueries: []
+      text: `There is currently ${pendingCount} pending complaint${pendingCount === 1 ? '' : 's'} and ${inProgressCount} in-progress complaint${inProgressCount === 1 ? '' : 's'}, giving ${unresolvedCount} total unresolved complaint${unresolvedCount === 1 ? '' : 's'} (out of ${totalTickets} total).`,
+      suggestedCategory: "General Query", suggestedSeverity: "Low", quickActions: ["view_tickets"], suggestedQueries: []
     };
 
     console.time("Gemini API Call");
-    // Use flash model by default for conversational requests, pro for admin analytics
-    const targetModel = intent === "admin_analytics" ? "gemini-3.1-pro-preview" : "gemini-2.5-flash";
+    // Always use reliable flash model to prevent 429 quota exhaustion
+    const targetModel = "gemini-2.5-flash";
     
-    // We pass model to callGeminiWithFallback (make sure it's updated)
     const response = await callGeminiWithFallback({
       model: targetModel,
       contents: recentMessages,
@@ -1099,11 +1162,55 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
 
     console.time("Response Formatting & Sending");
     const jsonText = response.text?.trim() || "{}";
-    res.json(JSON.parse(jsonText));
+    let parsed: any = {};
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch {
+      parsed = { text: jsonText };
+    }
+
+    // --- ACCURATE COUNTING ENFORCEMENT ---
+    // If user is inquiring about pending complaints or count of complaints, ensure deterministic counts are accurately reported
+    const isPendingCountQuery = /(how many|count|number of|any|what is the status of).*(pending|unresolved|open)/i.test(lowerText) ||
+                                /(pending|unresolved).*(complaint|ticket|how many|count)/i.test(lowerText) ||
+                                /how many.*are pending/i.test(lowerText);
+
+    if (isPendingCountQuery && !dbQueryError) {
+      // Deterministically guarantee exact Pending and separate Total Unresolved counts are in the text
+      const countSentence = pendingCount === 0 && inProgressCount === 0
+        ? `You currently have **0 pending complaints** and **0 in-progress complaints** (a total of **0 unresolved complaints**) out of ${totalTickets} total complaint${totalTickets === 1 ? '' : 's'}.`
+        : `You currently have **${pendingCount} pending complaint${pendingCount === 1 ? '' : 's'}** and **${inProgressCount} in-progress complaint${inProgressCount === 1 ? '' : 's'}**, for a total of **${unresolvedCount} unresolved complaint${unresolvedCount === 1 ? '' : 's'}** (out of ${totalTickets} total complaint${totalTickets === 1 ? '' : 's'}).`;
+
+      // Check if parsed text already clearly distinguishes Pending and In Progress
+      const mentionsPending = parsed.text?.toLowerCase().includes("pending");
+      const mentionsUnresolved = parsed.text?.toLowerCase().includes("unresolved") || parsed.text?.toLowerCase().includes("in progress");
+      
+      if (!mentionsPending || !mentionsUnresolved) {
+        parsed.text = `${countSentence}\n\n${parsed.text || ""}`.trim();
+      }
+    }
+
+    // Always include KPI metrics in structuredData if user asked for counts/reports or if missing
+    if (!parsed.structuredData || !parsed.structuredData.kpis) {
+      if (isPendingCountQuery || /(report|stat|metric|analytic|summary|status|complaint|ticket)/i.test(lowerText)) {
+        parsed.structuredData = {
+          type: "kpi_cards",
+          kpis: [
+            { label: "Pending", value: String(pendingCount), trend: pendingCount > 0 ? "Awaiting Review" : "0 Pending" },
+            { label: "In Progress", value: String(inProgressCount), trend: inProgressCount > 0 ? "Under Investigation" : "0 In Progress" },
+            { label: "Total Unresolved", value: String(unresolvedCount), trend: `${pendingCount} Pending + ${inProgressCount} In Progress` },
+            { label: "Resolved", value: String(resolvedCount), trend: `${resolvedCount} Resolved` },
+            { label: "Total Complaints", value: String(totalTickets), trend: "All Records" }
+          ]
+        };
+      }
+    }
+
+    res.json(parsed);
     console.timeEnd("Response Formatting & Sending");
     console.timeEnd("Chat Request Total");
   } catch (error: any) {
-    console.error("Gemini AI Chat Assist Error:", error);
+    console.warn("Gemini AI Chat Assist Warning:", error?.message || error);
     res.status(500).json({ error: error.message || "Failed to process chat assistance request." });
   }
 });
