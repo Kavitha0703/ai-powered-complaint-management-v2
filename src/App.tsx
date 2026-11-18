@@ -6,18 +6,41 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import React, { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import ProductTour from "./components/ProductTour.tsx";
-import AppInstallModal from "./components/AppInstallModal.tsx";
-import OnboardingWelcomeModal from "./components/OnboardingWelcomeModal.tsx";
 import { AuthProvider, useAuth } from "./lib/AuthContext.tsx";
-import Home from "./pages/Home.tsx";
-import AuthPage from "./pages/AuthPage.tsx";
-import DashboardLayout from "./components/DashboardLayout.tsx";
-import { UserDashboardStats, RegisterTicket, MyTickets, Notices, UserFeedback, UserProfile, UserSettings, DraftTickets, UserNotificationsView } from "./pages/UserPages.tsx";
-import { AdminStats, ManageTickets, ManageNotices, ViewFeedback, AdminProfile, AdminSettings } from "./pages/AdminPages.tsx";
-import { LayoutDashboard, FileText, Bell, MessageSquare, ClipboardList, Shield, User as UserIcon, Settings, Layers, Sparkles, BookOpen, Network, UserCog, Mail, Calendar as CalendarIcon } from "lucide-react";
+import { LayoutDashboard, FileText, Bell, MessageSquare, ClipboardList, Shield, Layers, Sparkles, BookOpen, Network, UserCog, Mail, Calendar as CalendarIcon } from "lucide-react";
 
-// Dynamic imports for code splitting & initial bundle optimization
+// Route-level code splitting so portals and auth pages load only what they need
+const Home = lazy(() => import("./pages/Home.tsx"));
+const AuthPage = lazy(() => import("./pages/AuthPage.tsx"));
+const DashboardLayout = lazy(() => import("./components/DashboardLayout.tsx"));
+const ProductTour = lazy(() => import("./components/ProductTour.tsx"));
+const AppInstallModal = lazy(() => import("./components/AppInstallModal.tsx"));
+const OnboardingWelcomeModal = lazy(() => import("./components/OnboardingWelcomeModal.tsx"));
+
+const lazyUserPage = <K extends keyof typeof import("./pages/UserPages.tsx")>(name: K) =>
+  lazy(() => import("./pages/UserPages.tsx").then((m) => ({ default: m[name] as React.ComponentType<any> })));
+
+const lazyAdminPage = <K extends keyof typeof import("./pages/AdminPages.tsx")>(name: K) =>
+  lazy(() => import("./pages/AdminPages.tsx").then((m) => ({ default: m[name] as React.ComponentType<any> })));
+
+const UserDashboardStats = lazyUserPage("UserDashboardStats");
+const RegisterTicket = lazyUserPage("RegisterTicket");
+const MyTickets = lazyUserPage("MyTickets");
+const Notices = lazyUserPage("Notices");
+const UserFeedback = lazyUserPage("UserFeedback");
+const UserProfile = lazyUserPage("UserProfile");
+const UserSettings = lazyUserPage("UserSettings");
+const DraftTickets = lazyUserPage("DraftTickets");
+const UserNotificationsView = lazyUserPage("UserNotificationsView");
+
+const AdminStats = lazyAdminPage("AdminStats");
+const ManageTickets = lazyAdminPage("ManageTickets");
+const ManageNotices = lazyAdminPage("ManageNotices");
+const ViewFeedback = lazyAdminPage("ViewFeedback");
+const AdminProfile = lazyAdminPage("AdminProfile");
+const AdminSettings = lazyAdminPage("AdminSettings");
+
+// Dynamic imports for secondary modules
 const AdminCommunicationCenter = lazy(() => import("./pages/AdminCommunicationCenter.tsx"));
 const AdminTeamChat = lazy(() => import("./pages/AdminTeamChat.tsx"));
 const AiAssistantPage = lazy(() => import("./pages/AiAssistantPage.tsx"));
@@ -41,57 +64,72 @@ function PageLoader() {
 }
 
 
-function UserPortal() {
-    
-  const { user, dbUser, loading } = useAuth();
-  
-  if (loading) return null;
-  if (!user || !dbUser) return <Navigate to="/auth/user" />;
-  if (dbUser.role === 'admin') return <Navigate to="/admin" />;
- 
-    const links = [
-      { label: "Overview", isHeader: true },
-      { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, exact: true },
-      { label: "🤖 AI Assistant", path: "/dashboard/ai-assistant", icon: Sparkles },
-      
-      { label: "Service Desk", isHeader: true },
-      { label: "Create Ticket", path: "/dashboard/register", icon: FileText },
-      { label: "My Tickets", path: "/dashboard/my-complaints", icon: ClipboardList },
-      { label: "Draft Tickets", path: "/dashboard/drafts", icon: Layers },
-      { label: "Help Center", path: "/dashboard/help", icon: BookOpen },
-      { label: "Calendar", path: "/dashboard/calendar", icon: CalendarIcon },
-      
-      { label: "Communication", isHeader: true },
-      { label: "Announcements", path: "/dashboard/notices", icon: Bell },
-      { label: "Notifications", path: "/dashboard/notifications", icon: Bell },
-      { label: "Feedback", path: "/dashboard/feedback", icon: MessageSquare },
-    ];
+function FullScreenAuthLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-screen w-full bg-[#020617] text-slate-300">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+        <span className="text-xs font-semibold tracking-wide text-slate-400">Verifying session...</span>
+      </div>
+    </div>
+  );
+}
 
-  return <DashboardLayout sidebarLinks={links}><Outlet /></DashboardLayout>;
+function UserPortal() {
+  const { user, dbUser, loading } = useAuth();
+
+  if (loading) return <FullScreenAuthLoader />;
+  if (!user || !dbUser) return <Navigate to="/auth/user" replace />;
+  if (dbUser.role === 'admin') return <Navigate to="/admin" replace />;
+
+  const links = [
+    { label: "Overview", isHeader: true },
+    { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, exact: true },
+    { label: "🤖 AI Assistant", path: "/dashboard/ai-assistant", icon: Sparkles },
+
+    { label: "Service Desk", isHeader: true },
+    { label: "Create Ticket", path: "/dashboard/register", icon: FileText },
+    { label: "My Tickets", path: "/dashboard/my-complaints", icon: ClipboardList },
+    { label: "Draft Tickets", path: "/dashboard/drafts", icon: Layers },
+    { label: "Help Center", path: "/dashboard/help", icon: BookOpen },
+    { label: "Calendar", path: "/dashboard/calendar", icon: CalendarIcon },
+
+    { label: "Communication", isHeader: true },
+    { label: "Announcements", path: "/dashboard/notices", icon: Bell },
+    { label: "Notifications", path: "/dashboard/notifications", icon: Bell },
+    { label: "Feedback", path: "/dashboard/feedback", icon: MessageSquare },
+  ];
+
+  return (
+    <DashboardLayout sidebarLinks={links}>
+      <Suspense fallback={<PageLoader />}>
+        <Outlet />
+      </Suspense>
+    </DashboardLayout>
+  );
 }
 
 function AdminPortal() {
-    
   const { user, dbUser, loading } = useAuth();
 
-  if (loading) return null;
-  if (!user || !dbUser) return <Navigate to="/auth/admin" />;
+  if (loading) return <FullScreenAuthLoader />;
+  if (!user || !dbUser) return <Navigate to="/auth/admin" replace />;
   if (dbUser.role !== 'admin') {
-     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
-           <Shield className="w-16 h-16 text-red-500 mb-4" />
-           <h1 className="text-3xl font-bold text-slate-800">{"Access Denied"}</h1>
-           <p className="text-slate-600 mt-2 text-center max-w-md">{"This Google account is not authorized as an administrator. Please contact your system administrator."}</p>
-           <a href="/dashboard" className="mt-6 text-primary-600 hover:underline">{"Return to Dashboard"}</a>
-        </div>
-     );
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
+        <Shield className="w-16 h-16 text-red-500 mb-4" />
+        <h1 className="text-3xl font-bold text-slate-800">{"Access Denied"}</h1>
+        <p className="text-slate-600 mt-2 text-center max-w-md">{"This account is not authorized as an administrator. Please contact your system administrator."}</p>
+        <a href="/dashboard" className="mt-6 text-primary-600 hover:underline">{"Return to Dashboard"}</a>
+      </div>
+    );
   }
 
   const links = [
     { label: "Overview", isHeader: true },
     { label: "Admin Dashboard", path: "/admin", icon: Shield, exact: true },
     { label: "🤖 AI Assistant", path: "/admin/ai-assistant", icon: Sparkles },
-    
+
     { label: "Ticket Center", isHeader: true },
     { label: "Manage Tickets", path: "/admin/complaints", icon: ClipboardList },
     { label: "Announcements", path: "/admin/notices", icon: Bell },
@@ -105,21 +143,53 @@ function AdminPortal() {
   ];
 
   return (
-      <DashboardLayout sidebarLinks={links}>
+    <DashboardLayout sidebarLinks={links}>
+      <Suspense fallback={<PageLoader />}>
         <Outlet />
-      </DashboardLayout>
+      </Suspense>
+    </DashboardLayout>
   );
 }
 
-function AuthRoute({ isAdmin }: { isAdmin: boolean }) {
-    
+function AuthRoute({ isAdmin }: { isAdmin?: boolean }) {
   const { user, dbUser, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <FullScreenAuthLoader />;
   if (user && dbUser) {
-    if (dbUser.role === 'admin') return <Navigate to="/admin" />;
-    return <Navigate to="/dashboard" />;
+    if (dbUser.role === 'admin') return <Navigate to="/admin" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
-  return <AuthPage isAdmin={isAdmin} />;
+  const hasInviteToken = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('token');
+  return <AuthPage isAdmin={isAdmin ?? hasInviteToken} />;
+}
+
+function OAuthCallbackFallback() {
+  const { user, dbUser, loading } = useAuth();
+
+  React.useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.opener && window.opener !== window) {
+        window.opener.postMessage(
+          {
+            type: 'SUPABASE_OAUTH_CALLBACK',
+            hash: window.location.hash || '',
+            search: window.location.search || '',
+          },
+          window.location.origin
+        );
+        window.close();
+      }
+    } catch {
+      // Ignore opener access errors
+    }
+  }, []);
+
+  if (loading) return <FullScreenAuthLoader />;
+  if (user && dbUser) {
+    return <Navigate to={dbUser.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  }
+  const search = typeof window !== 'undefined' ? window.location.search : '';
+  const hash = typeof window !== 'undefined' ? window.location.hash : '';
+  return <Navigate to={`/auth/user${search}${hash}`} replace />;
 }
 
 
@@ -202,12 +272,13 @@ export default function App() {
     <AuthProvider>
       
         <BrowserRouter>
-          
-          <ProductTour />
-          <AppInstallModal />
-          <OnboardingWelcomeModal />
+          <Suspense fallback={null}>
+            <ProductTour />
+            <AppInstallModal />
+            <OnboardingWelcomeModal />
+          </Suspense>
           <InstallSuccessModal />
-        <Suspense fallback={<PageLoader />}>
+        <Suspense fallback={<FullScreenAuthLoader />}>
           <Routes>
             
             <Route path="/" element={<Home />} />
@@ -215,8 +286,10 @@ export default function App() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<About />} />
+            <Route path="/auth" element={<AuthRoute />} />
             <Route path="/auth/user" element={<AuthRoute isAdmin={false} />} />
             <Route path="/auth/admin" element={<AuthRoute isAdmin={true} />} />
+            <Route path="/auth/callback" element={<OAuthCallbackFallback />} />
             
             <Route path="/dashboard" element={<UserPortal />}>
               <Route index element={<UserDashboardStats />} />
@@ -252,6 +325,8 @@ export default function App() {
               <Route path="help" element={<HelpCenter />} />
               <Route path="calendar" element={<CalendarApp />} />
             </Route>
+
+            <Route path="*" element={<Navigate to="/" replace />} />
 
           </Routes>
         </Suspense>

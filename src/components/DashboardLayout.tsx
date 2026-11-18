@@ -117,12 +117,24 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
       try {
         const listAlerts: any[] = [];
         
-        // 1. Fetch latest notices
-        const { data: notices } = await supabase
-          .from("notices")
-          .select("id, title, message, created_at")
-          .order("created_at", { ascending: false })
-          .limit(2);
+        let ticketQuery = supabase
+          .from("tickets")
+          .select("id, issue_type, status, created_at");
+        if (dbUser.role !== "admin") {
+          ticketQuery = ticketQuery.eq("user_id", dbUser.id);
+        }
+
+        // Fetch notices and latest tickets in parallel
+        const [{ data: notices }, { data: tickets }] = await Promise.all([
+          supabase
+            .from("notices")
+            .select("id, title, message, created_at")
+            .order("created_at", { ascending: false })
+            .limit(2),
+          ticketQuery
+            .order("created_at", { ascending: false })
+            .limit(3),
+        ]);
 
         if (notices) {
           notices.forEach(n => {
@@ -136,16 +148,6 @@ export default function DashboardLayout({ children, sidebarLinks }: { children: 
             });
           });
         }
-
-        // 2. Fetch latest tickets
-        let query = supabase.from("tickets").select("id, issue_type, status, created_at");
-        if (dbUser.role !== "admin") {
-          query = query.eq("user_id", dbUser.id);
-        }
-        
-        const { data: tickets } = await query
-          .order("created_at", { ascending: false })
-          .limit(3);
 
         if (tickets) {
           tickets.forEach((c: any) => {

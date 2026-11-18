@@ -40,18 +40,34 @@ export const HARDCODED_ADMINS: any[] = [
 ];
 
 export function getAdminInvites(): AdminInvite[] {
-  const data = localStorage.getItem(INVITES_KEY);
-  if (!data) {
-    // Seed an initial pending invite so the user can easily see and test the workflow
-    const seed: AdminInvite[] = [];
-    localStorage.setItem(INVITES_KEY, JSON.stringify(seed));
-    return seed;
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return [];
+    const data = window.localStorage.getItem(INVITES_KEY);
+    if (!data) {
+      const seed: AdminInvite[] = [];
+      try {
+        window.localStorage.setItem(INVITES_KEY, JSON.stringify(seed));
+      } catch {
+        // Ignore storage write errors in restricted contexts
+      }
+      return seed;
+    }
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.warn("[AdminManagementHelper] Failed to read admin invites from storage:", err);
+    return [];
   }
-  return JSON.parse(data);
 }
 
 export function saveAdminInvites(invites: AdminInvite[]) {
-  localStorage.setItem(INVITES_KEY, JSON.stringify(invites));
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      window.localStorage.setItem(INVITES_KEY, JSON.stringify(invites));
+    }
+  } catch (err) {
+    console.warn("[AdminManagementHelper] Failed to save admin invites to storage:", err);
+  }
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("dcms_admin_invites_updated"));
   }

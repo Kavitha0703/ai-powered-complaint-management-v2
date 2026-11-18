@@ -7,10 +7,9 @@ import { Input } from "../../components/ui/input.tsx";
 import { useAuth, ADMIN_EMAILS } from "../lib/AuthContext.tsx";
 import { Shield, User, Mail, Lock, ArrowLeft, Sparkles, CheckCircle2, Ticket, ChevronRight, HelpCircle } from "lucide-react";
 import { isEmailAdmin, getAdminInvites, saveAdminInvites } from "../lib/AdminManagementHelper.ts";
-import { signInWithGoogle } from "../lib/google/index.ts";
+import { signInWithGoogle } from "../lib/google/auth.ts";
 
 export default function AuthPage({ isAdmin }: { isAdmin?: boolean }) {
-    
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -18,24 +17,53 @@ export default function AuthPage({ isAdmin }: { isAdmin?: boolean }) {
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleAuthUrl, setGoogleAuthUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"login" | "register" | "forgot">("login");
   const { user, dbUser } = useAuth();
   const navigate = useNavigate();
+  const popupWatcherRef = React.useRef<number | null>(null);
 
-  // Check for invite token or prefilled email from URL
+  const formatAuthError = (rawMessage: string, attemptedEmail?: string) => {
+    const lower = rawMessage.toLowerCase();
+    if (lower.includes("failed to fetch") || lower.includes("networkerror") || lower.includes("load failed")) {
+      return "Unable to reach the authentication server (Supabase). Check your internet connection, disable ad-blockers/privacy shields blocking supabase.co, or verify your Supabase project is active.";
+    }
+    if (lower.includes("email not confirmed")) {
+      return "Please verify your email address to sign in. Check your inbox (and spam folder) for the confirmation link.";
+    }
+    if (lower.includes("invalid login credentials")) {
+      if (attemptedEmail?.toLowerCase() === "testdemo@admin.local") {
+        return "The evaluation demo account (testdemo@admin.local) is not provisioned in this Supabase project. Please sign in with your Google account or register a real email.";
+      }
+      return "Invalid email or password. If you originally registered with Google, click 'Continue with Google' below, or use 'Reset' if you need a password.";
+    }
+    return rawMessage;
+  };
+
+  // Check for invite token, prefilled email, or OAuth callback errors from URL
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const tokenParam = params.get("token");
     const emailParam = params.get("email");
     const modeParam = params.get("mode");
+    const urlError =
+      params.get("error_description") ||
+      hashParams.get("error_description") ||
+      params.get("error") ||
+      hashParams.get("error");
+
+    if (urlError) {
+      setError(`Authentication failed: ${urlError}`);
+    }
 
     if (emailParam) setEmail(emailParam);
     if (modeParam === "register" || tokenParam) setActiveTab("register");
 
     if (tokenParam || emailParam) {
       const invites = getAdminInvites();
-      const inv = invites.find(i => 
-        (tokenParam && i.token === tokenParam) || 
+      const inv = invites.find(i =>
+        (tokenParam && i.token === tokenParam) ||
         (emailParam && i.email.toLowerCase() === emailParam.toLowerCase())
       );
       if (inv) {
@@ -46,30 +74,60 @@ export default function AuthPage({ isAdmin }: { isAdmin?: boolean }) {
         }
       }
     }
+
+    const handlePopupError = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      if (popupWatcherRef.current) {
+        window.clearInterval(popupWatcherRef.current);
+        popupWatcherRef.current = null;
+      }
+      setLoading(false);
+      setMsg("");
+      setError(formatAuthError(customEvent.detail || "Google authentication failed."));
+    };
+
+    window.addEventListener("dcms_oauth_error", handlePopupError);
+    return () => {
+      window.removeEventListener("dcms_oauth_error", handlePopupError);
+      if (popupWatcherRef.current) {
+        window.clearInterval(popupWatcherRef.current);
+        popupWatcherRef.current = null;
+      }
+    };
   }, []);
+
+  // Stop loading if auth resolves while waiting on popup
+  React.useEffect(() => {
+    if (user && dbUser) {
+      if (popupWatcherRef.current) {
+        window.clearInterval(popupWatcherRef.current);
+        popupWatcherRef.current = null;
+      }
+      setLoading(false);
+    }
+  }, [user, dbUser]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
     const isUserAdmin = ADMIN_EMAILS.map(e => e.toLowerCase()).includes(cleanEmail) || isEmailAdmin(cleanEmail);
-    
-    if (isAdmin && !isUserAdmin) return setError("Unauthorized admin account.");
-    if (!isAdmin && isUserAdmin) return setError("This email belongs to an administrator. Please use Admin Portal.");
+
+    if (isAdmin && !isUserAdmin) {
+      return setError("Unauthorized admin account. Please switch to the User Portal or sign in with an administrator email.");
+    }
 
     try {
       setLoading(true);
       setError("");
-      setMsg("");
+      setMsg(!isAdmin && isUserAdmin ? "Administrator account detected — verifying credentials..." : "");
       const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
       if (error) {
-         if (error.message.includes('Email not confirmed')) {
-            setError("Please verify your email address to sign in. Check your inbox for a confirmation link.");
-         } else {
-            setError(error.message);
-         }
+        setMsg("");
+        setError(formatAuthError(error.message, cleanEmail));
       }
     } catch (err: any) {
-      setError(err.message || "Invalid credentials or access denied.");
+      setMsg("");
+      setError(formatAuthError(err?.message || "Invalid credentials or access denied.", cleanEmail));
     } finally {
       setLoading(false);
     }
@@ -80,23 +138,31 @@ export default function AuthPage({ isAdmin }: { isAdmin?: boolean }) {
     const cleanEmail = email.trim().toLowerCase();
     const isUserAdmin = ADMIN_EMAILS.map(e => e.toLowerCase()).includes(cleanEmail) || isEmailAdmin(cleanEmail);
 
-    if (isAdmin && !isUserAdmin) return setError("Unauthorized admin account.");
-    if (!isAdmin && isUserAdmin) return setError("This email belongs to an administrator. Please use Admin Portal.");
-    
+    if (isAdmin && !isUserAdmin) {
+      return setError("Unauthorized admin account. Only invited or authorized administrators can register on the Admin Portal.");
+    }
+
     if (password !== confirmPassword) {
       return setError("Passwords do not match.");
     }
+    if (password.length < 6) {
+      return setError("Password must be at least 6 characters long.");
+    }
+
     try {
       setLoading(true);
       setError("");
       setMsg("");
-      const { error } = await supabase.auth.signUp({
-        email: cleanEmail, 
+      const { data, error } = await supabase.auth.signUp({
+        email: cleanEmail,
         password,
-        options: { data: { name, full_name: name } }
+        options: {
+          data: { name, full_name: name },
+          emailRedirectTo: `${window.location.origin}${isUserAdmin ? "/admin" : "/dashboard"}`
+        }
       });
       if (error) {
-        setError(error.message);
+        setError(formatAuthError(error.message, cleanEmail));
       } else {
         // Successful sign up. If they were a pending admin invite, activate it!
         const invites = getAdminInvites();
@@ -107,13 +173,19 @@ export default function AuthPage({ isAdmin }: { isAdmin?: boolean }) {
           invites[pendingIdx].name = name || cleanEmail.split("@")[0];
           invites[pendingIdx].last_active = "Just now";
           saveAdminInvites(invites);
-          setMsg("Administrator registration complete! Your account is now active and ready for sign in.");
+          setMsg(
+            data?.session
+              ? "Administrator registration complete! Signing you into the Admin Portal..."
+              : "Administrator registration created! Please check your email to confirm your account, then sign in."
+          );
+        } else if (data?.session) {
+          setMsg("Account created! Signing you in...");
         } else {
           setMsg("Check your inbox to confirm your account and complete registration.");
         }
       }
     } catch (err: any) {
-      setError(err.message || "Failed to create account.");
+      setError(formatAuthError(err?.message || "Failed to create account.", cleanEmail));
     } finally {
       setLoading(false);
     }
@@ -123,16 +195,18 @@ export default function AuthPage({ isAdmin }: { isAdmin?: boolean }) {
     e.preventDefault();
     if (!email) return setError("Please enter an email to reset password.");
     try {
-       setLoading(true);
-       setError("");
-       setMsg("");
-       const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
-       if (error) setError(error.message);
-       else setMsg("Password reset link sent to your email.");
+      setLoading(true);
+      setError("");
+      setMsg("");
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}${isAdmin ? "/auth/admin" : "/auth/user"}`
+      });
+      if (error) setError(formatAuthError(error.message));
+      else setMsg("Password reset link sent to your email.");
     } catch (err: any) {
-       setError(err.message || "Failed to send reset link.");
+      setError(formatAuthError(err?.message || "Failed to send reset link."));
     } finally {
-       setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -140,7 +214,7 @@ export default function AuthPage({ isAdmin }: { isAdmin?: boolean }) {
     setEmail("testdemo@admin.local");
     setPassword("TestDemo123@");
     setError("");
-    setMsg("Evaluation keys applied. Click 'Submit Access' to log in.");
+    setMsg("Evaluation keys applied. Click 'Submit Access Credential' to log in.");
   };
 
   const handleGoogleAuth = async () => {
@@ -148,18 +222,48 @@ export default function AuthPage({ isAdmin }: { isAdmin?: boolean }) {
       setLoading(true);
       setError("");
       setMsg("");
+      setGoogleAuthUrl(null);
+      if (popupWatcherRef.current) {
+        window.clearInterval(popupWatcherRef.current);
+        popupWatcherRef.current = null;
+      }
+
       const result = await signInWithGoogle({ isAdmin });
       if (!result.success) {
-        setError(result.error || "Failed to sign in with Google.");
+        if (result.popupBlocked && result.url) {
+          setGoogleAuthUrl(result.url);
+        }
+        setError(formatAuthError(result.error || "Failed to sign in with Google."));
+        setLoading(false);
+        return;
+      }
+
+      if (result.mode === "popup") {
+        setMsg("Google sign-in window opened. Complete authentication in the popup...");
+        if (result.url) setGoogleAuthUrl(result.url);
+        const popup = result.popupWindow;
+        if (popup) {
+          popupWatcherRef.current = window.setInterval(() => {
+            try {
+              if (popup.closed) {
+                if (popupWatcherRef.current) {
+                  window.clearInterval(popupWatcherRef.current);
+                  popupWatcherRef.current = null;
+                }
+                setLoading(false);
+              }
+            } catch {
+              // Ignore cross-origin window property errors while popup navigates
+            }
+          }, 500);
+        } else {
+          setLoading(false);
+        }
       } else {
         setMsg("Redirecting to Google Authentication account chooser...");
-        if (result.data?.url) {
-          window.location.href = result.data.url;
-        }
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred with Google login.");
-    } finally {
+      setError(formatAuthError(err?.message || "An error occurred with Google login."));
       setLoading(false);
     }
   };
@@ -505,6 +609,17 @@ export default function AuthPage({ isAdmin }: { isAdmin?: boolean }) {
                     </svg>
                     <span>{isAdmin ? "Continue with Google (Admin)" : "Continue with Google"}</span>
                   </Button>
+
+                  {googleAuthUrl && (
+                    <a
+                      href={googleAuthUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full text-center text-[11px] font-bold text-blue-400 hover:text-blue-300 underline pt-1"
+                    >
+                      {"Popup didn't open? Launch Google Sign-In in new window →"}
+                    </a>
+                  )}
                 </div>
               )}
 

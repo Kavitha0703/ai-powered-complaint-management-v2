@@ -1,5 +1,5 @@
 import { ProfileAvatarManager } from "../components/ProfileAvatarManager";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, lazy, Suspense } from "react";
 
 import { useAuth } from "../lib/AuthContext.tsx";
 import { supabase } from "../lib/supabase.ts";
@@ -24,8 +24,9 @@ import {
 } from "lucide-react";
 import { SupportAttachment, DraftTicket, UserNotification, TicketComment, StatusHistoryEntry } from "../types.ts";
 import { MediaGallery } from "../components/MediaGallery.tsx";
-import DcmsCamera from "../components/DcmsCamera.tsx";
 import PWADiagnostics from "../components/PWADiagnostics.tsx";
+
+const DcmsCamera = lazy(() => import("../components/DcmsCamera.tsx"));
 
 export const CATEGORIES = [
   'IT Support',
@@ -83,34 +84,92 @@ function setStoredItem<T>(key: string, value: T) {
    1. USER DASHBOARD STATS (RESTRUCTURED)
    ========================================== */
 export function UserDashboardStats() {
-    
   const { user, dbUser } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ total: 0, pending: 0, inProgress: 0, resolved: 0, critical: 0 });
-  const [recent, setRecent] = useState<any[]>([]);
-  const [notices, setNotices] = useState<any[]>([]);
+  const cacheKey = user ? `dcms_user_stats_cache_v1_${user.id}` : null;
+
+  const [stats, setStats] = useState(() => {
+    if (cacheKey) {
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) return JSON.parse(cached)?.stats || { total: 0, pending: 0, inProgress: 0, resolved: 0, critical: 0 };
+      } catch { /* ignore */ }
+    }
+    return { total: 0, pending: 0, inProgress: 0, resolved: 0, critical: 0 };
+  });
+  const [recent, setRecent] = useState<any[]>(() => {
+    if (cacheKey) {
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) return JSON.parse(cached)?.recent || [];
+      } catch { /* ignore */ }
+    }
+    return [];
+  });
+  const [notices, setNotices] = useState<any[]>(() => {
+    if (cacheKey) {
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) return JSON.parse(cached)?.notices || [];
+      } catch { /* ignore */ }
+    }
+    return [];
+  });
 
   useEffect(() => {
     if (!user) return;
+    let active = true;
 
-    // Fetch tickets
-    supabase.from('tickets').select('*').eq('user_id', user.id).then(({ data, error }) => {
-      if (error) {
-        console.error("Dashboard Stats tickets fetch error:", error);
-      } else if (data) {
-        setStats({
-          total: data.length,
-          pending: data.filter(c => c.status === 'Pending').length,
-          inProgress: data.filter(c => c.status === 'In Progress').length,
-          resolved: data.filter(c => c.status === 'Resolved').length,
-          critical: data.filter(c => c.severity === 'Critical').length
-        });
-        setRecent(data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 3));
-      }
-    }).then(undefined, (err) => console.error("Unhandled tickets fetch error:", err));
+    Promise.all([
+      supabase
+        .from('tickets')
+        .select('id, status, severity, issue_type, description, created_at')
+        .eq('user_id', user.id),
+      supabase
+        .from('notices')
+        .select('id, title, message, created_at')
+        .order('created_at', { ascending: false })
+        .limit(2),
+    ])
+      .then(([ticketsRes, noticesRes]) => {
+        if (!active) return;
 
-    // Fetch notice broadcasts
-    supabase.from('notices').select('*').order('created_at', { ascending: false }).limit(2).then(({ data }) => setNotices(data || [])).then(undefined, console.error);
+        let nextStats = stats;
+        let nextRecent = recent;
+        let nextNotices = notices;
+
+        if (ticketsRes.error) {
+          console.error("Dashboard Stats tickets fetch error:", ticketsRes.error);
+        } else if (ticketsRes.data) {
+          const data = ticketsRes.data;
+          nextStats = {
+            total: data.length,
+            pending: data.filter(c => c.status === 'Pending').length,
+            inProgress: data.filter(c => c.status === 'In Progress').length,
+            resolved: data.filter(c => c.status === 'Resolved').length,
+            critical: data.filter(c => c.severity === 'Critical').length
+          };
+          nextRecent = [...data]
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .slice(0, 3);
+          setStats(nextStats);
+          setRecent(nextRecent);
+        }
+
+        if (noticesRes.data) {
+          nextNotices = noticesRes.data;
+          setNotices(nextNotices);
+        }
+
+        if (cacheKey) {
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ stats: nextStats, recent: nextRecent, notices: nextNotices }));
+          } catch { /* ignore quota */ }
+        }
+      })
+      .catch((err) => console.error("Unhandled dashboard fetch error:", err));
+
+    return () => { active = false; };
   }, [user]);
 
   // Notifications bell triggers
@@ -1468,33 +1527,35 @@ export function RegisterTicket() {
 
                   {/* Active Camera Viewfinder module */}
                   {cameraActive && (
-                    <DcmsCamera 
-                      onClose={() => setCameraActive(false)}
-                      onCapturePhotos={(photos) => {
-                        setAttachments(prev => [...prev, ...photos]);
-                        setCameraActive(false);
+                    <Suspense fallback={null}>
+                      <DcmsCamera 
+                        onClose={() => setCameraActive(false)}
+                        onCapturePhotos={(photos) => {
+                          setAttachments(prev => [...prev, ...photos]);
+                          setCameraActive(false);
 
-                        // Extract AI Predictions and OCR from captured snapshot to autofill form
-                        const firstPhoto = photos[0];
-                        if (firstPhoto) {
-                          const meta = (firstPhoto as any).suggestedMeta;
-                          if (meta) {
-                            if (meta.title) setTitle(meta.title);
-                            if (meta.category) setType(meta.category);
-                            if (meta.severity) setSeverity(meta.severity as any);
+                          // Extract AI Predictions and OCR from captured snapshot to autofill form
+                          const firstPhoto = photos[0];
+                          if (firstPhoto) {
+                            const meta = (firstPhoto as any).suggestedMeta;
+                            if (meta) {
+                              if (meta.title) setTitle(meta.title);
+                              if (meta.category) setType(meta.category);
+                              if (meta.severity) setSeverity(meta.severity as any);
+                            }
+                            
+                            const ocr = (firstPhoto as any).ocrText;
+                            if (ocr) {
+                              setDesc(prev => {
+                                const base = prev.trim();
+                                const ocrBlock = `\n\n--- [AI Camera OCR Text Extracted] ---\n${ocr}`;
+                                return base ? `${base}${ocrBlock}` : ocrBlock.trim();
+                              });
+                            }
                           }
-                          
-                          const ocr = (firstPhoto as any).ocrText;
-                          if (ocr) {
-                            setDesc(prev => {
-                              const base = prev.trim();
-                              const ocrBlock = `\n\n--- [AI Camera OCR Text Extracted] ---\n${ocr}`;
-                              return base ? `${base}${ocrBlock}` : ocrBlock.trim();
-                            });
-                          }
-                        }
-                      }}
-                    />
+                        }}
+                      />
+                    </Suspense>
                   )}
 
                   {/* HIGH-END MULTIMEDIA ATTACHMENTS GALLERY */}

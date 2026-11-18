@@ -65,7 +65,56 @@ app.delete('/api/calendar/events/:id', (req, res) => {
 app.use(express.json({ limit: "50mb" }));
 
 // Mount phase routes
-
+app.get(["/auth/callback", "/auth/callback/"], (_req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Completing Sign In - Workplace Hub</title>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #020617; color: #e2e8f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 24px; }
+    .card { max-width: 360px; background: #0b132b; border: 1px solid #1e293b; border-radius: 16px; padding: 24px; }
+    p { font-size: 14px; color: #94a3b8; line-height: 1.5; }
+    a, button { display: inline-block; margin-top: 12px; padding: 10px 16px; border-radius: 10px; background: #2563eb; color: #fff; text-decoration: none; border: none; font-weight: 600; cursor: pointer; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 style="margin:0 0 8px;font-size:18px;color:#fff;">Completing Sign In...</h2>
+    <p id="status">Returning you to Workplace Hub.</p>
+    <button id="closeBtn" style="display:none;" onclick="window.close()">Close Window</button>
+  </div>
+  <script>
+    (function () {
+      var hash = window.location.hash || "";
+      var search = window.location.search || "";
+      if (window.opener && !window.opener.closed) {
+        try {
+          window.opener.postMessage(
+            { type: "SUPABASE_OAUTH_CALLBACK", hash: hash, search: search },
+            window.location.origin
+          );
+        } catch (e) {
+          window.opener.postMessage(
+            { type: "SUPABASE_OAUTH_CALLBACK", hash: hash, search: search },
+            "*"
+          );
+        }
+        setTimeout(function () {
+          window.close();
+          document.getElementById("status").textContent = "Sign in complete. You may close this window.";
+          document.getElementById("closeBtn").style.display = "inline-block";
+        }, 150);
+      } else {
+        window.location.replace("/auth/user" + search + hash);
+      }
+    })();
+  </script>
+</body>
+</html>`);
+});
 
 app.get("/api/download-assets", async (req, res) => {
   try {

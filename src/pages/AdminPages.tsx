@@ -33,8 +33,6 @@ import {
 import { Input } from "../../components/ui/input.tsx";
 import { Textarea } from "../../components/ui/textarea.tsx";
 import { useNavigate } from "react-router-dom";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 import {
   LineChart,
@@ -82,21 +80,68 @@ export function AdminStats() {
   const { dbUser } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState<boolean>(true);
-  const [metrics, setMetrics] = useState({
-    total: 0,
-    pending: 0,
-    inProgress: 0,
-    resolved: 0,
-    critical: 0,
-    totalUsers: 0,
-    avgResolutionTime: `18.4 ${"hrs"}`,
+  const ADMIN_STATS_CACHE_KEY = "dcms_admin_stats_cache_v1";
+
+  const [loading, setLoading] = useState<boolean>(() => {
+    try {
+      return !sessionStorage.getItem(ADMIN_STATS_CACHE_KEY);
+    } catch {
+      return true;
+    }
+  });
+  const [metrics, setMetrics] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem(ADMIN_STATS_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.metrics) return parsed.metrics;
+      }
+    } catch {
+      // Ignore cache read error
+    }
+    return {
+      total: 0,
+      pending: 0,
+      inProgress: 0,
+      resolved: 0,
+      critical: 0,
+      totalUsers: 0,
+      avgResolutionTime: `0.0 ${"hrs"}`,
+    };
   });
 
-  const [severityData, setSeverityData] = useState<any[]>([]);
-  const [issueData, setIssueData] = useState<any[]>([]);
-  const [trendData, setTrendData] = useState<any[]>([]);
-  const [activities, setActivities] = useState<any[]>([]);
+  const [severityData, setSeverityData] = useState<any[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(ADMIN_STATS_CACHE_KEY);
+      return cached ? JSON.parse(cached)?.severityData || [] : [];
+    } catch {
+      return [];
+    }
+  });
+  const [issueData, setIssueData] = useState<any[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(ADMIN_STATS_CACHE_KEY);
+      return cached ? JSON.parse(cached)?.issueData || [] : [];
+    } catch {
+      return [];
+    }
+  });
+  const [trendData, setTrendData] = useState<any[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(ADMIN_STATS_CACHE_KEY);
+      return cached ? JSON.parse(cached)?.trendData || [] : [];
+    } catch {
+      return [];
+    }
+  });
+  const [activities, setActivities] = useState<any[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(ADMIN_STATS_CACHE_KEY);
+      return cached ? JSON.parse(cached)?.activities || [] : [];
+    } catch {
+      return [];
+    }
+  });
 
   const SEVERITY_COLORS: Record<string, string> = {
     Critical: "#EF4444", // Red-500
@@ -108,29 +153,34 @@ export function AdminStats() {
   const ISSUE_COLORS = ["#3B82F6", "#8B5CF6", "#EC4899", "#06B6D4", "#6366F1"];
 
   const loadDashboardData = async () => {
-    setLoading(true);
     try {
-      // 1. Fetch tickets
-      const { data: tickets, error: compErr } = await supabase
-        .from("tickets")
-        .select(`*, users!left(name, email)`);
+      // Fetch all dashboard datasets in parallel with minimal required columns
+      const [
+        ticketsRes,
+        { count: usersCount },
+        { data: notices },
+        feedbacksRes,
+      ] = await Promise.all([
+        supabase
+          .from("tickets")
+          .select("id, status, severity, issue_type, created_at, users!left(name, email)"),
+        supabase
+          .from("users")
+          .select("id", { count: "exact", head: true }),
+        supabase
+          .from("notices")
+          .select("id, title, created_at")
+          .order("created_at", { ascending: false })
+          .limit(10),
+        supabase
+          .from("feedback")
+          .select("id, rating, created_at, users!left(name, email)")
+          .order("created_at", { ascending: false })
+          .limit(10),
+      ]);
 
-      // 2. Fetch users
-      const { data: users, error: userErr } = await supabase
-        .from("users")
-        .select("*");
-
-      // 3. Fetch notices
-      const { data: notices } = await supabase
-        .from("notices")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      // 4. Fetch feedbacks
-      const { data: feedbacks } = await supabase
-        .from("feedback")
-        .select(`*, users!left(name, email)`)
-        .order("created_at", { ascending: false });
+      const tickets = ticketsRes.data as any[] | null;
+      const feedbacks = feedbacksRes.data as any[] | null;
 
       if (tickets) {
         const total = tickets.length;
@@ -142,7 +192,7 @@ export function AdminStats() {
         const critical = tickets.filter(
           (c) => c.severity === "Critical" || c.severity === "Urgent",
         ).length;
-        const totalUsersCount = users ? users.length : 0;
+        const totalUsersCount = typeof usersCount === "number" ? usersCount : 0;
 
         // Compute actual avg resolution time via localStorage status history
         let resolveDurations: number[] = [];
@@ -347,6 +397,30 @@ export function AdminStats() {
           .sort((a, b) => b.timestamp - a.timestamp)
           .slice(0, 10);
         setActivities(ordered);
+
+        try {
+          const nextMetrics = {
+            total,
+            pending,
+            inProgress,
+            resolved,
+            critical,
+            totalUsers: totalUsersCount,
+            avgResolutionTime: `${avgHrs} hrs`,
+          };
+          sessionStorage.setItem(
+            ADMIN_STATS_CACHE_KEY,
+            JSON.stringify({
+              metrics: nextMetrics,
+              severityData: sevChart,
+              issueData: issueChart,
+              trendData: monthlyChart,
+              activities: ordered.map(({ icon: _icon, ...rest }) => rest),
+            }),
+          );
+        } catch {
+          // Ignore sessionStorage quota errors
+        }
       }
     } catch (err) {
       console.error("Error compiling administrative metrics:", err);
@@ -785,7 +859,16 @@ export function AdminStats() {
               </div>
             ) : (
               activities.map((act, i) => {
-                const Icon = act.icon;
+                const ACTIVITY_ICONS: Record<string, React.ComponentType<any>> = {
+                  ticket_created: AlertTriangle,
+                  ticket_resolved: CheckCircle,
+                  notice_posted: Bell,
+                  feedback_received: MessageSquare,
+                  comment_added: Sparkles,
+                };
+                const Icon = typeof act.icon === "function" || (typeof act.icon === "object" && act.icon !== null)
+                  ? act.icon
+                  : (ACTIVITY_ICONS[act.type] || Activity);
                 return (
                   <div
                     key={act.id}
@@ -1086,7 +1169,11 @@ export function ManageTickets() {
     load();
   }, []);
 
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
     const doc = new jsPDF();
     doc.text("Tickets Report", 14, 15);
     autoTable(doc, {
